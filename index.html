@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Bolão Copa 2026</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
 :root{--g:#1a6b3a;--gl:#2d9653;--gd:#0f4424;--gold:#e8c44a;--bg:#f4f7f4;--card:#fff;--txt:#1a1a1a;--mu:#666;--brd:#dde6dd;--je:#e05c8b;--vi:#3d8ef0;--ch:#19c37d;--cl:#cc6b2c;}
@@ -106,42 +107,65 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .pts-0{background:#f8d7da;color:#721c24;}
 .pts-badge{font-size:10px;font-weight:700;padding:1px 5px;border-radius:10px;}
 
-/* Ranking */
-.rk-card{background:var(--card);border-radius:10px;border:1px solid var(--brd);padding:12px;margin-bottom:10px;}
-.rk-item{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--brd);}
-.rk-item:last-child{border-bottom:none;}
-.rk-pos{width:24px;height:24px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0;}
-.rk-pos.p1{background:var(--gold);color:#7a5a00;}.rk-pos.p2{background:#e0e0e0;color:#555;}.rk-pos.p3{background:#f5c5a0;color:#884400;}
-.rk-info{flex:1;}.rk-name{font-size:13px;font-weight:700;}.rk-sub{font-size:10px;color:var(--mu);margin-top:1px;}
-.rk-pts{font-size:18px;font-weight:700;color:var(--g);text-align:right;}
-.rk-pts small{font-size:10px;color:var(--mu);font-weight:400;}
-.progress-bar{height:3px;background:var(--brd);border-radius:2px;margin-top:4px;overflow:hidden;}
-.progress-fill{height:100%;border-radius:2px;}
-.tag-ia{font-size:9px;background:#fff3e0;color:#e65100;border-radius:3px;padding:1px 4px;font-weight:600;}
-.tag-human{font-size:9px;background:#e3f2fd;color:#0d47a1;border-radius:3px;padding:1px 4px;font-weight:600;}
+/* ─── Ranking & Estatísticas ─── */
+.section-title{display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:800;color:var(--gd);letter-spacing:.4px;margin:18px 4px 10px;}
 
-/* Stats */
-.vs-section{background:var(--gd);border-radius:10px;padding:12px;margin-bottom:8px;color:#fff;}
-.vs-section h3{font-size:12px;color:rgba(255,255,255,.6);margin-bottom:10px;text-align:center;}
-.vs-bars{display:flex;gap:14px;align-items:flex-end;justify-content:center;}
-.vs-group{text-align:center;}
-.vs-group .bar-wrap{width:70px;height:64px;display:flex;align-items:flex-end;justify-content:center;margin-bottom:4px;}
-.vs-group .bar{width:46px;border-radius:4px 4px 0 0;}
-.vs-group .bar.humans{background:#3d8ef0;}.vs-group .bar.ias{background:var(--gold);}
-.vs-group .bar-label{font-size:16px;font-weight:700;}.vs-group .bar-sub{font-size:10px;color:rgba(255,255,255,.6);}
-.vs-divider{font-size:16px;font-weight:700;color:rgba(255,255,255,.3);align-self:center;padding-bottom:18px;}
-.stat-card{background:var(--card);border-radius:10px;border:1px solid var(--brd);padding:10px;margin-bottom:8px;}
-.stat-phead{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
-.stat-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff;flex-shrink:0;}
-.stat-avatar.jessica{background:var(--je);}.stat-avatar.vinicius{background:var(--vi);}.stat-avatar.chatgpt{background:var(--ch);}.stat-avatar.claude{background:var(--cl);}
-.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;}
-.stat-box{background:var(--bg);border-radius:7px;padding:7px 10px;text-align:center;}
-.stat-box .val{font-size:18px;font-weight:700;color:var(--gd);}.stat-box .lbl{font-size:10px;color:var(--mu);}
-.cons-bar-wrap{display:flex;align-items:center;gap:6px;margin-top:3px;}
-.cons-bar{flex:1;height:4px;background:var(--brd);border-radius:2px;overflow:hidden;}
-.cons-fill{height:100%;border-radius:2px;}
-.best-game{font-size:11px;background:var(--bg);border-radius:5px;padding:5px 8px;color:var(--mu);margin-top:6px;}
+/* Leaderboard */
+.lead-board{background:var(--card);border-radius:16px;border:1px solid var(--brd);overflow:hidden;box-shadow:0 2px 12px rgba(15,68,36,.08);}
+.lead-head{background:linear-gradient(135deg,var(--gd),var(--g));padding:13px 14px;text-align:center;}
+.lead-head .lh-title{font-size:14px;font-weight:800;color:var(--gold);letter-spacing:.5px;}
+.lead-head .lh-sub{font-size:11px;color:rgba(255,255,255,.85);margin-top:3px;display:flex;align-items:center;justify-content:center;gap:5px;}
+.rk-row{display:flex;align-items:center;gap:11px;padding:12px 14px;border-bottom:1px solid var(--brd);}
+.rk-row:last-child{border-bottom:none;}
+.rk-row.lead{background:linear-gradient(90deg,rgba(232,196,74,.16),rgba(232,196,74,0));}
+.rk-medal{font-size:19px;width:24px;text-align:center;flex-shrink:0;font-weight:800;color:var(--mu);}
+.rk-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;color:#fff;flex-shrink:0;box-shadow:0 2px 5px rgba(0,0,0,.13);}
+.rk-mid{flex:1;min-width:0;}
+.rk-nm{display:flex;align-items:center;gap:6px;}
+.rk-nm b{font-size:14px;}
+.rk-sub2{font-size:10.5px;color:var(--mu);margin:2px 0 5px;}
+.rk-bar{height:5px;background:var(--bg);border-radius:3px;overflow:hidden;}
+.rk-bar i{display:block;height:100%;border-radius:3px;transition:width .5s ease;}
+.rk-tot{text-align:right;flex-shrink:0;}
+.rk-tot b{font-size:22px;font-weight:800;color:var(--g);line-height:1;}
+.rk-tot span{display:block;font-size:9px;color:var(--mu);margin-top:1px;}
+.tag-ia{font-size:9px;background:#fff3e0;color:#e65100;border-radius:4px;padding:1px 5px;font-weight:700;}
+.tag-human{font-size:9px;background:#e3f2fd;color:#0d47a1;border-radius:4px;padding:1px 5px;font-weight:700;}
+
+/* Versus battle cards */
+.vs2{background:var(--card);border:1px solid var(--brd);border-radius:14px;padding:13px 15px;box-shadow:0 2px 8px rgba(15,68,36,.05);}
+.vs2+.vs2{margin-top:9px;}
+.vs2-title{font-size:12px;font-weight:800;color:var(--gd);text-align:center;margin-bottom:11px;}
+.vs2-row{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px;}
+.vs2-side{min-width:0;}.vs2-side.r{text-align:right;}
+.vs2-nm{font-size:12.5px;font-weight:800;}
+.vs2-mem{font-size:9.5px;color:var(--mu);margin-top:1px;}
+.vs2-pts{font-size:21px;font-weight:800;line-height:1.3;}
+.vs2-bar{display:flex;height:15px;border-radius:8px;overflow:hidden;background:var(--bg);}
+.vs2-seg{height:100%;transition:width .5s ease;min-width:2px;}
+.vs2-foot{text-align:center;font-size:11.5px;font-weight:800;margin-top:9px;}
+
+/* Player stat cards */
+.stat-card{background:var(--card);border-radius:14px;border:1px solid var(--brd);padding:12px 13px;box-shadow:0 2px 8px rgba(15,68,36,.05);}
+.stat-card+.stat-card{margin-top:9px;}
+.stat-phead{display:flex;align-items:center;gap:10px;margin-bottom:11px;}
+.stat-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:#fff;flex-shrink:0;box-shadow:0 2px 5px rgba(0,0,0,.13);}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:11px;}
+.stat-box{background:var(--bg);border-radius:10px;padding:9px 8px;text-align:center;}
+.stat-box .val{font-size:21px;font-weight:800;color:var(--gd);line-height:1;}
+.stat-box .lbl{font-size:10px;color:var(--mu);margin-top:4px;display:flex;align-items:center;justify-content:center;gap:3px;}
+.stat-line-lbl{font-size:11px;color:var(--mu);font-weight:700;margin-bottom:3px;display:flex;align-items:center;gap:4px;}
+.cons-bar-wrap{display:flex;align-items:center;gap:8px;}
+.cons-bar{flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden;}
+.cons-fill{height:100%;border-radius:4px;transition:width .5s ease;}
+.best-game{font-size:11px;background:var(--bg);border-radius:9px;padding:8px 10px;color:var(--mu);margin-top:10px;}
 .best-game strong{color:var(--txt);}
+
+/* Tooltip "?" */
+.q{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:var(--gl);color:#fff;font-size:10px;font-weight:800;cursor:pointer;flex-shrink:0;line-height:1;-webkit-tap-highlight-color:transparent;}
+.lead-head .q{background:rgba(255,255,255,.4);}
+#floating-tip{position:absolute;display:none;background:#1d1d1f;color:#fff;font-size:11.5px;font-weight:500;line-height:1.5;padding:10px 12px;border-radius:10px;z-index:9999;box-shadow:0 6px 22px rgba(0,0,0,.32);pointer-events:none;}
+
 .empty-state{text-align:center;padding:24px 12px;color:var(--mu);font-size:13px;}
 </style>
 </head>
@@ -156,15 +180,13 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
   <h1>⚽ Bolão <span>Copa 2026</span> <span id="sync-indicator" style="font-size:10px;font-weight:400;opacity:.7"></span></h1>
   <nav>
     <button class="active" onclick="showTab('palpites')">Palpites</button>
-    <button onclick="showTab('ranking')">Ranking</button>
-    <button onclick="showTab('estatisticas')">Estatísticas</button>
+    <button onclick="showTab('ranking')">Ranking &amp; Stats</button>
   </nav>
 </header>
 <main>
   <div id="error-banner" class="error-banner" style="display:none"></div>
   <div id="tab-palpites" class="tab active"></div>
   <div id="tab-ranking" class="tab"></div>
-  <div id="tab-estatisticas" class="tab"></div>
 </main>
 
 <script>
@@ -340,8 +362,7 @@ function setFilter(f){filterMode=f;localStorage.setItem('bf',f);renderPalpites()
 
 function renderAll(){
   if(activeTab==='palpites')renderPalpites();
-  else if(activeTab==='ranking')renderRanking();
-  else renderEstatisticas();
+  else renderRanking();
 }
 
 // ─── SCORING ──────────────────────────────────────────────────────────────────
@@ -546,73 +567,118 @@ function getStats(pid){
   return{total,rHits,eHits,avg,sd,bestG,bestP,played:ptsList.length,bias};
 }
 
+// ─── TOOLTIPS EXPLICATIVOS ────────────────────────────────────────────────────
+const TIPS={
+  pontuacao:'Cada jogo vale até 10 pontos: +5 por acertar o resultado (quem venceu ou empate), +1 por acertar os gols do 1º time, +1 por acertar os gols do 2º time e +3 de bônus se cravar o placar exato.',
+  media:'Quantos pontos a pessoa faz, em média, por jogo já contabilizado. Quanto maior, melhor.',
+  resultado:'Quantas vezes acertou quem venceu a partida (ou o empate), mesmo sem cravar o placar. Cada acerto desses já garante 5 pontos.',
+  exato:'Quantas vezes cravou o placar exatinho — ex.: previu 2×1 e o jogo terminou 2×1. É a pontuação máxima do jogo (10 pts).',
+  vies:'A tendência dos palpites: "Otimista" costuma chutar muitos gols, "Pessimista" chuta poucos e "Neutro" fica no meio. É a diferença média entre os gols previstos e os que realmente aconteceram.',
+  consistencia:'Mede o quão regular a pessoa é. Nota alta = pontua de forma parecida em todos os jogos (mais confiável). Nota baixa = oscila muito: às vezes vai muito bem, às vezes zera.',
+};
+function showTip(ev,key){
+  ev.stopPropagation();
+  let el=document.getElementById('floating-tip');
+  if(!el){el=document.createElement('div');el.id='floating-tip';document.body.appendChild(el);}
+  el.textContent=TIPS[key];
+  el.style.display='block';
+  const w=Math.min(250,window.innerWidth-24);
+  el.style.width=w+'px';
+  const r=ev.currentTarget.getBoundingClientRect();
+  let left=r.left+r.width/2-w/2+window.scrollX;
+  left=Math.max(window.scrollX+12,Math.min(left,window.scrollX+window.innerWidth-w-12));
+  el.style.left=left+'px';
+  el.style.top=(r.bottom+window.scrollY+7)+'px';
+}
+function hideTip(){const el=document.getElementById('floating-tip');if(el)el.style.display='none';}
+document.addEventListener('click',hideTip);
+function q(key){return `<span class="q" onclick="showTip(event,'${key}')" onmouseenter="showTip(event,'${key}')" onmouseleave="hideTip()">?</span>`;}
+
+function versus(title,lName,lMem,lPts,lCol,rName,rMem,rPts,rCol){
+  const tot=lPts+rPts;
+  const lw=tot>0?(lPts/tot*100):50, rw=tot>0?(rPts/tot*100):50;
+  const lt=lCol==='#e8c44a'?'#b8941f':lCol, rt=rCol==='#e8c44a'?'#b8941f':rCol;
+  const foot=lPts>rPts?`🏆 ${lName} na frente!`:rPts>lPts?`🏆 ${rName} na frente!`:(tot>0?'🤝 Empate técnico!':'Sem pontos ainda');
+  const fc=lPts>rPts?lt:rPts>lPts?rt:'var(--mu)';
+  return `<div class="vs2">
+    <div class="vs2-title">${title}</div>
+    <div class="vs2-row">
+      <div class="vs2-side"><div class="vs2-nm" style="color:${lt}">${lName}</div><div class="vs2-mem">${lMem}</div><div class="vs2-pts" style="color:${lt}">${lPts}</div></div>
+      <div class="vs2-side r"><div class="vs2-nm" style="color:${rt}">${rName}</div><div class="vs2-mem">${rMem}</div><div class="vs2-pts" style="color:${rt}">${rPts}</div></div>
+    </div>
+    <div class="vs2-bar"><div class="vs2-seg" style="width:${lw}%;background:${lCol}"></div><div class="vs2-seg" style="width:${rw}%;background:${rCol}"></div></div>
+    <div class="vs2-foot" style="color:${fc}">${foot}</div>
+  </div>`;
+}
+
+// ─── RANKING + ESTATÍSTICAS (página única) ────────────────────────────────────
 function renderRanking(){
   const fin=GT.map(t=>getGame(t.id)).filter(g=>!g.removed&&g.finished&&g.realA!=='').length;
   const tot=GT.filter(t=>!getGame(t.id).removed).length;
-  const stats=PARTICIPANTS.map(p=>({...p,...getStats(p.id)})).sort((a,b)=>b.total-a.total||b.rHits-a.rHits);
-  const mx=Math.max(1,...stats.map(s=>s.total));
+  const sAll=PARTICIPANTS.map(p=>({...p,...getStats(p.id)}));
+  const ranked=[...sAll].sort((a,b)=>b.total-a.total||b.rHits-a.rHits||b.eHits-a.eHits);
+  const mx=Math.max(1,...ranked.map(s=>s.total));
+  const medals=['🥇','🥈','🥉','4️⃣'];
 
-  let html=`<div class="rk-card"><div style="text-align:center;font-size:11px;color:var(--mu);margin-bottom:8px">${fin} de ${tot} jogos finalizados com placar</div>`;
-  stats.forEach((p,i)=>{
-    const pc=i===0?'p1':i===1?'p2':i===2?'p3':'';
-    html+=`<div class="rk-item">
-      <div class="rk-pos ${pc}">${i+1}</div>
-      <div class="rk-info">
-        <div style="display:flex;align-items:center;gap:5px"><span class="rk-name">${p.name}</span><span class="${p.type==='ia'?'tag-ia':'tag-human'}">${p.type==='ia'?'IA':'Humano'}</span></div>
-        <div class="rk-sub">${p.rHits} result. · ${p.eHits} exato · avg ${p.avg.toFixed(1)}pts</div>
-        <div class="progress-bar"><div class="progress-fill" style="width:${mx>0?(p.total/mx*100).toFixed(0):0}%;background:${p.color}"></div></div>
+  // 1) Leaderboard consolidado
+  let html=`<div class="lead-board">
+    <div class="lead-head">
+      <div class="lh-title">🏆 CLASSIFICAÇÃO GERAL</div>
+      <div class="lh-sub">${fin} de ${tot} jogos contabilizados ${q('pontuacao')}</div>
+    </div>`;
+  ranked.forEach((p,i)=>{
+    html+=`<div class="rk-row${i===0&&p.total>0?' lead':''}">
+      <div class="rk-medal">${medals[i]||(i+1)}</div>
+      <div class="rk-av" style="background:${p.color}">${p.name[0]}</div>
+      <div class="rk-mid">
+        <div class="rk-nm"><b>${p.name}</b><span class="${p.type==='ia'?'tag-ia':'tag-human'}">${p.type==='ia'?'IA':'Humano'}</span></div>
+        <div class="rk-sub2">✓ ${p.rHits} resultados · 🎯 ${p.eHits} exatos · ⌀ ${p.avg.toFixed(1)} pts</div>
+        <div class="rk-bar"><i style="width:${(p.total/mx*100).toFixed(0)}%;background:${p.color}"></i></div>
       </div>
-      <div class="rk-pts">${p.total}<br><small>pts</small></div>
+      <div class="rk-tot"><b>${p.total}</b><span>pts</span></div>
     </div>`;
   });
   html+=`</div>`;
-  document.getElementById('tab-ranking').innerHTML=html;
-}
 
-// ─── ESTATÍSTICAS ─────────────────────────────────────────────────────────────
-function renderEstatisticas(){
-  const sAll=PARTICIPANTS.map(p=>({...p,...getStats(p.id)}));
+  // 2) Comparativos
   const hP=sAll.filter(p=>p.type==='human').reduce((s,p)=>s+p.total,0);
   const iP=sAll.filter(p=>p.type==='ia').reduce((s,p)=>s+p.total,0);
-  const mx=Math.max(hP,iP,1);
-  const hH=Math.max(6,Math.round(hP/mx*60)),iH=Math.max(6,Math.round(iP/mx*60));
+  const byId=id=>sAll.find(p=>p.id===id).total;
+  const jecaTeam=byId('jessica')+byId('chatgpt');
+  const viniTeam=byId('vinicius')+byId('claude');
 
-  let html=`<div class="vs-section"><h3>🤝 HUMANOS VS IAs</h3>
-    <div class="vs-bars">
-      <div class="vs-group"><div class="bar-wrap"><div class="bar humans" style="height:${hH}px"></div></div>
-        <div class="bar-label">${hP}</div><div class="bar-sub">Humanos</div></div>
-      <div class="vs-divider">VS</div>
-      <div class="vs-group"><div class="bar-wrap"><div class="bar ias" style="height:${iH}px"></div></div>
-        <div class="bar-label">${iP}</div><div class="bar-sub">IAs</div></div>
-    </div>
-    <div style="text-align:center;margin-top:8px;font-size:11px;color:rgba(255,255,255,.7)">${hP>iP?'🏆 Humanos na frente!':iP>hP?'🤖 IAs na frente!':'🤝 Empatados!'}</div>
-  </div>`;
+  html+=`<div class="section-title">⚔️ COMPARATIVOS</div>`;
+  html+=versus('🤝 Humanos vs IAs','Humanos','Jeca + Vini',hP,'#3d8ef0','IAs','ChatGPT + Claude',iP,'#e8c44a');
+  html+=versus('👥 Time Jeca vs Time Vini','Time Jeca','Jeca + ChatGPT',jecaTeam,'#e05c8b','Time Vini','Vini + Claude',viniTeam,'#3d8ef0');
 
+  // 3) Estatísticas individuais
+  html+=`<div class="section-title">📊 ESTATÍSTICAS INDIVIDUAIS</div>`;
   sAll.forEach(p=>{
-    const bL=p.bias>0.3?'↑ Otimista':p.bias<-0.3?'↓ Pessimista':'= Neutro';
+    const bL=p.bias>0.3?'↑ Otimista':p.bias<-0.3?'↓ Pessimista':'≈ Neutro';
     const bC=p.bias>0.3?'#e05c8b':p.bias<-0.3?'#3d8ef0':'var(--gl)';
     const cS=p.played>0?Math.max(0,10-p.sd):0;
     html+=`<div class="stat-card">
-      <div class="stat-phead"><div class="stat-avatar ${p.id}">${p.name[0]}</div>
-        <div><div style="font-weight:700;font-size:13px">${p.name}</div>
-        <div style="font-size:10px;color:var(--mu)">${p.type==='ia'?'🤖 IA':'👤 Humano'} · ${p.played} jogos</div></div>
+      <div class="stat-phead"><div class="stat-avatar" style="background:${p.color}">${p.name[0]}</div>
+        <div><div style="font-weight:800;font-size:14px">${p.name}</div>
+        <div style="font-size:10.5px;color:var(--mu)">${p.type==='ia'?'🤖 IA':'👤 Humano'} · ${p.played} jogos contabilizados</div></div>
       </div>
       <div class="stat-grid">
-        <div class="stat-box"><div class="val">${p.total}</div><div class="lbl">Total pts</div></div>
-        <div class="stat-box"><div class="val">${p.avg.toFixed(1)}</div><div class="lbl">Média/jogo</div></div>
-        <div class="stat-box"><div class="val">${p.rHits}</div><div class="lbl">Result. certos</div></div>
-        <div class="stat-box"><div class="val">${p.eHits}</div><div class="lbl">Exatos</div></div>
+        <div class="stat-box"><div class="val">${p.total}</div><div class="lbl">Total de pontos</div></div>
+        <div class="stat-box"><div class="val">${p.avg.toFixed(1)}</div><div class="lbl">Média/jogo ${q('media')}</div></div>
+        <div class="stat-box"><div class="val">${p.rHits}</div><div class="lbl">Resultados ${q('resultado')}</div></div>
+        <div class="stat-box"><div class="val">${p.eHits}</div><div class="lbl">Placares exatos ${q('exato')}</div></div>
       </div>
-      <div style="font-size:10px;color:var(--mu);font-weight:600;margin-bottom:2px">Viés de gols</div>
-      <div style="font-size:12px;color:${bC};font-weight:700;margin-bottom:7px">${bL} (${p.bias>=0?'+':''}${p.bias.toFixed(2)})</div>
-      <div style="font-size:10px;color:var(--mu);font-weight:600;margin-bottom:2px">Consistência</div>
+      <div class="stat-line-lbl">Viés de gols ${q('vies')}</div>
+      <div style="font-size:13px;color:${bC};font-weight:800;margin-bottom:11px">${bL} <span style="font-weight:600;color:var(--mu);font-size:11px">(${p.bias>=0?'+':''}${p.bias.toFixed(2)} gols por palpite)</span></div>
+      <div class="stat-line-lbl">Consistência ${q('consistencia')}</div>
       <div class="cons-bar-wrap"><div class="cons-bar"><div class="cons-fill" style="width:${(cS/10*100).toFixed(0)}%;background:${p.color}"></div></div>
-        <span style="font-size:10px;color:var(--mu);min-width:32px;text-align:right">${cS.toFixed(1)}/10</span>
+        <span style="font-size:11px;color:var(--mu);font-weight:700;min-width:34px;text-align:right">${cS.toFixed(1)}/10</span>
       </div>
-      ${p.bestG?`<div class="best-game">🏅 Melhor: <strong>${p.bestG.fA} ${p.bestG.tA} × ${p.bestG.tB} ${p.bestG.fB}</strong> (${p.bestP}pts)</div>`:'<div class="best-game">Sem jogos finalizados ainda.</div>'}
+      ${p.bestG?`<div class="best-game">🏅 Melhor palpite: <strong>${p.bestG.fA} ${p.bestG.tA} ${p.bestG.realA}×${p.bestG.realB} ${p.bestG.tB} ${p.bestG.fB}</strong> — ${p.bestP} pts</div>`:'<div class="best-game">Ainda sem jogos contabilizados.</div>'}
     </div>`;
   });
-  document.getElementById('tab-estatisticas').innerHTML=html;
+
+  document.getElementById('tab-ranking').innerHTML=html;
 }
 
 // ─── TAB NAV ──────────────────────────────────────────────────────────────────
@@ -621,7 +687,7 @@ function showTab(name){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
-  ['palpites','ranking','estatisticas'].forEach((n,i)=>{
+  ['palpites','ranking'].forEach((n,i)=>{
     if(n===name)document.querySelectorAll('nav button')[i].classList.add('active');
   });
   renderAll();
