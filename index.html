@@ -14,7 +14,7 @@ header h1{font-size:16px;font-weight:700;margin-bottom:8px;}header h1 span{color
 nav{display:flex;}
 nav button{flex:1;padding:9px 4px;background:transparent;border:none;color:rgba(255,255,255,.6);font-size:12px;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;}
 nav button.active{color:var(--gold);border-bottom-color:var(--gold);}
-main{padding:10px 16px;max-width:540px;margin:0 auto;}
+main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .tab{display:none;}.tab.active{display:block;}
 
 /* Loading / Error */
@@ -43,41 +43,57 @@ main{padding:10px 16px;max-width:540px;margin:0 auto;}
 .section-badge{background:var(--gd);color:var(--gold);font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.5px;white-space:nowrap;}
 .section-line{flex:1;height:1px;background:var(--brd);}
 
+/* Games grid — 1 col mobile, 2 cols on larger screens */
+.games-grid{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:4px;}
+@media(min-width:680px){.games-grid{grid-template-columns:1fr 1fr;}}
+
 /* Game card */
-.card{background:var(--card);border-radius:10px;border:1px solid var(--brd);padding:10px;margin-bottom:8px;}
-.game-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
-.game-title{font-size:13px;font-weight:700;color:var(--gd);display:flex;align-items:center;gap:4px;flex:1;min-width:0;}
-.game-title .flag{font-size:17px;line-height:1;flex-shrink:0;}
-.game-title .tn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px;}
-.game-title .vs{color:var(--mu);font-weight:400;font-size:11px;flex-shrink:0;}
-.game-meta{font-size:10px;color:var(--mu);margin-bottom:6px;}
-.game-actions{display:flex;gap:5px;margin-bottom:8px;}
-.btn-finish{padding:4px 8px;border-radius:6px;border:1.5px solid var(--g);background:transparent;color:var(--g);font-size:10px;font-weight:700;cursor:pointer;}
+.card{position:relative;background:var(--card);border-radius:16px;border:1px solid var(--brd);overflow:hidden;box-shadow:0 2px 10px rgba(15,68,36,.07);display:flex;flex-direction:column;transition:box-shadow .2s,transform .2s;}
+.card:hover{box-shadow:0 8px 22px rgba(15,68,36,.13);transform:translateY(-1px);}
+.card.is-finished{border-color:var(--gl);box-shadow:0 2px 12px rgba(45,150,83,.18);}
+.card.is-removed{opacity:.5;}
+
+.card-head{display:flex;justify-content:space-between;align-items:center;padding:8px 13px;background:linear-gradient(135deg,var(--gd),var(--g));}
+.card-head .grp-tag{font-size:10px;font-weight:800;color:var(--gold);letter-spacing:.6px;}
+.card-head .dt-tag{font-size:10px;font-weight:600;color:rgba(255,255,255,.9);}
+
+.matchup{display:flex;align-items:stretch;padding:15px 8px 4px;gap:4px;}
+.team{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;}
+.team-flag{font-size:32px;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,.12));}
+.team-name{font-size:12px;font-weight:700;color:var(--txt);text-align:center;line-height:1.15;}
+.vs-badge{align-self:center;font-size:11px;font-weight:800;color:var(--g);background:var(--bg);border:2px solid var(--brd);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+
+.venue{font-size:10px;color:var(--mu);text-align:center;padding:6px 12px 9px;}
+
+.game-actions{display:flex;gap:7px;padding:0 12px 11px;}
+.btn-finish{flex:1;padding:7px;border-radius:9px;border:1.5px solid var(--g);background:transparent;color:var(--g);font-size:11px;font-weight:700;cursor:pointer;transition:background .15s;}
 .btn-finish.done{background:var(--g);color:#fff;}
-.btn-remove{padding:4px 8px;border-radius:6px;border:1px solid #fcc;background:transparent;color:#c00;font-size:10px;font-weight:700;cursor:pointer;}
-.btn-remove.confirm{background:#c00;color:#fff;}
+.btn-remove{flex:1;padding:7px;border-radius:9px;border:1.5px solid #f0c4c4;background:transparent;color:#c0392b;font-size:11px;font-weight:700;cursor:pointer;transition:background .15s;}
+.btn-remove.confirm{background:#c0392b;color:#fff;border-color:#c0392b;}
 
-/* Prediction rows */
-.pred-row{display:flex;align-items:center;gap:6px;margin-bottom:5px;}
-.pred-label{width:66px;font-size:11px;color:var(--mu);flex-shrink:0;display:flex;align-items:center;gap:3px;}
-.pred-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
-.pred-inputs{display:flex;align-items:center;gap:4px;}
-.pred-inputs input{width:38px;height:32px;text-align:center;border:1.5px solid var(--brd);border-radius:7px;font-size:15px;font-weight:700;background:var(--bg);-moz-appearance:textfield;}
-.pred-inputs input::-webkit-outer-spin-button,.pred-inputs input::-webkit-inner-spin-button{-webkit-appearance:none;}
-.pred-inputs input:focus{outline:none;border-color:var(--gl);}
-.pred-sep{font-size:14px;font-weight:700;color:var(--mu);}
+/* Predictions 2x2 grid */
+.preds-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:0 12px 13px;}
+.pred-cell{background:var(--bg);border-radius:11px;padding:8px 9px;border:1.5px solid transparent;}
+.pred-cell.human{background:#fff;border-color:var(--brd);}
+.pc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;min-height:16px;}
+.pc-name{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--mu);}
+.pc-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.pc-inputs{display:flex;align-items:center;justify-content:center;gap:7px;}
+.pc-inputs input{width:42px;height:36px;text-align:center;border:1.5px solid var(--brd);border-radius:9px;font-size:17px;font-weight:700;background:var(--bg);color:var(--txt);-moz-appearance:textfield;}
+.pc-inputs input::-webkit-outer-spin-button,.pc-inputs input::-webkit-inner-spin-button{-webkit-appearance:none;}
+.pc-inputs input:focus{outline:none;border-color:var(--gl);background:#fff;box-shadow:0 0 0 3px rgba(45,150,83,.13);}
+.pc-inputs .sep{font-size:14px;font-weight:700;color:var(--mu);}
+.pc-score{text-align:center;font-size:18px;font-weight:800;color:var(--txt);padding:5px 0;letter-spacing:1px;}
+.pc-score.empty{color:#c4d0c4;}
 
-/* AI predictions compact row */
-.ai-row{display:flex;gap:8px;margin-bottom:5px;flex-wrap:wrap;}
-.ai-chip{display:flex;align-items:center;gap:4px;background:var(--bg);border-radius:6px;padding:4px 8px;font-size:11px;}
-.ai-chip .ai-name{color:var(--mu);font-weight:600;}
-.ai-chip .ai-score{font-weight:700;color:var(--txt);}
-
-/* Real score row */
-.pred-row.real-row{background:var(--gd);border-radius:7px;padding:6px 8px;margin-top:6px;}
-.pred-row.real-row .pred-label{color:rgba(255,255,255,.75);width:66px;}
-.pred-row.real-row .pred-inputs input{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.3);color:#fff;}
-.pred-row.real-row .pred-sep{color:rgba(255,255,255,.4);}
+/* Real score full-bleed footer */
+.real-row{display:flex;align-items:center;justify-content:center;gap:9px;background:linear-gradient(135deg,var(--gd),var(--g));padding:10px 12px;}
+.real-row .rr-label{font-size:11px;font-weight:800;color:var(--gold);letter-spacing:.5px;}
+.real-row input{width:44px;height:36px;text-align:center;border:1.5px solid rgba(255,255,255,.35);border-radius:9px;font-size:17px;font-weight:700;background:rgba(255,255,255,.16);color:#fff;-moz-appearance:textfield;}
+.real-row input::-webkit-outer-spin-button,.real-row input::-webkit-inner-spin-button{-webkit-appearance:none;}
+.real-row input::placeholder{color:rgba(255,255,255,.5);}
+.real-row input:focus{outline:none;border-color:var(--gold);background:rgba(255,255,255,.24);}
+.real-row .sep{color:rgba(255,255,255,.6);font-weight:700;font-size:15px;}
 
 /* Points badges */
 .pts-10{background:#d4edda;color:#155724;}
@@ -157,8 +173,8 @@ const TABLE = 'bolao_games';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const PARTICIPANTS = [
-  {id:'jessica', name:'Jéssica', type:'human', color:'#e05c8b'},
-  {id:'vinicius',name:'Vinicius', type:'human', color:'#3d8ef0'},
+  {id:'jessica', name:'Jeca', type:'human', color:'#e05c8b'},
+  {id:'vinicius',name:'Vini', type:'human', color:'#3d8ef0'},
   {id:'chatgpt', name:'ChatGPT', type:'ia',    color:'#19c37d'},
   {id:'claude',  name:'Claude',  type:'ia',    color:'#cc6b2c'},
 ];
@@ -375,13 +391,17 @@ function renderPalpites(){
     const grps=[...new Set(sorted.map(g=>g.grp))].sort();
     grps.forEach(grp=>{
       html+=`<div class="section-hdr"><span class="section-badge">GRUPO ${grp}</span><div class="section-line"></div></div>`;
+      html+=`<div class="games-grid">`;
       sorted.filter(g=>g.grp===grp).forEach(g=>{html+=renderCard(g);});
+      html+=`</div>`;
     });
   } else {
     const dates=[...new Set(sorted.map(g=>g.dt))];
     dates.forEach(dt=>{
       html+=`<div class="section-hdr"><span class="section-badge">${dt}</span><div class="section-line"></div></div>`;
+      html+=`<div class="games-grid">`;
       sorted.filter(g=>g.dt===dt).forEach(g=>{html+=renderCard(g);});
+      html+=`</div>`;
     });
   }
   document.getElementById('tab-palpites').innerHTML=html;
@@ -390,58 +410,58 @@ function renderPalpites(){
 function renderCard(g){
   const hasReal=g.finished&&g.realA!==''&&g.realA!==null&&g.realA!==undefined;
   const rmConf=removeConfirm[g.id];
+  const cls=['card'];
+  if(g.finished)cls.push('is-finished');
+  if(g.removed)cls.push('is-removed');
 
-  let html=`<div class="card" data-id="${g.id}">
-    <div class="game-title" style="margin-bottom:3px">
-      <span class="flag">${g.fA}</span><span class="tn">${g.tA}</span>
-      <span class="vs">×</span>
-      <span class="tn">${g.tB}</span><span class="flag">${g.fB}</span>
+  let html=`<div class="${cls.join(' ')}" data-id="${g.id}">
+    <div class="card-head">
+      <span class="grp-tag">GRUPO ${g.grp} · R${g.r}</span>
+      <span class="dt-tag">${g.dt} · ${g.tm}</span>
     </div>
-    <div class="game-meta">${g.dt} ${g.tm} · ${g.ven} · R${g.r}</div>
+    <div class="matchup">
+      <div class="team"><span class="team-flag">${g.fA}</span><span class="team-name">${g.tA}</span></div>
+      <div class="vs-badge">×</div>
+      <div class="team"><span class="team-flag">${g.fB}</span><span class="team-name">${g.tB}</span></div>
+    </div>
+    <div class="venue">📍 ${g.ven}</div>
     <div class="game-actions">
       <button class="btn-finish${g.finished?' done':''}" onclick="toggleFinish('${g.id}')">${g.finished?'✓ Aconteceu':'Já aconteceu'}</button>
       <button class="btn-remove${rmConf?' confirm':''}" onclick="toggleRemove('${g.id}')">${g.removed?'+ Incluir':rmConf?'Confirmar?':'Remover'}</button>
-    </div>`;
+    </div>
+    <div class="preds-grid">`;
 
-  ['jessica','vinicius'].forEach(pid=>{
-    const p=PARTICIPANTS.find(x=>x.id===pid);
-    const pred=g.predictions[pid];
-    const pts=hasReal?calcPts(pred,g.realA,g.realB):null;
-    const bc=ptsClass(pts);
-    html+=`<div class="pred-row">
-      <div class="pred-label"><span class="pred-dot" style="background:${p.color}"></span>${p.name}${pts!==null?`<span class="pts-badge ${bc}">${pts}</span>`:''}</div>
-      <div class="pred-inputs">
-        <input type="number" min="0" max="99" inputmode="numeric" value="${pred.a!==''?pred.a:''}" placeholder="–" oninput="updPred('${g.id}','${pid}','a',this.value)">
-        <span class="pred-sep">×</span>
-        <input type="number" min="0" max="99" inputmode="numeric" value="${pred.b!==''?pred.b:''}" placeholder="–" oninput="updPred('${g.id}','${pid}','b',this.value)">
-      </div>
-    </div>`;
-  });
-
-  html+=`<div class="ai-row">`;
-  ['chatgpt','claude'].forEach(pid=>{
-    const p=PARTICIPANTS.find(x=>x.id===pid);
-    const pred=g.predictions[pid];
+  PARTICIPANTS.forEach(p=>{
+    const pred=g.predictions[p.id];
     const hasPred=pred.a!==''&&pred.a!==null&&pred.a!==undefined;
     const pts=hasReal&&hasPred?calcPts(pred,g.realA,g.realB):null;
     const bc=ptsClass(pts);
-    html+=`<div class="ai-chip">
-      <span class="pred-dot" style="background:${p.color}"></span>
-      <span class="ai-name">${p.name}</span>
-      <span class="ai-score">${hasPred?`${pred.a}–${pred.b}`:'—'}</span>
-      ${pts!==null?`<span class="pts-badge ${bc}">${pts}</span>`:''}
-    </div>`;
+    const isHuman=p.type==='human';
+    html+=`<div class="pred-cell ${isHuman?'human':'ia'}">
+      <div class="pc-top">
+        <span class="pc-name"><span class="pc-dot" style="background:${p.color}"></span>${p.name}</span>
+        ${pts!==null?`<span class="pts-badge ${bc}">${pts}</span>`:''}
+      </div>`;
+    if(isHuman){
+      html+=`<div class="pc-inputs">
+        <input type="number" min="0" max="99" inputmode="numeric" value="${hasPred?pred.a:''}" placeholder="–" oninput="updPred('${g.id}','${p.id}','a',this.value)">
+        <span class="sep">×</span>
+        <input type="number" min="0" max="99" inputmode="numeric" value="${hasPred?pred.b:''}" placeholder="–" oninput="updPred('${g.id}','${p.id}','b',this.value)">
+      </div>`;
+    }else{
+      html+=`<div class="pc-score${hasPred?'':' empty'}">${hasPred?`${pred.a} × ${pred.b}`:'– × –'}</div>`;
+    }
+    html+=`</div>`;
   });
+
   html+=`</div>`;
 
   if(g.finished){
-    html+=`<div class="pred-row real-row">
-      <div class="pred-label">Placar Real</div>
-      <div class="pred-inputs">
-        <input type="number" min="0" max="99" inputmode="numeric" value="${g.realA!==''?g.realA:''}" placeholder="–" oninput="updReal('${g.id}','a',this.value)">
-        <span class="pred-sep">×</span>
-        <input type="number" min="0" max="99" inputmode="numeric" value="${g.realB!==''?g.realB:''}" placeholder="–" oninput="updReal('${g.id}','b',this.value)">
-      </div>
+    html+=`<div class="real-row">
+      <span class="rr-label">PLACAR REAL</span>
+      <input type="number" min="0" max="99" inputmode="numeric" value="${g.realA!==''?g.realA:''}" placeholder="–" oninput="updReal('${g.id}','a',this.value)">
+      <span class="sep">×</span>
+      <input type="number" min="0" max="99" inputmode="numeric" value="${g.realB!==''?g.realB:''}" placeholder="–" oninput="updReal('${g.id}','b',this.value)">
     </div>`;
   }
   html+=`</div>`;
