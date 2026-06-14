@@ -53,9 +53,9 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .card.is-finished{border-color:var(--gl);box-shadow:0 2px 12px rgba(45,150,83,.18);}
 .card.is-removed{opacity:.5;}
 
-.card-head{display:flex;justify-content:space-between;align-items:center;padding:8px 13px;background:linear-gradient(135deg,var(--gd),var(--g));}
-.card-head .grp-tag{font-size:10px;font-weight:800;color:var(--gold);letter-spacing:.6px;}
-.card-head .dt-tag{font-size:10px;font-weight:600;color:rgba(255,255,255,.9);}
+.card-head{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;background:linear-gradient(135deg,var(--gd),var(--g));gap:8px;}
+.card-head .grp-tag{font-size:13px;font-weight:800;color:var(--gold);letter-spacing:.5px;}
+.card-head .dt-tag{font-size:12.5px;font-weight:700;color:#fff;white-space:nowrap;}
 
 .matchup{display:flex;align-items:stretch;padding:15px 8px 4px;gap:4px;}
 .team{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;}
@@ -94,6 +94,10 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .real-row input::placeholder{color:rgba(255,255,255,.5);}
 .real-row input:focus{outline:none;border-color:var(--gold);background:rgba(255,255,255,.24);}
 .real-row .sep{color:rgba(255,255,255,.6);font-weight:700;font-size:15px;}
+.real-row.pending{background:repeating-linear-gradient(135deg,var(--gd),var(--gd) 10px,#123d22 10px,#123d22 20px);}
+
+/* Aviso de resultado pendente */
+.warn-bar{display:flex;align-items:center;justify-content:center;gap:5px;background:#fff3cd;color:#7a5b00;font-size:11px;font-weight:700;text-align:center;padding:7px 10px;border-top:1px solid #efdd9b;}
 
 /* Points badges */
 .pts-10{background:#d4edda;color:#155724;}
@@ -327,7 +331,7 @@ function hideLoading(){document.getElementById('loading-screen').classList.add('
 function showErr(msg){const el=document.getElementById('error-banner');el.textContent=msg;el.style.display='block';setTimeout(()=>{el.style.display='none';},5000);}
 
 // ─── VIEW STATE ───────────────────────────────────────────────────────────────
-let viewMode=localStorage.getItem('bv')||'group';
+let viewMode=localStorage.getItem('bv')||'date';
 let filterMode=localStorage.getItem('bf')||'all';
 let activeTab='palpites';
 
@@ -373,8 +377,8 @@ function renderPalpites(){
 
   let html=`<div class="controls">
     <div class="view-toggle">
-      <button onclick="setView('group')" class="${viewMode==='group'?'active':''}">Por Grupo</button>
       <button onclick="setView('date')" class="${viewMode==='date'?'active':''}">Por Data</button>
+      <button onclick="setView('group')" class="${viewMode==='group'?'active':''}">Por Grupo</button>
     </div>
     <div class="filters">
       <button class="pill${filterMode==='all'?' active':''}" onclick="setFilter('all')">Todos (${cAll})</button>
@@ -416,8 +420,8 @@ function renderCard(g){
 
   let html=`<div class="${cls.join(' ')}" data-id="${g.id}">
     <div class="card-head">
-      <span class="grp-tag">GRUPO ${g.grp} · R${g.r}</span>
-      <span class="dt-tag">${g.dt} · ${g.tm}</span>
+      <span class="grp-tag">GRUPO ${g.grp} · RODADA ${g.r}</span>
+      <span class="dt-tag">${(g.tm==='0h'||g.tm==='1h')?'🌙 ':''}${g.dt} · ${g.tm}</span>
     </div>
     <div class="matchup">
       <div class="team"><span class="team-flag">${g.fA}</span><span class="team-name">${g.tA}</span></div>
@@ -456,14 +460,15 @@ function renderCard(g){
 
   html+=`</div>`;
 
-  if(g.finished){
-    html+=`<div class="real-row">
+  if(g.finished&&!hasReal){
+    html+=`<div class="warn-bar">⚠️ Falta o placar final — preencha para contar no ranking</div>`;
+  }
+  html+=`<div class="real-row${g.finished?'':' pending'}">
       <span class="rr-label">PLACAR REAL</span>
       <input type="number" min="0" max="99" inputmode="numeric" value="${g.realA!==''?g.realA:''}" placeholder="–" oninput="updReal('${g.id}','a',this.value)">
       <span class="sep">×</span>
       <input type="number" min="0" max="99" inputmode="numeric" value="${g.realB!==''?g.realB:''}" placeholder="–" oninput="updReal('${g.id}','b',this.value)">
     </div>`;
-  }
   html+=`</div>`;
   return html;
 }
