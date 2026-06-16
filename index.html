@@ -339,14 +339,65 @@ async function loadData(){
   subscribeRealtime();
 }
 
+// Colunas de dados que importam para detectar mudanças reais (ignora updated_at etc.)
+const DATA_COLS=['finished','removed','real_a','real_b','jessica_a','jessica_b','vinicius_a','vinicius_b'];
+function norm(v){return (v===undefined||v===null||v==='')?null:v;}
+function sameRow(a,b){
+  return DATA_COLS.every(c=>{
+    if(c==='finished'||c==='removed')return (!!a[c])===(!!b[c]);
+    return norm(a[c])===norm(b[c]);
+  });
+}
+function isTyping(){
+  const el=document.activeElement;
+  return !!(el&&el.tagName==='INPUT'&&el.closest('#tab-palpites'));
+}
+let pendingRerender=false;
+
 function subscribeRealtime(){
   sb.channel('bolao_realtime')
     .on('postgres_changes',{event:'*',schema:'public',table:TABLE},payload=>{
-      if(payload.new?.game_id) CACHE[payload.new.game_id]=payload.new;
-      renderAll();
+      const row=payload.new;
+      if(!row||!row.game_id)return;
+      const gid=row.game_id;
+      const prev=CACHE[gid]||{};
+      if(sameRow(prev,row))return;                 // é só o eco da nossa própria escrita — ignora
+      const structural=(!!prev.finished!==!!row.finished)||(!!prev.removed!==!!row.removed);
+      CACHE[gid]=row;
+      if(activeTab!=='palpites'){renderRanking();return;}
+      if(structural){                              // muda filtros/seções: re-renderiza (mas nunca enquanto digita)
+        if(isTyping())pendingRerender=true; else renderPalpites();
+        return;
+      }
+      applyRemoteScores(gid);                       // mudou só placar: atualiza o card no lugar
     })
     .subscribe();
 }
+
+// Atualiza um card específico com dados remotos, sem reconstruir a lista nem roubar o foco
+function applyRemoteScores(gid){
+  const card=document.querySelector(`#tab-palpites [data-id="${gid}"]`);
+  if(!card)return;
+  const g=getGame(gid);
+  const setInput=(inp,v)=>{if(inp&&document.activeElement!==inp)inp.value=norm(v)===null?'':v;};
+  ['jessica','vinicius'].forEach(pid=>{
+    const cell=card.querySelector(`.pred-cell[data-pid="${pid}"]`);
+    if(!cell)return;
+    const ins=cell.querySelectorAll('input');
+    setInput(ins[0],g.predictions[pid].a);
+    setInput(ins[1],g.predictions[pid].b);
+  });
+  const realRow=card.querySelector('.real-row');
+  if(realRow){const ins=realRow.querySelectorAll('input');setInput(ins[0],g.realA);setInput(ins[1],g.realB);}
+  refreshPoints(gid);
+}
+
+// Quando o usuário termina de digitar, aplica re-render estrutural que ficou pendente
+document.addEventListener('focusout',e=>{
+  if(pendingRerender&&e.target.tagName==='INPUT'&&e.target.closest('#tab-palpites')){
+    setTimeout(()=>{if(!isTyping()){pendingRerender=false;renderPalpites();}},150);
+  }
+});
 
 // ─── UI HELPERS ───────────────────────────────────────────────────────────────
 function hideLoading(){document.getElementById('loading-screen').classList.add('hidden');}
@@ -462,7 +513,7 @@ function renderCard(g){
     const pts=hasReal&&hasPred?calcPts(pred,g.realA,g.realB):null;
     const bc=ptsClass(pts);
     const isHuman=p.type==='human';
-    html+=`<div class="pred-cell ${isHuman?'human':'ia'}">
+    html+=`<div class="pred-cell ${isHuman?'human':'ia'}" data-pid="${p.id}">
       <div class="pc-top">
         <span class="pc-name"><span class="pc-dot" style="background:${p.color}"></span>${p.name}</span>
         ${pts!==null?`<span class="pts-badge ${bc}">${pts}</span>`:''}
@@ -524,15 +575,44 @@ function toggleRemove(id){
   upsert(id,{removed:true});
 }
 
+// Atualiza só os selos de pontos e o aviso de placar pendente — sem tocar nos inputs (foco preservado)
+function refreshPoints(gameId){
+  const card=document.querySelector(`#tab-palpites [data-id="${gameId}"]`);
+  if(!card)return;
+  const g=getGame(gameId);
+  const hasReal=g.finished&&g.realA!==''&&g.realA!==null&&g.realA!==undefined;
+  PARTICIPANTS.forEach(p=>{
+    const cell=card.querySelector(`.pred-cell[data-pid="${p.id}"]`);
+    if(!cell)return;
+    const pred=g.predictions[p.id];
+    const hasPred=pred.a!==''&&pred.a!==null&&pred.a!==undefined;
+    const pts=(hasReal&&hasPred)?calcPts(pred,g.realA,g.realB):null;
+    const top=cell.querySelector('.pc-top');
+    let badge=top.querySelector('.pts-badge');
+    if(pts===null){if(badge)badge.remove();}
+    else{
+      if(!badge){badge=document.createElement('span');top.appendChild(badge);}
+      badge.className='pts-badge '+ptsClass(pts);
+      badge.textContent=pts;
+    }
+  });
+  const needWarn=g.finished&&!hasReal;
+  let warn=card.querySelector('.warn-bar');
+  if(needWarn&&!warn){
+    warn=document.createElement('div');warn.className='warn-bar';
+    warn.textContent='⚠️ Falta o placar final — preencha para contar no ranking';
+    card.insertBefore(warn,card.querySelector('.real-row'));
+  }else if(!needWarn&&warn){warn.remove();}
+}
+
 function updPred(gameId,pid,side,val){
   const cur=CACHE[gameId]||{};
   const col=`${pid}_${side}`;
   const num=val===''?null:parseInt(val);
   CACHE[gameId]={...cur,[col]:num};
-  const g=getGame(gameId);
-  if(g.finished&&g.realA!=='')renderPalpites();
+  refreshPoints(gameId);
   clearTimeout(debouncers[gameId+pid+side]);
-  debouncers[gameId+pid+side]=setTimeout(()=>upsert(gameId,{[col]:num}),800);
+  debouncers[gameId+pid+side]=setTimeout(()=>upsert(gameId,{[col]:num}),700);
 }
 
 function updReal(gameId,side,val){
@@ -540,9 +620,9 @@ function updReal(gameId,side,val){
   const col=`real_${side}`;
   const num=val===''?null:parseInt(val);
   CACHE[gameId]={...cur,[col]:num};
-  renderPalpites();
+  refreshPoints(gameId);
   clearTimeout(debouncers[gameId+'real'+side]);
-  debouncers[gameId+'real'+side]=setTimeout(()=>upsert(gameId,{[col]:num}),800);
+  debouncers[gameId+'real'+side]=setTimeout(()=>upsert(gameId,{[col]:num}),700);
 }
 
 // ─── RANKING ──────────────────────────────────────────────────────────────────
