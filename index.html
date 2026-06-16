@@ -167,6 +167,40 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 #floating-tip{position:absolute;display:none;background:#1d1d1f;color:#fff;font-size:11.5px;font-weight:500;line-height:1.5;padding:10px 12px;border-radius:10px;z-index:9999;box-shadow:0 6px 22px rgba(0,0,0,.32);pointer-events:none;}
 
 .empty-state{text-align:center;padding:24px 12px;color:var(--mu);font-size:13px;}
+
+/* ── Próximo jogo (hero) ── */
+.next-hero{position:relative;background:linear-gradient(135deg,#0f4424,#1a6b3a 55%,#2d9653);border-radius:18px;padding:14px 16px;margin-bottom:13px;color:#fff;overflow:hidden;cursor:pointer;box-shadow:0 6px 20px rgba(15,68,36,.28);transition:transform .15s;}
+.next-hero:active{transform:scale(.99);}
+.next-hero::after{content:"⚽";position:absolute;right:-12px;bottom:-20px;font-size:100px;opacity:.08;transform:rotate(-12deg);pointer-events:none;}
+.nh-label{font-size:10px;font-weight:800;letter-spacing:1.3px;color:var(--gold);margin-bottom:10px;display:flex;align-items:center;gap:7px;}
+.nh-live{width:7px;height:7px;border-radius:50%;background:#ff5252;animation:blink 1.5s infinite;}
+@keyframes blink{0%{box-shadow:0 0 0 0 rgba(255,82,82,.6);}70%{box-shadow:0 0 0 7px rgba(255,82,82,0);}100%{box-shadow:0 0 0 0 rgba(255,82,82,0);}}
+.nh-match{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:10px;position:relative;z-index:1;}
+.nh-team{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0;}
+.nh-team .f{font-size:36px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.25));}
+.nh-team .n{font-size:13px;font-weight:800;text-align:center;line-height:1.1;}
+.nh-x{font-size:13px;font-weight:800;color:rgba(255,255,255,.5);flex-shrink:0;}
+.nh-meta{text-align:center;font-size:11px;color:rgba(255,255,255,.82);margin-bottom:11px;position:relative;z-index:1;}
+.nh-cd{display:flex;align-items:center;justify-content:center;position:relative;z-index:1;}
+.nh-cd .clock{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);border-radius:11px;padding:7px 16px;font-size:16px;font-weight:800;letter-spacing:.5px;font-variant-numeric:tabular-nums;}
+.nh-status{margin-top:11px;text-align:center;font-size:11px;font-weight:700;padding:6px;border-radius:10px;position:relative;z-index:1;}
+.nh-status.ok{background:rgba(45,150,83,.4);color:#dcffe9;}
+.nh-status.miss{background:rgba(232,196,74,.2);color:var(--gold);}
+
+/* ── Placar final + vencedor ── */
+.score-final{align-self:center;flex-shrink:0;display:flex;align-items:center;gap:5px;background:var(--gd);color:#fff;border-radius:11px;padding:5px 12px;font-size:19px;font-weight:800;font-variant-numeric:tabular-nums;box-shadow:0 2px 7px rgba(15,68,36,.28);}
+.score-final small{font-size:12px;opacity:.55;font-weight:700;}
+.team.win .team-name{color:var(--g);}
+.team.win .team-flag{filter:drop-shadow(0 0 7px rgba(45,150,83,.45));}
+.team.lose{opacity:.48;}
+
+/* ── Animações & destaques ── */
+@keyframes pop{0%{transform:scale(.4);opacity:0;}60%{transform:scale(1.18);}100%{transform:scale(1);opacity:1;}}
+.pts-badge{animation:pop .25s ease;}
+@keyframes flash{0%,100%{box-shadow:0 2px 10px rgba(15,68,36,.07);}30%{box-shadow:0 0 0 3px var(--gold),0 6px 22px rgba(232,196,74,.45);}}
+.card.flash{animation:flash 1.5s ease;}
+.pill.warn{border-color:#e8c44a;color:#9a7b16;}
+.pill.warn.active{background:#e8c44a;color:#5c4708;border-color:#e8c44a;}
 </style>
 </head>
 <body>
@@ -431,6 +465,66 @@ function calcPts(pred,rA,rB){
 }
 function ptsClass(p){return p===null?'':p===10?'pts-10':p>=7?'pts-7':p>=4?'pts-4':'pts-0';}
 
+// ─── PRÓXIMO JOGO / CONTAGEM REGRESSIVA ───────────────────────────────────────
+function gameDate(g){
+  const [dd,mm]=g.dt.split('/').map(Number);
+  const parts=g.tm.split('h');
+  const hh=parseInt(parts[0])||0, mi=parts[1]?parseInt(parts[1]):0;
+  return new Date(2026,mm-1,dd,hh,mi,0);   // horário de Brasília (dispositivo)
+}
+function emptyVal(x){return x===''||x===null||x===undefined;}
+function missingPred(g){
+  return emptyVal(g.predictions.jessica.a)||emptyVal(g.predictions.vinicius.a);
+}
+function findNextGame(){
+  const now=Date.now();
+  const up=GT.map(t=>getGame(t.id)).filter(g=>!g.removed&&!g.finished&&gameDate(g).getTime()>now);
+  if(!up.length)return null;
+  up.sort((a,b)=>gameDate(a)-gameDate(b));
+  return up[0];
+}
+function fmtCountdown(ms){
+  if(ms<=0)return 'Começa agora! ⚽';
+  let s=Math.floor(ms/1000);
+  const d=Math.floor(s/86400);s-=d*86400;
+  const h=Math.floor(s/3600);s-=h*3600;
+  const m=Math.floor(s/60);s-=m*60;
+  const p2=n=>String(n).padStart(2,'0');
+  if(d>0)return `${d}d ${p2(h)}h ${p2(m)}m`;
+  if(h>0)return `${p2(h)}h ${p2(m)}m ${p2(s)}s`;
+  return `${p2(m)}m ${p2(s)}s`;
+}
+let _cdInterval=null,_cdTarget=0;
+function tickCountdown(){
+  const el=document.getElementById('nh-clock');
+  if(!el){if(_cdInterval){clearInterval(_cdInterval);_cdInterval=null;}return;}
+  el.textContent=fmtCountdown(_cdTarget-Date.now());
+}
+function heroHTML(){
+  const g=findNextGame();
+  if(!g)return '';
+  _cdTarget=gameDate(g).getTime();
+  const miss=missingPred(g);
+  return `<div class="next-hero" onclick="goToGame('${g.id}')">
+    <div class="nh-label"><span class="nh-live"></span>PRÓXIMO JOGO · GRUPO ${g.grp}</div>
+    <div class="nh-match">
+      <div class="nh-team"><span class="f">${g.fA}</span><span class="n">${g.tA}</span></div>
+      <div class="nh-x">×</div>
+      <div class="nh-team"><span class="f">${g.fB}</span><span class="n">${g.tB}</span></div>
+    </div>
+    <div class="nh-meta">${g.dt} · ${g.tm} · 📍 ${g.ven}</div>
+    <div class="nh-cd"><span class="clock" id="nh-clock">${fmtCountdown(_cdTarget-Date.now())}</span></div>
+    <div class="nh-status ${miss?'miss':'ok'}">${miss?'⚠️ Faltam seus palpites — toque para preencher':'✓ Seus palpites estão prontos'}</div>
+  </div>`;
+}
+function goToGame(gid){
+  if(!document.querySelector(`#tab-palpites [data-id="${gid}"]`))setFilter('all');
+  setTimeout(()=>{
+    const c=document.querySelector(`#tab-palpites [data-id="${gid}"]`);
+    if(c){c.scrollIntoView({behavior:'smooth',block:'center'});c.classList.add('flash');setTimeout(()=>c.classList.remove('flash'),1600);}
+  },130);
+}
+
 // ─── RENDER PALPITES ──────────────────────────────────────────────────────────
 function renderPalpites(){
   let games=GT.map(t=>getGame(t.id));
@@ -439,31 +533,34 @@ function renderPalpites(){
   const cPend=games.filter(g=>!g.removed&&!g.finished).length;
   const cFin=games.filter(g=>!g.removed&&g.finished).length;
   const cRem=games.filter(g=>g.removed).length;
+  const cMiss=games.filter(g=>!g.removed&&missingPred(g)).length;
 
   if(filterMode==='pending')     games=games.filter(g=>!g.removed&&!g.finished);
   else if(filterMode==='finished')games=games.filter(g=>!g.removed&&g.finished);
   else if(filterMode==='removed') games=games.filter(g=>g.removed);
+  else if(filterMode==='missing') games=games.filter(g=>!g.removed&&missingPred(g));
   else games=games.filter(g=>!g.removed);
 
   const sorted=[...games].sort((a,b)=>sortKey(a)-sortKey(b));
 
-  let html=`<div class="controls">
+  let html=heroHTML();
+  html+=`<div class="controls">
     <div class="view-toggle">
       <button onclick="setView('date')" class="${viewMode==='date'?'active':''}">Por Data</button>
       <button onclick="setView('group')" class="${viewMode==='group'?'active':''}">Por Grupo</button>
     </div>
     <div class="filters">
       <button class="pill${filterMode==='all'?' active':''}" onclick="setFilter('all')">Todos (${cAll})</button>
+      <button class="pill warn${filterMode==='missing'?' active':''}" onclick="setFilter('missing')">Faltam palpites (${cMiss})</button>
       <button class="pill${filterMode==='pending'?' active':''}" onclick="setFilter('pending')">Pendentes (${cPend})</button>
       <button class="pill${filterMode==='finished'?' active':''}" onclick="setFilter('finished')">Finalizados (${cFin})</button>
       <button class="pill${filterMode==='removed'?' active':''}" onclick="setFilter('removed')">Removidos (${cRem})</button>
     </div>
   </div>`;
 
-  if(!sorted.length){html+=`<div class="empty-state">Nenhum jogo nesta categoria.</div>`;
-    document.getElementById('tab-palpites').innerHTML=html;return;}
-
-  if(viewMode==='group'){
+  if(!sorted.length){
+    html+=`<div class="empty-state">Nenhum jogo nesta categoria.</div>`;
+  }else if(viewMode==='group'){
     const grps=[...new Set(sorted.map(g=>g.grp))].sort();
     grps.forEach(grp=>{
       html+=`<div class="section-hdr"><span class="section-badge">GRUPO ${grp}</span><div class="section-line"></div></div>`;
@@ -480,9 +577,20 @@ function renderPalpites(){
       html+=`</div>`;
     });
   }
+
   document.getElementById('tab-palpites').innerHTML=html;
+  if(_cdInterval){clearInterval(_cdInterval);_cdInterval=null;}
+  if(document.getElementById('nh-clock'))_cdInterval=setInterval(tickCountdown,1000);
 }
 
+function winCls(hasReal,g,side){
+  if(!hasReal)return 'team';
+  const a=+g.realA,b=+g.realB;
+  if(a===b)return 'team';
+  const aWin=a>b;
+  if(side==='A')return aWin?'team win':'team lose';
+  return aWin?'team lose':'team win';
+}
 function renderCard(g){
   const hasReal=g.finished&&g.realA!==''&&g.realA!==null&&g.realA!==undefined;
   const rmConf=removeConfirm[g.id];
@@ -496,9 +604,9 @@ function renderCard(g){
       <span class="dt-tag">${g.dt} · ${g.tm}</span>
     </div>
     <div class="matchup">
-      <div class="team"><span class="team-flag">${g.fA}</span><span class="team-name">${g.tA}</span></div>
-      <div class="vs-badge">×</div>
-      <div class="team"><span class="team-flag">${g.fB}</span><span class="team-name">${g.tB}</span></div>
+      <div class="${winCls(hasReal,g,'A')}"><span class="team-flag">${g.fA}</span><span class="team-name">${g.tA}</span></div>
+      ${hasReal?`<div class="score-final">${g.realA}<small>×</small>${g.realB}</div>`:`<div class="vs-badge">×</div>`}
+      <div class="${winCls(hasReal,g,'B')}"><span class="team-flag">${g.fB}</span><span class="team-name">${g.tB}</span></div>
     </div>
     <div class="venue">📍 ${g.ven}</div>
     <div class="game-actions">
