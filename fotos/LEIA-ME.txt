@@ -1,0 +1,8 @@
+Coloque aqui as fotos dos participantes, com EXATAMENTE estes nomes:
+
+  jeca.jpg     -> foto da Jeca
+  tonius.jpg   -> foto do Tonius
+  vini.jpg     -> foto do Vini
+
+Formato: jpg quadrado (de preferencia), qualquer tamanho.
+Enquanto a foto nao existir, o app mostra a inicial colorida (J, T, V) automaticamente.

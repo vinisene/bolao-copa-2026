@@ -55,20 +55,23 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .card.is-naocons{opacity:.62;}
 
 .card-head{display:flex;justify-content:space-between;align-items:center;padding:13px 15px;background:linear-gradient(135deg,var(--gd),var(--g));gap:8px;flex-wrap:wrap;}
-.card-head .grp-tag{font-size:15px;font-weight:800;color:var(--gold);letter-spacing:.5px;display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.card-head .grp-tag{font-size:15px;font-weight:800;color:var(--gold);letter-spacing:.5px;display:flex;align-items:center;gap:11px;flex-wrap:wrap;}
 .card-head .dt-tag{font-size:14px;font-weight:700;color:#fff;white-space:nowrap;}
 .bl-tag{font-size:9px;font-weight:800;letter-spacing:.5px;padding:2px 7px;border-radius:5px;}
 .bl-tag.geral{background:rgba(255,255,255,.14);color:rgba(255,255,255,.55);}
 .bl-tag.jxv{background:rgba(255,255,255,.1);color:rgba(255,255,255,.4);}
 .bl-tag.nao{background:#e8c44a;color:#5c4708;}
+.bl-tag.turbo{background:linear-gradient(90deg,#ff8c00,#ff5252);color:#fff;box-shadow:0 0 9px rgba(255,140,0,.55);animation:turboPulse 1.6s ease-in-out infinite;}
+@keyframes turboPulse{0%,100%{box-shadow:0 0 6px rgba(255,140,0,.4);}50%{box-shadow:0 0 13px rgba(255,140,0,.75);}}
+.card.is-turbo{border-color:#ff8c00;box-shadow:0 0 0 2px rgba(255,140,0,.35),0 4px 16px rgba(255,140,0,.22);}
 
-.matchup{display:flex;align-items:stretch;padding:17px 8px 5px;gap:4px;}
+.matchup{display:flex;align-items:flex-start;justify-content:center;padding:16px 8px 11px;gap:6px;}
 .team{flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;min-width:0;}
-.team-flag{font-size:42px;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,.12));}
-.team-name{font-size:14px;font-weight:800;color:var(--txt);text-align:center;line-height:1.15;}
-.vs-badge{align-self:center;font-size:11px;font-weight:800;color:var(--g);background:var(--bg);border:2px solid var(--brd);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-
-.venue{font-size:10px;color:var(--mu);text-align:center;padding:6px 12px 9px;}
+.team-flag{font-size:44px;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,.12));}
+.team-name{font-size:14.5px;font-weight:800;color:var(--txt);text-align:center;line-height:1.15;}
+.mid{display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;padding-top:4px;}
+.vs-badge{font-size:11px;font-weight:800;color:var(--g);background:var(--bg);border:2px solid var(--brd);border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.venue{font-size:9.5px;color:var(--mu);text-align:center;line-height:1.2;max-width:88px;}
 
 .game-actions{display:flex;gap:7px;padding:0 12px 11px;}
 .btn-finish{flex:1;padding:7px;border-radius:9px;border:1.5px solid var(--g);background:transparent;color:var(--g);font-size:11px;font-weight:700;cursor:pointer;transition:background .15s;}
@@ -76,19 +79,29 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .btn-remove{flex:1;padding:7px;border-radius:9px;border:1.5px solid #f0c4c4;background:transparent;color:#c0392b;font-size:11px;font-weight:700;cursor:pointer;transition:background .15s;}
 .btn-remove.confirm{background:#c0392b;color:#fff;border-color:#c0392b;}
 
-/* Predictions 2x2 grid */
-.preds-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:0 12px 13px;}
-.pred-cell{background:var(--bg);border-radius:11px;padding:8px 9px;border:1.5px solid transparent;}
-.pred-cell.human{background:#fff;border-color:var(--brd);}
-.pc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;min-height:16px;}
-.pc-name{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--mu);}
-.pc-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
-.pc-inputs{display:flex;align-items:center;justify-content:center;gap:7px;}
-.pc-inputs input{width:42px;height:36px;text-align:center;border:1.5px solid var(--brd);border-radius:9px;font-size:17px;font-weight:700;background:var(--bg);color:var(--txt);-moz-appearance:textfield;}
+/* Predictions: humano (2/3) à esquerda em uma linha, IA (1/3) à direita compacto */
+.preds-grid{display:grid;grid-template-columns:2fr 1fr;gap:7px;padding:0 12px 13px;align-items:stretch;}
+.pred-cell{background:var(--bg);border-radius:11px;border:1.5px solid transparent;min-width:0;}
+.pred-cell.ia{padding:7px 7px;display:flex;flex-direction:column;justify-content:center;}
+.pred-cell.human{background:#fff;border-color:var(--brd);padding:7px 7px;display:flex;align-items:center;gap:6px;}
+.hum-av{width:31px;height:31px;border-radius:50%;flex-shrink:0;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:13px;}
+.hum-name{font-size:13px;font-weight:800;color:var(--txt);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.av-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+.rk-av,.pod-av,.stat-avatar{position:relative;overflow:hidden;}
+.pc-top{display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:5px;min-height:14px;}
+.pc-name{display:flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:var(--mu);line-height:1.15;min-width:0;}
+.pc-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.pc-inputs{display:flex;align-items:center;justify-content:center;gap:6px;flex-shrink:0;}
+.pred-cell.human .pc-inputs{gap:4px;}
+.pred-cell.human .pc-inputs input{width:37px;height:40px;font-size:18px;}
+.pred-cell.human .pc-inputs .sep{font-size:12px;}
+.pc-inputs input{width:40px;height:36px;text-align:center;border:1.5px solid var(--brd);border-radius:9px;font-size:16px;font-weight:700;background:var(--bg);color:var(--txt);-moz-appearance:textfield;}
+.pc-inputs.small{gap:3px;}
+.pc-inputs.small input{width:31px;height:31px;font-size:13px;border-radius:7px;}
 .pc-inputs input::-webkit-outer-spin-button,.pc-inputs input::-webkit-inner-spin-button{-webkit-appearance:none;}
 .pc-inputs input:focus{outline:none;border-color:var(--gl);background:#fff;box-shadow:0 0 0 3px rgba(45,150,83,.13);}
-.pc-inputs .sep{font-size:14px;font-weight:700;color:var(--mu);}
-.pc-score{text-align:center;font-size:18px;font-weight:800;color:var(--txt);padding:5px 0;letter-spacing:1px;}
+.pc-inputs .sep{font-size:13px;font-weight:700;color:var(--mu);}
+.pc-score{text-align:center;font-size:17px;font-weight:800;color:var(--txt);padding:2px 0;letter-spacing:.5px;}
 .pc-score.empty{color:#c4d0c4;}
 
 /* Real score full-bleed footer */
@@ -294,11 +307,11 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Ordem pensada para o grid 2 colunas dos cards: esquerda = humanos (editáveis), direita = IAs; cada linha = um time
 const PARTICIPANTS = [
-  {id:'jessica', name:'Jeca',          type:'human', color:'#e05c8b', init:'J',  team:'jeca',   editable:true},
+  {id:'jessica', name:'Jeca',          type:'human', color:'#e05c8b', init:'J',  team:'jeca',   editable:true, img:'fotos/jeca.jpg'},
   {id:'chatgpt', name:'ChatGPT Jeca',  type:'ia',    color:'#19c37d', init:'G',  team:'jeca'},
-  {id:'tonius',  name:'Tonius',        type:'human', color:'#7e57c2', init:'T',  team:'tonius', editable:true},
+  {id:'tonius',  name:'Tonius',        type:'human', color:'#7e57c2', init:'T',  team:'tonius', editable:true, img:'fotos/tonius.jpg'},
   {id:'claudio', name:'Claude Tonius', type:'ia',    color:'#5e35b1', init:'CT', team:'tonius', editable:true},
-  {id:'vinicius',name:'Vini',          type:'human', color:'#3d8ef0', init:'V',  team:'vini',   editable:true},
+  {id:'vinicius',name:'Vini',          type:'human', color:'#3d8ef0', init:'V',  team:'vini',   editable:true, img:'fotos/vini.jpg'},
   {id:'claude',  name:'Claude Vini',   type:'ia',    color:'#cc6b2c', init:'CV', team:'vini'},
 ];
 const TEAMS = [
@@ -308,6 +321,8 @@ const TEAMS = [
 ];
 const OLD_IDS = ['jessica','vinicius','chatgpt','claude'];   // ranking antigo (JxV)
 const CUT = 20*10000 + 12*100;   // jogos do RANKING GERAL contam a partir de 20/06 12h (meio-dia)
+// Avatar: mostra a foto se existir; se faltar (404), cai pra inicial
+function avInner(p){return `${p.init||p.name[0]}${p.img?`<img class="av-img" src="${p.img}" alt="" onerror="this.remove()">`:''}`;}
 
 const GT = [
 {id:'g01',grp:'A',r:1,dt:'11/06',tm:'16h',ven:'Cidade do México',tA:'México',fA:'🇲🇽',tB:'África do Sul',fB:'🇿🇦',c:null,g:null},
@@ -535,7 +550,16 @@ function calcPts(pred,rA,rB){
   if(pa===ra&&pb===rb)p+=3;
   return p;
 }
-function ptsClass(p){return p===null?'':p===10?'pts-10':p>=7?'pts-7':p>=4?'pts-4':'pts-0';}
+function ptsClass(p){return p===null?'':p>=10?'pts-10':p>=7?'pts-7':p>=4?'pts-4':'pts-0';}
+
+// ── Jogo TURBO: 1 jogo por dia (a partir de 20/06) vale 2× ──
+function hashStr(s){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;return h;}
+function turboIdForDate(dt){
+  const elig=GT.filter(t=>{const g=getGame(t.id);return !g.removed&&g.dt===dt&&sortKey(g)>=CUT;}).map(t=>t.id).sort();
+  return elig.length?elig[hashStr('turbo-'+dt)%elig.length]:null;
+}
+function isTurbo(g){return !g.removed&&sortKey(g)>=CUT&&turboIdForDate(g.dt)===g.id;}
+function ptsOf(g,pred){const p=calcPts(pred,g.realA,g.realB);return p===null?null:(isTurbo(g)?p*2:p);}
 
 // ─── PRÓXIMO JOGO / CONTAGEM REGRESSIVA ───────────────────────────────────────
 function gameDate(g){
@@ -686,47 +710,52 @@ function winCls(hasReal,g,side){
 }
 function renderCard(g){
   const hasReal=g.finished&&g.realA!==''&&g.realA!==null&&g.realA!==undefined;
+  const turbo=isTurbo(g);
   const cls=['card'];
   if(g.finished)cls.push('is-finished');
   if(g.removed)cls.push('is-naocons');
+  if(turbo)cls.push('is-turbo');
   const tag=g.removed?`<span class="bl-tag nao">NÃO CONSIDERADO</span>`
     :sortKey(g)>=CUT?`<span class="bl-tag geral">BOLÃO GERAL</span>`
     :`<span class="bl-tag jxv">BOLÃO JxV</span>`;
+  const turboTag=turbo?`<span class="bl-tag turbo">⚡ VALE 2×</span>`:'';
 
   let html=`<div class="${cls.join(' ')}" data-id="${g.id}">
     <div class="card-head">
-      <span class="grp-tag">GRUPO ${g.grp} · RODADA ${g.r}${tag}</span>
+      <span class="grp-tag">GRUPO ${g.grp} · RODADA ${g.r}${tag}${turboTag}</span>
       <span class="dt-tag">${g.dt} · ${g.tm}</span>
     </div>
     <div class="matchup">
       <div class="${winCls(hasReal,g,'A')}"><span class="team-flag">${g.fA}</span><span class="team-name">${g.tA}</span></div>
-      ${hasReal?`<div class="score-final">${g.realA}<small>×</small>${g.realB}</div>`:`<div class="vs-badge">×</div>`}
+      <div class="mid">
+        ${hasReal?`<div class="score-final">${g.realA}<small>×</small>${g.realB}</div>`:`<div class="vs-badge">×</div>`}
+        <div class="venue">📍 ${g.ven}</div>
+      </div>
       <div class="${winCls(hasReal,g,'B')}"><span class="team-flag">${g.fB}</span><span class="team-name">${g.tB}</span></div>
     </div>
-    <div class="venue">📍 ${g.ven}</div>
     <div class="preds-grid">`;
 
   PARTICIPANTS.forEach(p=>{
     const pred=g.predictions[p.id];
-    const hasPred=pred.a!==''&&pred.a!==null&&pred.a!==undefined;
-    const pts=hasReal&&hasPred?calcPts(pred,g.realA,g.realB):null;
-    const bc=ptsClass(pts);
-    const editable=p.editable;
-    html+=`<div class="pred-cell ${editable?'human':'ia'}" data-pid="${p.id}">
-      <div class="pc-top">
-        <span class="pc-name"><span class="pc-dot" style="background:${p.color}"></span>${p.name}</span>
-        ${pts!==null?`<span class="pts-badge ${bc}">${pts}</span>`:''}
-      </div>`;
-    if(editable){
-      html+=`<div class="pc-inputs">
-        <input type="number" min="0" max="99" inputmode="numeric" value="${hasPred?pred.a:''}" placeholder="–" oninput="updPred('${g.id}','${p.id}','a',this.value)">
-        <span class="sep">×</span>
-        <input type="number" min="0" max="99" inputmode="numeric" value="${hasPred?pred.b:''}" placeholder="–" oninput="updPred('${g.id}','${p.id}','b',this.value)">
+    const hasPred=!emptyVal(pred.a);
+    const pts=hasReal&&hasPred?ptsOf(g,pred):null;
+    const badge=pts!==null?`<span class="pts-badge ${ptsClass(pts)}">${pts}</span>`:'';
+    const inp=side=>`<input type="number" min="0" max="99" inputmode="numeric" value="${hasPred?pred[side]:''}" placeholder="–" oninput="updPred('${g.id}','${p.id}','${side}',this.value)">`;
+    if(p.type==='human'){
+      html+=`<div class="pred-cell human" data-pid="${p.id}">
+        <div class="hum-av" style="background:${p.color}">${avInner(p)}</div>
+        <span class="hum-name">${p.name}</span>
+        ${badge}
+        <div class="pc-inputs">${inp('a')}<span class="sep">×</span>${inp('b')}</div>
       </div>`;
     }else{
-      html+=`<div class="pc-score${hasPred?'':' empty'}">${hasPred?`${pred.a} × ${pred.b}`:'– × –'}</div>`;
+      html+=`<div class="pred-cell ia" data-pid="${p.id}">
+        <div class="pc-top"><span class="pc-name"><span class="pc-dot" style="background:${p.color}"></span>${p.name}</span>${badge}</div>`;
+      html+=p.editable
+        ? `<div class="pc-inputs small">${inp('a')}<span class="sep">×</span>${inp('b')}</div>`
+        : `<div class="pc-score${hasPred?'':' empty'}">${hasPred?`${pred.a} × ${pred.b}`:'– × –'}</div>`;
+      html+=`</div>`;
     }
-    html+=`</div>`;
   });
 
   html+=`</div>`;
@@ -787,13 +816,18 @@ function refreshPoints(gameId){
     const cell=card.querySelector(`.pred-cell[data-pid="${p.id}"]`);
     if(!cell)return;
     const pred=g.predictions[p.id];
-    const hasPred=pred.a!==''&&pred.a!==null&&pred.a!==undefined;
-    const pts=(hasReal&&hasPred)?calcPts(pred,g.realA,g.realB):null;
-    const top=cell.querySelector('.pc-top');
-    let badge=top.querySelector('.pts-badge');
+    const hasPred=!emptyVal(pred.a);
+    const pts=(hasReal&&hasPred)?ptsOf(g,pred):null;
+    let badge=cell.querySelector('.pts-badge');
     if(pts===null){if(badge)badge.remove();}
     else{
-      if(!badge){badge=document.createElement('span');top.appendChild(badge);}
+      if(!badge){
+        badge=document.createElement('span');
+        const top=cell.querySelector('.pc-top'), inputs=cell.querySelector('.pc-inputs');
+        if(top)top.appendChild(badge);              // célula IA
+        else if(inputs)cell.insertBefore(badge,inputs); // célula humana: antes das caixas
+        else cell.appendChild(badge);
+      }
       badge.className='pts-badge '+ptsClass(pts);
       badge.textContent=pts;
     }
@@ -834,7 +868,7 @@ function getStats(pid,filterFn){
   scored.forEach(g=>{
     const pred=g.predictions[pid];
     if(emptyVal(pred.a))return;
-    const p=calcPts(pred,g.realA,g.realB);
+    const p=ptsOf(g,pred);
     if(p===null)return;
     total+=p;ptsList.push(p);
     const ra=+g.realA,rb=+g.realB,pa=+pred.a,pb=+pred.b;
@@ -926,7 +960,7 @@ function statCard(p){
     ? p.cravadas.map(g=>`<div class="crav-item">🎯 <strong>${g.fA} ${g.tA} ${g.realA}×${g.realB} ${g.tB} ${g.fB}</strong></div>`).join('')
     : '<div class="crav-empty">Nenhum placar cravado ainda.</div>';
   return `<div class="stat-card">
-    <div class="stat-phead"><div class="stat-avatar" style="background:${p.color}">${p.init}</div>
+    <div class="stat-phead"><div class="stat-avatar" style="background:${p.color}">${avInner(p)}</div>
       <div><div style="font-weight:800;font-size:14px">${p.name} <span style="font-size:10px;color:${team.color};font-weight:700">· ${team.name}</span></div>
       <div style="font-size:10.5px;color:var(--mu)">${p.type==='ia'?'🤖 IA':'👤 Humano'} · ${p.played} jogos contabilizados</div></div>
     </div>
@@ -949,7 +983,7 @@ function rkRow(p,i,mx,withTeam){
   const team=withTeam?TEAMS.find(t=>t.id===p.team):null;
   return `<div class="rk-row${i===0&&p.total>0?' lead':''}">
     <div class="rk-medal">${medals[i]||(i+1)}</div>
-    <div class="rk-av" style="background:${p.color}">${p.init||p.name[0]}</div>
+    <div class="rk-av" style="background:${p.color}">${avInner(p)}</div>
     <div class="rk-mid">
       <div class="rk-nm"><b>${p.name}</b><span class="${p.type==='ia'?'tag-ia':'tag-human'}">${p.type==='ia'?'IA':'Humano'}</span>${team?`<span class="team-chip" style="color:${team.color};border-color:${team.color}55">${team.name}</span>`:''}</div>
       <div class="rk-sub2">✓ ${p.rHits} resultados · 🎯 ${p.eHits} cravados · ⌀ ${p.avg.toFixed(1)} pts</div>
@@ -968,7 +1002,7 @@ function podium(ranked){
   return `<div class="podium">${cols.map(c=>`
     <div class="pod pod-${c.pl}">
       <div class="pod-avwrap">
-        <div class="pod-av" style="background:${c.p.color}">${c.p.init||c.p.name[0]}</div>
+        <div class="pod-av" style="background:${c.p.color}">${avInner(c.p)}</div>
         <span class="pod-badge">${c.m}</span>
       </div>
       <div class="pod-name">${c.p.name}</div>
