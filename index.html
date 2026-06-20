@@ -201,6 +201,29 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .card.flash{animation:flash 1.5s ease;}
 .pill.warn{border-color:#e8c44a;color:#9a7b16;}
 .pill.warn.active{background:#e8c44a;color:#5c4708;border-color:#e8c44a;}
+
+/* ── Toggle Geral / Antigo ── */
+.rank-toggle{display:flex;background:var(--card);border:1px solid var(--brd);border-radius:10px;overflow:hidden;margin-bottom:12px;}
+.rank-toggle button{flex:1;padding:9px;border:none;background:transparent;font-size:12.5px;font-weight:700;color:var(--mu);cursor:pointer;}
+.rank-toggle button.active{background:var(--gd);color:var(--gold);}
+
+/* ── Corrida de times (3 times) ── */
+.tr-row{display:flex;align-items:center;gap:9px;margin-bottom:9px;}
+.tr-info{width:96px;flex-shrink:0;}
+.tr-nm{font-size:12px;font-weight:800;line-height:1.1;}
+.tr-mem{font-size:9px;color:var(--mu);margin-top:1px;}
+.tr-barwrap{flex:1;height:16px;background:var(--bg);border-radius:8px;overflow:hidden;}
+.tr-bar{height:100%;border-radius:8px;min-width:3px;transition:width .5s ease;}
+.tr-pts{width:30px;text-align:right;font-size:17px;font-weight:800;flex-shrink:0;}
+
+/* ── Chip de time no leaderboard ── */
+.team-chip{font-size:9px;font-weight:700;border:1px solid;border-radius:4px;padding:1px 5px;}
+
+/* ── Lista de placares cravados ── */
+.crav-list{display:flex;flex-direction:column;gap:5px;}
+.crav-item{font-size:11px;background:var(--bg);border-radius:8px;padding:6px 9px;color:var(--mu);}
+.crav-item strong{color:var(--txt);}
+.crav-empty{font-size:11px;color:var(--mu);background:var(--bg);border-radius:8px;padding:7px 9px;}
 </style>
 </head>
 <body>
@@ -232,12 +255,22 @@ const TABLE = 'bolao_games';
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// Ordem pensada para o grid 2 colunas dos cards: esquerda = humanos (editáveis), direita = IAs; cada linha = um time
 const PARTICIPANTS = [
-  {id:'jessica', name:'Jeca', type:'human', color:'#e05c8b'},
-  {id:'vinicius',name:'Vini', type:'human', color:'#3d8ef0'},
-  {id:'chatgpt', name:'ChatGPT', type:'ia',    color:'#19c37d'},
-  {id:'claude',  name:'Claude',  type:'ia',    color:'#cc6b2c'},
+  {id:'jessica', name:'Jeca',    type:'human', color:'#e05c8b', init:'J',  team:'jeca'},
+  {id:'chatgpt', name:'ChatGPT', type:'ia',    color:'#19c37d', init:'G',  team:'jeca'},
+  {id:'vinicius',name:'Vini',    type:'human', color:'#3d8ef0', init:'V',  team:'vini'},
+  {id:'claude',  name:'Claude',  type:'ia',    color:'#cc6b2c', init:'C',  team:'vini'},
+  {id:'tonius',  name:'Tonius',  type:'human', color:'#7e57c2', init:'T',  team:'tonius'},
+  {id:'claudio', name:'Claudio', type:'ia',    color:'#5e35b1', init:'Cd', team:'tonius'},
 ];
+const TEAMS = [
+  {id:'jeca',   name:'Time Jeca',   human:'jessica', ia:'chatgpt', color:'#e05c8b'},
+  {id:'vini',   name:'Time Vini',   human:'vinicius',ia:'claude',  color:'#3d8ef0'},
+  {id:'tonius', name:'Time Tonius', human:'tonius',  ia:'claudio', color:'#7e57c2'},
+];
+const OLD_IDS = ['jessica','vinicius','chatgpt','claude'];   // ranking antigo (JxV)
+const CUT = 20*10000 + 12*100;   // jogos do RANKING GERAL contam a partir de 20/06 12h (meio-dia)
 
 const GT = [
 {id:'g01',grp:'A',r:1,dt:'11/06',tm:'16h',ven:'Cidade do México',tA:'México',fA:'🇲🇽',tB:'África do Sul',fB:'🇿🇦',c:null,g:null},
@@ -343,8 +376,10 @@ function getGame(id){
     predictions:{
       jessica:  {a:n(c.jessica_a),  b:n(c.jessica_b)},
       vinicius: {a:n(c.vinicius_a), b:n(c.vinicius_b)},
+      tonius:   {a:n(c.tonius_a),   b:n(c.tonius_b)},
       chatgpt:  t.g||{a:'',b:''},
       claude:   t.c||{a:'',b:''},
+      claudio:  t.d||{a:'',b:''},
     }
   };
 }
@@ -374,7 +409,7 @@ async function loadData(){
 }
 
 // Colunas de dados que importam para detectar mudanças reais (ignora updated_at etc.)
-const DATA_COLS=['finished','removed','real_a','real_b','jessica_a','jessica_b','vinicius_a','vinicius_b'];
+const DATA_COLS=['finished','removed','real_a','real_b','jessica_a','jessica_b','vinicius_a','vinicius_b','tonius_a','tonius_b'];
 function norm(v){return (v===undefined||v===null||v==='')?null:v;}
 function sameRow(a,b){
   return DATA_COLS.every(c=>{
@@ -414,7 +449,7 @@ function applyRemoteScores(gid){
   if(!card)return;
   const g=getGame(gid);
   const setInput=(inp,v)=>{if(inp&&document.activeElement!==inp)inp.value=norm(v)===null?'':v;};
-  ['jessica','vinicius'].forEach(pid=>{
+  ['jessica','vinicius','tonius'].forEach(pid=>{
     const cell=card.querySelector(`.pred-cell[data-pid="${pid}"]`);
     if(!cell)return;
     const ins=cell.querySelectorAll('input');
@@ -474,7 +509,9 @@ function gameDate(g){
 }
 function emptyVal(x){return x===''||x===null||x===undefined;}
 function missingPred(g){
-  return emptyVal(g.predictions.jessica.a)||emptyVal(g.predictions.vinicius.a);
+  const need=[g.predictions.jessica.a, g.predictions.vinicius.a];
+  if(sortKey(g)>=CUT) need.push(g.predictions.tonius.a);   // Tonius só joga a partir de 20/06 12h
+  return need.some(emptyVal);
 }
 function findNextGame(){
   const now=Date.now();
@@ -734,25 +771,26 @@ function updReal(gameId,side,val){
 }
 
 // ─── RANKING ──────────────────────────────────────────────────────────────────
-function getStats(pid){
-  const scored=GT.map(t=>getGame(t.id)).filter(g=>!g.removed&&g.finished&&g.realA!=='');
-  let total=0,rHits=0,eHits=0,ptsList=[],bestG=null,bestP=-1,diffs=[];
+function getStats(pid,filterFn){
+  const scored=GT.map(t=>getGame(t.id)).filter(g=>!g.removed&&g.finished&&g.realA!==''&&(!filterFn||filterFn(g)));
+  let total=0,rHits=0,eHits=0,ptsList=[],bestG=null,bestP=-1,diffs=[],cravadas=[];
   scored.forEach(g=>{
     const pred=g.predictions[pid];
-    if(pred.a===''||pred.a===null||pred.a===undefined)return;
+    if(emptyVal(pred.a))return;
     const p=calcPts(pred,g.realA,g.realB);
     if(p===null)return;
     total+=p;ptsList.push(p);
     const ra=+g.realA,rb=+g.realB,pa=+pred.a,pb=+pred.b;
     if((pa>pb?'A':pa<pb?'B':'E')===(ra>rb?'A':ra<rb?'B':'E'))rHits++;
-    if(pa===ra&&pb===rb)eHits++;
+    if(pa===ra&&pb===rb){eHits++;cravadas.push(g);}
     if(p>bestP){bestP=p;bestG=g;}
     diffs.push(pa-ra,pb-rb);
   });
   const avg=ptsList.length?total/ptsList.length:0;
   const sd=ptsList.length>1?Math.sqrt(ptsList.reduce((s,p)=>s+Math.pow(p-avg,2),0)/ptsList.length):0;
   const bias=diffs.length?diffs.reduce((a,b)=>a+b,0)/diffs.length:0;
-  return{total,rHits,eHits,avg,sd,bestG,bestP,played:ptsList.length,bias};
+  const aprov=ptsList.length?total/(ptsList.length*10):0;
+  return{total,rHits,eHits,avg,sd,bestG,bestP,played:ptsList.length,bias,cravadas,aprov};
 }
 
 // ─── TOOLTIPS EXPLICATIVOS ────────────────────────────────────────────────────
@@ -761,6 +799,10 @@ const TIPS={
   media:'Quantos pontos a pessoa faz, em média, por jogo já contabilizado. Quanto maior, melhor.',
   resultado:'Quantas vezes acertou quem venceu a partida (ou o empate), mesmo sem cravar o placar. Cada acerto desses já garante 5 pontos.',
   exato:'Quantas vezes cravou o placar exatinho — ex.: previu 2×1 e o jogo terminou 2×1. É a pontuação máxima do jogo (10 pts).',
+  cravados:'Quantas vezes cravou o placar exato — ex.: previu 2×1 e o jogo terminou 2×1. É a pontuação máxima do jogo (10 pts).',
+  aproveitamento:'De todos os pontos possíveis nos jogos que palpitou, quantos % a pessoa conquistou. 100% seria cravar o placar de todos os jogos.',
+  maiornota:'A maior pontuação que a pessoa fez em um único jogo até agora (de 0 a 10).',
+  cutoff:'O Ranking Geral conta apenas os jogos a partir do meio-dia de sábado, 20/06 — quando o Tonius entrou no bolão. Assim todo mundo começa do mesmo ponto. O ranking antigo (JxV) continua contando a Copa inteira.',
   vies:'A tendência dos palpites: "Otimista" costuma chutar muitos gols, "Pessimista" chuta poucos e "Neutro" fica no meio. É a diferença média entre os gols previstos e os que realmente aconteceram.',
   consistencia:'Mede o quão regular a pessoa é. Nota alta = pontua de forma parecida em todos os jogos (mais confiável). Nota baixa = oscila muito: às vezes vai muito bem, às vezes zera.',
 };
@@ -799,74 +841,145 @@ function versus(title,lName,lMem,lPts,lCol,rName,rMem,rPts,rCol){
   </div>`;
 }
 
-// ─── RANKING + ESTATÍSTICAS (página única) ────────────────────────────────────
-function renderRanking(){
-  const fin=GT.map(t=>getGame(t.id)).filter(g=>!g.removed&&g.finished&&g.realA!=='').length;
-  const tot=GT.filter(t=>!getGame(t.id).removed).length;
-  const sAll=PARTICIPANTS.map(p=>({...p,...getStats(p.id)}));
+// Comparativo de vários times (corrida de barras)
+function teamRace(title,rows){
+  const mx=Math.max(1,...rows.map(r=>r.pts));
+  const lead=Math.max(...rows.map(r=>r.pts));
+  const sorted=[...rows].sort((a,b)=>b.pts-a.pts);
+  let h=`<div class="vs2"><div class="vs2-title">${title}</div>`;
+  sorted.forEach(r=>{
+    const tc=r.col==='#e8c44a'?'#b8941f':r.col;
+    h+=`<div class="tr-row">
+      <div class="tr-info"><div class="tr-nm" style="color:${tc}">${r.name}</div><div class="tr-mem">${r.mem}</div></div>
+      <div class="tr-barwrap"><div class="tr-bar" style="width:${(r.pts/mx*100).toFixed(0)}%;background:${r.col}"></div></div>
+      <div class="tr-pts" style="color:${tc}">${r.pts}</div>
+    </div>`;
+  });
+  const winners=sorted.filter(r=>r.pts===lead&&lead>0);
+  const foot=lead<=0?'Sem pontos ainda':winners.length>1?'🤝 Empate na liderança!':`🏆 ${winners[0].name} na frente!`;
+  h+=`<div class="vs2-foot" style="color:var(--mu)">${foot}</div></div>`;
+  return h;
+}
+
+// Card de estatística individual (versão completa, usada no ranking geral)
+function statCard(p){
+  const bL=p.bias>0.3?'↑ Otimista':p.bias<-0.3?'↓ Pessimista':'≈ Neutro';
+  const bC=p.bias>0.3?'#e05c8b':p.bias<-0.3?'#3d8ef0':'var(--gl)';
+  const cS=p.played>0?Math.max(0,10-p.sd):0;
+  const team=TEAMS.find(t=>t.id===p.team);
+  const crav=p.cravadas.length
+    ? p.cravadas.map(g=>`<div class="crav-item">🎯 <strong>${g.fA} ${g.tA} ${g.realA}×${g.realB} ${g.tB} ${g.fB}</strong></div>`).join('')
+    : '<div class="crav-empty">Nenhum placar cravado ainda.</div>';
+  return `<div class="stat-card">
+    <div class="stat-phead"><div class="stat-avatar" style="background:${p.color}">${p.init}</div>
+      <div><div style="font-weight:800;font-size:14px">${p.name} <span style="font-size:10px;color:${team.color};font-weight:700">· ${team.name}</span></div>
+      <div style="font-size:10.5px;color:var(--mu)">${p.type==='ia'?'🤖 IA':'👤 Humano'} · ${p.played} jogos contabilizados</div></div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-box"><div class="val">${p.total}</div><div class="lbl">Pontos</div></div>
+      <div class="stat-box"><div class="val">${p.avg.toFixed(1)}</div><div class="lbl">Média/jogo ${q('media')}</div></div>
+      <div class="stat-box"><div class="val">${(p.aprov*100).toFixed(0)}%</div><div class="lbl">Aproveitamento ${q('aproveitamento')}</div></div>
+      <div class="stat-box"><div class="val">${p.rHits}</div><div class="lbl">Vencedor/Empate ${q('resultado')}</div></div>
+      <div class="stat-box"><div class="val">${p.eHits}</div><div class="lbl">Placares cravados ${q('cravados')}</div></div>
+      <div class="stat-box"><div class="val">${p.bestP<0?'–':p.bestP}</div><div class="lbl">Maior nota ${q('maiornota')}</div></div>
+    </div>
+    <div class="stat-line-lbl">Viés de gols ${q('vies')}</div>
+    <div style="font-size:13px;color:${bC};font-weight:800;margin-bottom:11px">${bL} <span style="font-weight:600;color:var(--mu);font-size:11px">(${p.bias>=0?'+':''}${p.bias.toFixed(2)} gols por palpite)</span></div>
+    <div class="stat-line-lbl">Consistência ${q('consistencia')}</div>
+    <div class="cons-bar-wrap"><div class="cons-bar"><div class="cons-fill" style="width:${(cS/10*100).toFixed(0)}%;background:${p.color}"></div></div>
+      <span style="font-size:11px;color:var(--mu);font-weight:700;min-width:34px;text-align:right">${cS.toFixed(1)}/10</span></div>
+    <div class="stat-line-lbl" style="margin-top:12px">🎯 Placares cravados ${q('cravados')}</div>
+    <div class="crav-list">${crav}</div>
+  </div>`;
+}
+
+// Linha do leaderboard
+function rkRow(p,i,mx,withTeam){
+  const medals=['🥇','🥈','🥉'];
+  const team=withTeam?TEAMS.find(t=>t.id===p.team):null;
+  return `<div class="rk-row${i===0&&p.total>0?' lead':''}">
+    <div class="rk-medal">${medals[i]||(i+1)}</div>
+    <div class="rk-av" style="background:${p.color}">${p.init||p.name[0]}</div>
+    <div class="rk-mid">
+      <div class="rk-nm"><b>${p.name}</b><span class="${p.type==='ia'?'tag-ia':'tag-human'}">${p.type==='ia'?'IA':'Humano'}</span>${team?`<span class="team-chip" style="color:${team.color};border-color:${team.color}55">${team.name}</span>`:''}</div>
+      <div class="rk-sub2">✓ ${p.rHits} resultados · 🎯 ${p.eHits} cravados · ⌀ ${p.avg.toFixed(1)} pts</div>
+      <div class="rk-bar"><i style="width:${(p.total/mx*100).toFixed(0)}%;background:${p.color}"></i></div>
+    </div>
+    <div class="rk-tot"><b>${p.total}</b><span>pts</span></div>
+  </div>`;
+}
+
+// ─── RANKING GERAL (novo) — todos, a partir de 20/06 12h ──────────────────────
+function rankingNew(){
+  const inRank=g=>sortKey(g)>=CUT;
+  const fin=GT.map(t=>getGame(t.id)).filter(g=>!g.removed&&g.finished&&g.realA!==''&&inRank(g)).length;
+  const tot=GT.map(t=>getGame(t.id)).filter(g=>!g.removed&&inRank(g)).length;
+  const sAll=PARTICIPANTS.map(p=>({...p,...getStats(p.id,inRank)}));
   const ranked=[...sAll].sort((a,b)=>b.total-a.total||b.rHits-a.rHits||b.eHits-a.eHits);
   const mx=Math.max(1,...ranked.map(s=>s.total));
-  const medals=['🥇','🥈','🥉','4️⃣'];
 
-  // 1) Leaderboard consolidado
   let html=`<div class="lead-board">
     <div class="lead-head">
       <div class="lh-title">🏆 CLASSIFICAÇÃO GERAL</div>
-      <div class="lh-sub">${fin} de ${tot} jogos contabilizados ${q('pontuacao')}</div>
+      <div class="lh-sub">${fin} de ${tot} jogos · vale a partir de 20/06 ${q('cutoff')}</div>
     </div>`;
-  ranked.forEach((p,i)=>{
-    html+=`<div class="rk-row${i===0&&p.total>0?' lead':''}">
-      <div class="rk-medal">${medals[i]||(i+1)}</div>
-      <div class="rk-av" style="background:${p.color}">${p.name[0]}</div>
-      <div class="rk-mid">
-        <div class="rk-nm"><b>${p.name}</b><span class="${p.type==='ia'?'tag-ia':'tag-human'}">${p.type==='ia'?'IA':'Humano'}</span></div>
-        <div class="rk-sub2">✓ ${p.rHits} resultados · 🎯 ${p.eHits} exatos · ⌀ ${p.avg.toFixed(1)} pts</div>
-        <div class="rk-bar"><i style="width:${(p.total/mx*100).toFixed(0)}%;background:${p.color}"></i></div>
-      </div>
-      <div class="rk-tot"><b>${p.total}</b><span>pts</span></div>
-    </div>`;
-  });
+  ranked.forEach((p,i)=>{html+=rkRow(p,i,mx,true);});
   html+=`</div>`;
 
-  // 2) Comparativos
+  const byId=id=>sAll.find(p=>p.id===id).total;
   const hP=sAll.filter(p=>p.type==='human').reduce((s,p)=>s+p.total,0);
   const iP=sAll.filter(p=>p.type==='ia').reduce((s,p)=>s+p.total,0);
+
+  html+=`<div class="section-title">⚔️ COMPARATIVOS</div>`;
+  html+=versus('🤝 Humanos vs Máquinas','Humanos','Jeca + Vini + Tonius',hP,'#3d8ef0','Máquinas','ChatGPT + Claude + Claudio',iP,'#e8c44a');
+  html+=teamRace('👥 Time Jeca vs Time Vini vs Time Tonius', TEAMS.map(t=>({
+    name:t.name, mem:PARTICIPANTS.find(x=>x.id===t.human).name+' + '+PARTICIPANTS.find(x=>x.id===t.ia).name,
+    pts:byId(t.human)+byId(t.ia), col:t.color
+  })));
+
+  html+=`<div class="section-title">📊 ESTATÍSTICAS INDIVIDUAIS</div>`;
+  sAll.forEach(p=>{html+=statCard(p);});
+  return html;
+}
+
+// ─── RANKING ANTIGO (JxV) — mantido exatamente como era: 4 participantes, todos os jogos ──
+function rankingOld(){
+  const fin=GT.map(t=>getGame(t.id)).filter(g=>!g.removed&&g.finished&&g.realA!=='').length;
+  const tot=GT.filter(t=>!getGame(t.id).removed).length;
+  const sAll=OLD_IDS.map(id=>{const p=PARTICIPANTS.find(x=>x.id===id);return {...p,...getStats(p.id)};});
+  const ranked=[...sAll].sort((a,b)=>b.total-a.total||b.rHits-a.rHits||b.eHits-a.eHits);
+  const mx=Math.max(1,...ranked.map(s=>s.total));
+
+  let html=`<div class="lead-board">
+    <div class="lead-head">
+      <div class="lh-title">🏆 RANKING JxV (ANTIGO)</div>
+      <div class="lh-sub">${fin} de ${tot} jogos · conta todos os jogos da Copa ${q('pontuacao')}</div>
+    </div>`;
+  ranked.forEach((p,i)=>{html+=rkRow(p,i,mx,false);});
+  html+=`</div>`;
+
   const byId=id=>sAll.find(p=>p.id===id).total;
-  const jecaTeam=byId('jessica')+byId('chatgpt');
-  const viniTeam=byId('vinicius')+byId('claude');
+  const hP=sAll.filter(p=>p.type==='human').reduce((s,p)=>s+p.total,0);
+  const iP=sAll.filter(p=>p.type==='ia').reduce((s,p)=>s+p.total,0);
 
   html+=`<div class="section-title">⚔️ COMPARATIVOS</div>`;
   html+=versus('🤝 Humanos vs IAs','Humanos','Jeca + Vini',hP,'#3d8ef0','IAs','ChatGPT + Claude',iP,'#e8c44a');
-  html+=versus('👥 Time Jeca vs Time Vini','Time Jeca','Jeca + ChatGPT',jecaTeam,'#e05c8b','Time Vini','Vini + Claude',viniTeam,'#3d8ef0');
+  html+=versus('👥 Time Jeca vs Time Vini','Time Jeca','Jeca + ChatGPT',byId('jessica')+byId('chatgpt'),'#e05c8b','Time Vini','Vini + Claude',byId('vinicius')+byId('claude'),'#3d8ef0');
 
-  // 3) Estatísticas individuais
   html+=`<div class="section-title">📊 ESTATÍSTICAS INDIVIDUAIS</div>`;
-  sAll.forEach(p=>{
-    const bL=p.bias>0.3?'↑ Otimista':p.bias<-0.3?'↓ Pessimista':'≈ Neutro';
-    const bC=p.bias>0.3?'#e05c8b':p.bias<-0.3?'#3d8ef0':'var(--gl)';
-    const cS=p.played>0?Math.max(0,10-p.sd):0;
-    html+=`<div class="stat-card">
-      <div class="stat-phead"><div class="stat-avatar" style="background:${p.color}">${p.name[0]}</div>
-        <div><div style="font-weight:800;font-size:14px">${p.name}</div>
-        <div style="font-size:10.5px;color:var(--mu)">${p.type==='ia'?'🤖 IA':'👤 Humano'} · ${p.played} jogos contabilizados</div></div>
-      </div>
-      <div class="stat-grid">
-        <div class="stat-box"><div class="val">${p.total}</div><div class="lbl">Total de pontos</div></div>
-        <div class="stat-box"><div class="val">${p.avg.toFixed(1)}</div><div class="lbl">Média/jogo ${q('media')}</div></div>
-        <div class="stat-box"><div class="val">${p.rHits}</div><div class="lbl">Resultados ${q('resultado')}</div></div>
-        <div class="stat-box"><div class="val">${p.eHits}</div><div class="lbl">Placares exatos ${q('exato')}</div></div>
-      </div>
-      <div class="stat-line-lbl">Viés de gols ${q('vies')}</div>
-      <div style="font-size:13px;color:${bC};font-weight:800;margin-bottom:11px">${bL} <span style="font-weight:600;color:var(--mu);font-size:11px">(${p.bias>=0?'+':''}${p.bias.toFixed(2)} gols por palpite)</span></div>
-      <div class="stat-line-lbl">Consistência ${q('consistencia')}</div>
-      <div class="cons-bar-wrap"><div class="cons-bar"><div class="cons-fill" style="width:${(cS/10*100).toFixed(0)}%;background:${p.color}"></div></div>
-        <span style="font-size:11px;color:var(--mu);font-weight:700;min-width:34px;text-align:right">${cS.toFixed(1)}/10</span>
-      </div>
-      ${p.bestG?`<div class="best-game">🏅 Melhor palpite: <strong>${p.bestG.fA} ${p.bestG.tA} ${p.bestG.realA}×${p.bestG.realB} ${p.bestG.tB} ${p.bestG.fB}</strong> — ${p.bestP} pts</div>`:'<div class="best-game">Ainda sem jogos contabilizados.</div>'}
-    </div>`;
-  });
+  sAll.forEach(p=>{html+=statCard(p);});
+  return html;
+}
 
-  document.getElementById('tab-ranking').innerHTML=html;
+let rankMode=localStorage.getItem('brm')||'geral';
+function setRank(m){rankMode=m;localStorage.setItem('brm',m);renderRanking();}
+
+function renderRanking(){
+  const toggle=`<div class="rank-toggle">
+    <button class="${rankMode==='geral'?'active':''}" onclick="setRank('geral')">🏆 Geral</button>
+    <button class="${rankMode==='jxv'?'active':''}" onclick="setRank('jxv')">Antigo (JxV)</button>
+  </div>`;
+  document.getElementById('tab-ranking').innerHTML=toggle+(rankMode==='jxv'?rankingOld():rankingNew());
 }
 
 // ─── TAB NAV ──────────────────────────────────────────────────────────────────
