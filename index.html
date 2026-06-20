@@ -52,16 +52,20 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .card{position:relative;background:var(--card);border-radius:16px;border:1px solid var(--brd);overflow:hidden;box-shadow:0 2px 10px rgba(15,68,36,.07);display:flex;flex-direction:column;transition:box-shadow .2s,transform .2s;}
 .card:hover{box-shadow:0 8px 22px rgba(15,68,36,.13);transform:translateY(-1px);}
 .card.is-finished{border-color:var(--gl);box-shadow:0 2px 12px rgba(45,150,83,.18);}
-.card.is-removed{opacity:.5;}
+.card.is-naocons{opacity:.62;}
 
-.card-head{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;background:linear-gradient(135deg,var(--gd),var(--g));gap:8px;}
-.card-head .grp-tag{font-size:13px;font-weight:800;color:var(--gold);letter-spacing:.5px;}
-.card-head .dt-tag{font-size:12.5px;font-weight:700;color:#fff;white-space:nowrap;}
+.card-head{display:flex;justify-content:space-between;align-items:center;padding:13px 15px;background:linear-gradient(135deg,var(--gd),var(--g));gap:8px;flex-wrap:wrap;}
+.card-head .grp-tag{font-size:15px;font-weight:800;color:var(--gold);letter-spacing:.5px;display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.card-head .dt-tag{font-size:14px;font-weight:700;color:#fff;white-space:nowrap;}
+.bl-tag{font-size:9px;font-weight:800;letter-spacing:.5px;padding:2px 7px;border-radius:5px;}
+.bl-tag.geral{background:rgba(255,255,255,.14);color:rgba(255,255,255,.55);}
+.bl-tag.jxv{background:rgba(255,255,255,.1);color:rgba(255,255,255,.4);}
+.bl-tag.nao{background:#e8c44a;color:#5c4708;}
 
-.matchup{display:flex;align-items:stretch;padding:15px 8px 4px;gap:4px;}
-.team{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;}
-.team-flag{font-size:32px;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,.12));}
-.team-name{font-size:12px;font-weight:700;color:var(--txt);text-align:center;line-height:1.15;}
+.matchup{display:flex;align-items:stretch;padding:17px 8px 5px;gap:4px;}
+.team{flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;min-width:0;}
+.team-flag{font-size:42px;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,.12));}
+.team-name{font-size:14px;font-weight:800;color:var(--txt);text-align:center;line-height:1.15;}
 .vs-badge{align-self:center;font-size:11px;font-weight:800;color:var(--g);background:var(--bg);border:2px solid var(--brd);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 
 .venue{font-size:10px;color:var(--mu);text-align:center;padding:6px 12px 9px;}
@@ -88,8 +92,12 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .pc-score.empty{color:#c4d0c4;}
 
 /* Real score full-bleed footer */
-.real-row{display:flex;align-items:center;justify-content:center;gap:9px;background:linear-gradient(135deg,var(--gd),var(--g));padding:10px 12px;}
+.real-row{display:flex;flex-direction:column;align-items:stretch;gap:9px;background:linear-gradient(135deg,var(--gd),var(--g));padding:11px 12px;}
+.real-row .rr-line{display:flex;align-items:center;justify-content:center;gap:9px;}
 .real-row .rr-label{font-size:11px;font-weight:800;color:var(--gold);letter-spacing:.5px;}
+.rr-finish{padding:9px;border-radius:9px;border:1.5px solid rgba(255,255,255,.45);background:rgba(255,255,255,.12);color:#fff;font-size:12px;font-weight:800;cursor:pointer;transition:background .15s;}
+.rr-finish:active{background:rgba(255,255,255,.22);}
+.rr-finish.done{background:var(--gold);color:#5c4708;border-color:var(--gold);}
 .real-row input{width:44px;height:36px;text-align:center;border:1.5px solid rgba(255,255,255,.35);border-radius:9px;font-size:17px;font-weight:700;background:rgba(255,255,255,.16);color:#fff;-moz-appearance:textfield;}
 .real-row input::-webkit-outer-spin-button,.real-row input::-webkit-inner-spin-button{-webkit-appearance:none;}
 .real-row input::placeholder{color:rgba(255,255,255,.5);}
@@ -224,6 +232,34 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .crav-item{font-size:11px;background:var(--bg);border-radius:8px;padding:6px 9px;color:var(--mu);}
 .crav-item strong{color:var(--txt);}
 .crav-empty{font-size:11px;color:var(--mu);background:var(--bg);border-radius:8px;padding:7px 9px;}
+
+/* ── Hero "Jogos de hoje" (compacto) ── */
+.day-hero{background:linear-gradient(135deg,var(--gd),var(--g));border-radius:14px;padding:11px 13px;margin-bottom:12px;color:#fff;box-shadow:0 4px 14px rgba(15,68,36,.22);}
+.dh-head{font-size:10px;font-weight:800;letter-spacing:1.1px;color:var(--gold);margin-bottom:8px;display:flex;align-items:center;gap:7px;}
+.dh-list{display:flex;flex-direction:column;gap:2px;}
+.dh-row{display:flex;align-items:center;gap:9px;padding:6px 7px;border-radius:9px;cursor:pointer;transition:background .15s;}
+.dh-row:active{background:rgba(255,255,255,.1);}
+.dh-time{font-size:12px;font-weight:800;color:var(--gold);min-width:42px;flex-shrink:0;font-variant-numeric:tabular-nums;}
+.dh-teams{flex:1;font-size:12.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.dh-teams i{color:rgba(255,255,255,.5);font-style:normal;font-weight:700;margin:0 2px;}
+.dh-miss{color:var(--gold);font-size:10px;font-weight:700;}
+.dh-cd{font-size:12px;font-weight:800;background:rgba(255,255,255,.16);border-radius:7px;padding:3px 8px;flex-shrink:0;font-variant-numeric:tabular-nums;}
+.dh-soon{font-size:13px;flex-shrink:0;opacity:.6;}
+
+/* ── Pódio ── */
+.podium{display:flex;align-items:flex-end;justify-content:center;gap:9px;margin-bottom:14px;padding:0 4px;}
+.pod{flex:1;max-width:120px;display:flex;flex-direction:column;align-items:center;}
+.pod-medal{font-size:22px;line-height:1;margin-bottom:3px;}
+.pod-1 .pod-medal{font-size:28px;}
+.pod-av{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;color:#fff;border:3px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.18);}
+.pod-1 .pod-av{width:58px;height:58px;font-size:22px;}
+.pod-name{font-size:12px;font-weight:800;margin-top:5px;text-align:center;line-height:1.1;}
+.pod-pts{font-size:14px;font-weight:800;color:var(--g);}
+.pod-pts span{font-size:9px;color:var(--mu);font-weight:600;}
+.pod-base{width:100%;margin-top:6px;border-radius:8px 8px 0 0;display:flex;align-items:flex-start;justify-content:center;padding-top:8px;color:#fff;font-weight:800;font-size:14px;background:linear-gradient(180deg,var(--gl),var(--g));}
+.pod-1 .pod-base{height:72px;background:linear-gradient(180deg,var(--gold),#c9a227);color:#5c4708;}
+.pod-2 .pod-base{height:54px;}
+.pod-3 .pod-base{height:40px;}
 </style>
 </head>
 <body>
@@ -259,15 +295,15 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const PARTICIPANTS = [
   {id:'jessica', name:'Jeca',          type:'human', color:'#e05c8b', init:'J',  team:'jeca'},
   {id:'chatgpt', name:'ChatGPT Jeca',  type:'ia',    color:'#19c37d', init:'G',  team:'jeca'},
-  {id:'vinicius',name:'Vini',          type:'human', color:'#3d8ef0', init:'V',  team:'vini'},
-  {id:'claude',  name:'Claude Vini',   type:'ia',    color:'#cc6b2c', init:'CV', team:'vini'},
   {id:'tonius',  name:'Tonius',        type:'human', color:'#7e57c2', init:'T',  team:'tonius'},
   {id:'claudio', name:'Claude Tonius', type:'ia',    color:'#5e35b1', init:'CT', team:'tonius'},
+  {id:'vinicius',name:'Vini',          type:'human', color:'#3d8ef0', init:'V',  team:'vini'},
+  {id:'claude',  name:'Claude Vini',   type:'ia',    color:'#cc6b2c', init:'CV', team:'vini'},
 ];
 const TEAMS = [
   {id:'jeca',   name:'Time Jeca',   human:'jessica', ia:'chatgpt', color:'#e05c8b'},
-  {id:'vini',   name:'Time Vini',   human:'vinicius',ia:'claude',  color:'#3d8ef0'},
   {id:'tonius', name:'Time Tonius', human:'tonius',  ia:'claudio', color:'#7e57c2'},
+  {id:'vini',   name:'Time Vini',   human:'vinicius',ia:'claude',  color:'#3d8ef0'},
 ];
 const OLD_IDS = ['jessica','vinicius','chatgpt','claude'];   // ranking antigo (JxV)
 const CUT = 20*10000 + 12*100;   // jogos do RANKING GERAL contam a partir de 20/06 12h (meio-dia)
@@ -473,11 +509,10 @@ function hideLoading(){document.getElementById('loading-screen').classList.add('
 function showErr(msg){const el=document.getElementById('error-banner');el.textContent=msg;el.style.display='block';setTimeout(()=>{el.style.display='none';},5000);}
 
 // ─── VIEW STATE ───────────────────────────────────────────────────────────────
-let viewMode=localStorage.getItem('bv')||'date';
 let filterMode=localStorage.getItem('bf')||'all';
+if(filterMode==='removed')filterMode='naocons';   // migração do nome antigo
 let activeTab='palpites';
 
-function setView(v){viewMode=v;localStorage.setItem('bv',v);renderPalpites();}
 function setFilter(f){filterMode=f;localStorage.setItem('bf',f);renderPalpites();}
 
 function renderAll(){
@@ -535,23 +570,46 @@ let _cdInterval=null,_cdTarget=0;
 function tickCountdown(){
   const el=document.getElementById('nh-clock');
   if(!el){if(_cdInterval){clearInterval(_cdInterval);_cdInterval=null;}return;}
-  el.textContent=fmtCountdown(_cdTarget-Date.now());
+  const rem=_cdTarget-Date.now();
+  if(rem<=0){ if(!isTyping())renderPalpites(); return; }   // jogo começou: atualiza a lista do dia
+  el.textContent=fmtCountdown(rem);
+}
+// Jogos do dia: do agora até as 6h da próxima manhã (madrugada conta como o mesmo "dia")
+function todaySlate(){
+  const now=Date.now();
+  const end=new Date(); end.setHours(6,0,0,0);
+  if(end.getTime()<=now) end.setDate(end.getDate()+1);
+  const endMs=end.getTime();
+  return GT.map(t=>getGame(t.id))
+    .filter(g=>!g.removed&&!g.finished)
+    .map(g=>({g,t:gameDate(g).getTime()}))
+    .filter(x=>x.t>now&&x.t<=endMs)
+    .sort((a,b)=>a.t-b.t)
+    .map(x=>x.g);
+}
+function dayRow(g,first){
+  const miss=missingPred(g);
+  return `<div class="dh-row" onclick="goToGame('${g.id}')">
+    <span class="dh-time">${g.tm}</span>
+    <span class="dh-teams">${g.fA} <b>${g.tA}</b> <i>×</i> <b>${g.tB}</b> ${g.fB}${miss?' <span class="dh-miss">• falta palpite</span>':''}</span>
+    ${first?`<span class="dh-cd" id="nh-clock">${fmtCountdown(_cdTarget-Date.now())}</span>`:`<span class="dh-soon">⚽</span>`}
+  </div>`;
 }
 function heroHTML(){
-  const g=findNextGame();
-  if(!g)return '';
-  _cdTarget=gameDate(g).getTime();
-  const miss=missingPred(g);
-  return `<div class="next-hero" onclick="goToGame('${g.id}')">
-    <div class="nh-label"><span class="nh-live"></span>PRÓXIMO JOGO · GRUPO ${g.grp}</div>
-    <div class="nh-match">
-      <div class="nh-team"><span class="f">${g.fA}</span><span class="n">${g.tA}</span></div>
-      <div class="nh-x">×</div>
-      <div class="nh-team"><span class="f">${g.fB}</span><span class="n">${g.tB}</span></div>
-    </div>
-    <div class="nh-meta">${g.dt} · ${g.tm} · 📍 ${g.ven}</div>
-    <div class="nh-cd"><span class="clock" id="nh-clock">${fmtCountdown(_cdTarget-Date.now())}</span></div>
-    <div class="nh-status ${miss?'miss':'ok'}">${miss?'⚠️ Faltam seus palpites — toque para preencher':'✓ Seus palpites estão prontos'}</div>
+  const slate=todaySlate();
+  if(slate.length){
+    _cdTarget=gameDate(slate[0]).getTime();
+    return `<div class="day-hero">
+      <div class="dh-head"><span class="nh-live"></span>JOGOS DE HOJE · ${slate.length}</div>
+      <div class="dh-list">${slate.map((g,i)=>dayRow(g,i===0)).join('')}</div>
+    </div>`;
+  }
+  const nx=findNextGame();
+  if(!nx)return '';
+  _cdTarget=gameDate(nx).getTime();
+  return `<div class="day-hero">
+    <div class="dh-head"><span class="nh-live"></span>PRÓXIMO JOGO</div>
+    <div class="dh-list">${dayRow(nx,true)}</div>
   </div>`;
 }
 function goToGame(gid){
@@ -564,48 +622,44 @@ function goToGame(gid){
 
 // ─── RENDER PALPITES ──────────────────────────────────────────────────────────
 function renderPalpites(){
-  let games=GT.map(t=>getGame(t.id));
+  const games=GT.map(t=>getGame(t.id));
+  const isGeral=g=>!g.removed&&sortKey(g)>=CUT;
+  const isJxv=g=>!g.removed&&sortKey(g)<CUT;
 
-  const cAll=games.filter(g=>!g.removed).length;
+  const cAll=games.length;
+  const cGeral=games.filter(isGeral).length;
+  const cJxv=games.filter(isJxv).length;
+  const cMiss=games.filter(g=>!g.removed&&missingPred(g)).length;
   const cPend=games.filter(g=>!g.removed&&!g.finished).length;
   const cFin=games.filter(g=>!g.removed&&g.finished).length;
-  const cRem=games.filter(g=>g.removed).length;
-  const cMiss=games.filter(g=>!g.removed&&missingPred(g)).length;
+  const cNao=games.filter(g=>g.removed).length;
 
-  if(filterMode==='pending')     games=games.filter(g=>!g.removed&&!g.finished);
-  else if(filterMode==='finished')games=games.filter(g=>!g.removed&&g.finished);
-  else if(filterMode==='removed') games=games.filter(g=>g.removed);
-  else if(filterMode==='missing') games=games.filter(g=>!g.removed&&missingPred(g));
-  else games=games.filter(g=>!g.removed);
+  let list;
+  if(filterMode==='geral')        list=games.filter(isGeral);
+  else if(filterMode==='jxv')     list=games.filter(isJxv);
+  else if(filterMode==='missing') list=games.filter(g=>!g.removed&&missingPred(g));
+  else if(filterMode==='pending') list=games.filter(g=>!g.removed&&!g.finished);
+  else if(filterMode==='finished')list=games.filter(g=>!g.removed&&g.finished);
+  else if(filterMode==='naocons') list=games.filter(g=>g.removed);
+  else list=games;   // Todos (inclui os não considerados, com tag)
 
-  const sorted=[...games].sort((a,b)=>sortKey(a)-sortKey(b));
+  const sorted=[...list].sort((a,b)=>sortKey(a)-sortKey(b));
+  const pill=(id,label,n,cls)=>`<button class="pill${cls?' '+cls:''}${filterMode===id?' active':''}" onclick="setFilter('${id}')">${label} (${n})</button>`;
 
   let html=heroHTML();
-  html+=`<div class="controls">
-    <div class="view-toggle">
-      <button onclick="setView('date')" class="${viewMode==='date'?'active':''}">Por Data</button>
-      <button onclick="setView('group')" class="${viewMode==='group'?'active':''}">Por Grupo</button>
-    </div>
-    <div class="filters">
-      <button class="pill${filterMode==='all'?' active':''}" onclick="setFilter('all')">Todos (${cAll})</button>
-      <button class="pill warn${filterMode==='missing'?' active':''}" onclick="setFilter('missing')">Faltam palpites (${cMiss})</button>
-      <button class="pill${filterMode==='pending'?' active':''}" onclick="setFilter('pending')">Pendentes (${cPend})</button>
-      <button class="pill${filterMode==='finished'?' active':''}" onclick="setFilter('finished')">Finalizados (${cFin})</button>
-      <button class="pill${filterMode==='removed'?' active':''}" onclick="setFilter('removed')">Removidos (${cRem})</button>
-    </div>
-  </div>`;
+  html+=`<div class="controls"><div class="filters">
+    ${pill('all','Todos',cAll)}
+    ${pill('geral','Bolão Geral',cGeral)}
+    ${pill('jxv','Bolão JxV',cJxv)}
+    ${pill('missing','Faltam Palpites',cMiss,'warn')}
+    ${pill('pending','A acontecer',cPend)}
+    ${pill('finished','Finalizados',cFin)}
+    ${pill('naocons','Não considerados',cNao)}
+  </div></div>`;
 
   if(!sorted.length){
     html+=`<div class="empty-state">Nenhum jogo nesta categoria.</div>`;
-  }else if(viewMode==='group'){
-    const grps=[...new Set(sorted.map(g=>g.grp))].sort();
-    grps.forEach(grp=>{
-      html+=`<div class="section-hdr"><span class="section-badge">GRUPO ${grp}</span><div class="section-line"></div></div>`;
-      html+=`<div class="games-grid">`;
-      sorted.filter(g=>g.grp===grp).forEach(g=>{html+=renderCard(g);});
-      html+=`</div>`;
-    });
-  } else {
+  }else{
     const dates=[...new Set(sorted.map(g=>g.dt))];
     dates.forEach(dt=>{
       html+=`<div class="section-hdr"><span class="section-badge">${dt}</span><div class="section-line"></div></div>`;
@@ -630,14 +684,16 @@ function winCls(hasReal,g,side){
 }
 function renderCard(g){
   const hasReal=g.finished&&g.realA!==''&&g.realA!==null&&g.realA!==undefined;
-  const rmConf=removeConfirm[g.id];
   const cls=['card'];
   if(g.finished)cls.push('is-finished');
-  if(g.removed)cls.push('is-removed');
+  if(g.removed)cls.push('is-naocons');
+  const tag=g.removed?`<span class="bl-tag nao">NÃO CONSIDERADO</span>`
+    :sortKey(g)>=CUT?`<span class="bl-tag geral">BOLÃO GERAL</span>`
+    :`<span class="bl-tag jxv">BOLÃO JxV</span>`;
 
   let html=`<div class="${cls.join(' ')}" data-id="${g.id}">
     <div class="card-head">
-      <span class="grp-tag">GRUPO ${g.grp} · RODADA ${g.r}</span>
+      <span class="grp-tag">GRUPO ${g.grp} · RODADA ${g.r}${tag}</span>
       <span class="dt-tag">${g.dt} · ${g.tm}</span>
     </div>
     <div class="matchup">
@@ -646,10 +702,6 @@ function renderCard(g){
       <div class="${winCls(hasReal,g,'B')}"><span class="team-flag">${g.fB}</span><span class="team-name">${g.tB}</span></div>
     </div>
     <div class="venue">📍 ${g.ven}</div>
-    <div class="game-actions">
-      <button class="btn-finish${g.finished?' done':''}" onclick="toggleFinish('${g.id}')">${g.finished?'✓ Aconteceu':'Já aconteceu'}</button>
-      <button class="btn-remove${rmConf?' confirm':''}" onclick="toggleRemove('${g.id}')">${g.removed?'+ Incluir':rmConf?'Confirmar?':'Remover'}</button>
-    </div>
     <div class="preds-grid">`;
 
   PARTICIPANTS.forEach(p=>{
@@ -678,13 +730,16 @@ function renderCard(g){
   html+=`</div>`;
 
   if(g.finished&&!hasReal){
-    html+=`<div class="warn-bar">⚠️ Falta o placar final — preencha para contar no ranking</div>`;
+    html+=`<div class="warn-bar">⚠️ Falta o placar final — preencha para contar no bolão</div>`;
   }
   html+=`<div class="real-row${g.finished?'':' pending'}">
-      <span class="rr-label">PLACAR REAL</span>
-      <input type="number" min="0" max="99" inputmode="numeric" value="${g.realA!==''?g.realA:''}" placeholder="–" oninput="updReal('${g.id}','a',this.value)">
-      <span class="sep">×</span>
-      <input type="number" min="0" max="99" inputmode="numeric" value="${g.realB!==''?g.realB:''}" placeholder="–" oninput="updReal('${g.id}','b',this.value)">
+      <div class="rr-line">
+        <span class="rr-label">PLACAR REAL</span>
+        <input type="number" min="0" max="99" inputmode="numeric" value="${g.realA!==''?g.realA:''}" placeholder="–" oninput="updReal('${g.id}','a',this.value)">
+        <span class="sep">×</span>
+        <input type="number" min="0" max="99" inputmode="numeric" value="${g.realB!==''?g.realB:''}" placeholder="–" oninput="updReal('${g.id}','b',this.value)">
+      </div>
+      <button class="rr-finish${g.finished?' done':''}" onclick="toggleFinish('${g.id}')">${g.finished?'✓ Já aconteceu':'Marcar como já aconteceu'}</button>
     </div>`;
   html+=`</div>`;
   return html;
@@ -845,9 +900,8 @@ function versus(title,lName,lMem,lPts,lCol,rName,rMem,rPts,rCol){
 function teamRace(title,rows){
   const mx=Math.max(1,...rows.map(r=>r.pts));
   const lead=Math.max(...rows.map(r=>r.pts));
-  const sorted=[...rows].sort((a,b)=>b.pts-a.pts);
   let h=`<div class="vs2"><div class="vs2-title">${title}</div>`;
-  sorted.forEach(r=>{
+  rows.forEach(r=>{
     const tc=r.col==='#e8c44a'?'#b8941f':r.col;
     h+=`<div class="tr-row">
       <div class="tr-info"><div class="tr-nm" style="color:${tc}">${r.name}</div><div class="tr-mem">${r.mem}</div></div>
@@ -855,7 +909,7 @@ function teamRace(title,rows){
       <div class="tr-pts" style="color:${tc}">${r.pts}</div>
     </div>`;
   });
-  const winners=sorted.filter(r=>r.pts===lead&&lead>0);
+  const winners=rows.filter(r=>r.pts===lead&&lead>0);
   const foot=lead<=0?'Sem pontos ainda':winners.length>1?'🤝 Empate na liderança!':`🏆 ${winners[0].name} na frente!`;
   h+=`<div class="vs2-foot" style="color:var(--mu)">${foot}</div></div>`;
   return h;
@@ -904,6 +958,21 @@ function rkRow(p,i,mx,withTeam){
 }
 
 // ─── RANKING GERAL (novo) — todos, a partir de 20/06 12h ──────────────────────
+// Pódio dos 3 primeiros (2º à esquerda, 1º no centro mais alto, 3º à direita)
+function podium(ranked){
+  const t=ranked.slice(0,3);
+  if(t.length<3||t[0].total<=0)return '';
+  const cols=[{p:t[1],pl:2,m:'🥈'},{p:t[0],pl:1,m:'🥇'},{p:t[2],pl:3,m:'🥉'}];
+  return `<div class="podium">${cols.map(c=>`
+    <div class="pod pod-${c.pl}">
+      <div class="pod-medal">${c.m}</div>
+      <div class="pod-av" style="background:${c.p.color};border-color:${c.p.color}">${c.p.init||c.p.name[0]}</div>
+      <div class="pod-name">${c.p.name}</div>
+      <div class="pod-pts">${c.p.total}<span> pts</span></div>
+      <div class="pod-base"><span>${c.pl}º</span></div>
+    </div>`).join('')}</div>`;
+}
+
 function rankingNew(){
   const inRank=g=>sortKey(g)>=CUT;
   const fin=GT.map(t=>getGame(t.id)).filter(g=>!g.removed&&g.finished&&g.realA!==''&&inRank(g)).length;
@@ -912,7 +981,8 @@ function rankingNew(){
   const ranked=[...sAll].sort((a,b)=>b.total-a.total||b.rHits-a.rHits||b.eHits-a.eHits);
   const mx=Math.max(1,...ranked.map(s=>s.total));
 
-  let html=`<div class="lead-board">
+  let html=podium(ranked);
+  html+=`<div class="lead-board">
     <div class="lead-head">
       <div class="lh-title">🏆 CLASSIFICAÇÃO GERAL</div>
       <div class="lh-sub">${fin} de ${tot} jogos · vale a partir de 20/06 ${q('cutoff')}</div>
@@ -946,7 +1016,8 @@ function rankingOld(){
   const ranked=[...sAll].sort((a,b)=>b.total-a.total||b.rHits-a.rHits||b.eHits-a.eHits);
   const mx=Math.max(1,...ranked.map(s=>s.total));
 
-  let html=`<div class="lead-board">
+  let html=podium(ranked);
+  html+=`<div class="lead-board">
     <div class="lead-head">
       <div class="lh-title">🏆 RANKING JxV (ANTIGO)</div>
       <div class="lh-sub">${fin} de ${tot} jogos · conta todos os jogos da Copa ${q('pontuacao')}</div>
