@@ -3,15 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Bolão Copa 2026</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>">
+<title>Bolão Sene Piovan · Copa 2026</title>
+<link rel="icon" href="fotos/logo-copa-preto.png">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
 :root{--g:#1a6b3a;--gl:#2d9653;--gd:#0f4424;--gold:#e8c44a;--bg:#f4f7f4;--card:#fff;--txt:#1a1a1a;--mu:#666;--brd:#dde6dd;--je:#e05c8b;--vi:#3d8ef0;--ch:#19c37d;--cl:#cc6b2c;}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;}
-header{background:var(--gd);color:#fff;text-align:center;padding:12px 12px 0;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.3);}
-header h1{font-size:16px;font-weight:700;margin-bottom:8px;}header h1 span{color:var(--gold);}
+header{background:var(--gd);color:#fff;padding:10px 14px 0;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.3);}
+.hdr-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px;}
+.hdr-title{font-size:18px;font-weight:800;line-height:1.05;}
+.hdr-sub{font-size:12.5px;font-weight:700;color:var(--gold);margin-top:2px;display:flex;align-items:center;gap:6px;}
+.hdr-logo{height:42px;width:auto;flex-shrink:0;}
+@media(min-width:680px){.hdr-title{font-size:26px;}.hdr-sub{font-size:16px;}.hdr-logo{height:60px;}.hdr-top{margin-bottom:11px;}}
 nav{display:flex;}
 nav button{flex:1;padding:9px 4px;background:transparent;border:none;color:rgba(255,255,255,.6);font-size:12px;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;}
 nav button.active{color:var(--gold);border-bottom-color:var(--gold);}
@@ -256,9 +260,12 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .dh-row{display:flex;align-items:center;gap:9px;padding:6px 7px;border-radius:9px;cursor:pointer;transition:background .15s;}
 .dh-row:active{background:rgba(255,255,255,.1);}
 .dh-time{font-size:12px;font-weight:800;color:var(--gold);min-width:42px;flex-shrink:0;font-variant-numeric:tabular-nums;}
-.dh-teams{flex:1;font-size:12.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.dh-teams{flex:1;font-size:12.5px;min-width:0;overflow:hidden;}
+.dh-scroll{display:inline-block;white-space:nowrap;}
+.dh-teams.marq .dh-scroll{animation:marq linear infinite;}
+@keyframes marq{0%,12%{transform:translateX(0);}48%,62%{transform:translateX(var(--shift));}98%,100%{transform:translateX(0);}}
 .dh-teams i{color:rgba(255,255,255,.5);font-style:normal;font-weight:700;margin:0 2px;}
-.dh-miss{color:var(--gold);font-size:10px;font-weight:700;}
+.dh-miss{color:var(--gold);font-size:10.5px;font-weight:700;}
 .dh-row.dh-turbo{border:1.5px solid #ff7a00;background:rgba(255,122,0,.1);box-shadow:0 0 10px rgba(255,122,0,.3);}
 .dh-turbobadge{background:linear-gradient(90deg,#ff7a00,#ff3d3d);color:#fff;font-size:9px;font-weight:800;padding:1px 5px;border-radius:4px;white-space:nowrap;}
 .dh-cd{font-size:12px;font-weight:800;background:rgba(255,255,255,.16);border-radius:7px;padding:3px 8px;flex-shrink:0;font-variant-numeric:tabular-nums;}
@@ -289,10 +296,16 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 </div>
 
 <header>
-  <h1>⚽ Bolão <span>Copa 2026</span> <span id="sync-indicator" style="font-size:10px;font-weight:400;opacity:.7"></span></h1>
+  <div class="hdr-top">
+    <div class="hdr-text">
+      <div class="hdr-title">Bolão Sene Piovan</div>
+      <div class="hdr-sub">Copa 2026 <span id="sync-indicator" style="font-size:10px;font-weight:500;opacity:.85"></span></div>
+    </div>
+    <img class="hdr-logo" src="fotos/logo-copa-branco.png" alt="Copa 2026" onerror="this.style.display='none'">
+  </div>
   <nav>
-    <button class="active" onclick="showTab('palpites')">Palpites</button>
-    <button onclick="showTab('ranking')">Ranking &amp; Stats</button>
+    <button class="active" onclick="showTab('palpites')">🎯 Palpites</button>
+    <button onclick="showTab('ranking')">🏆 Ranking &amp; Stats</button>
   </nav>
 </header>
 <main>
@@ -622,12 +635,29 @@ function todaySlate(){
 function dayRow(g){
   const t=gameDate(g).getTime();
   const turbo=isTurbo(g);
+  const miss=missingPred(g);
   return `<div class="dh-row${turbo?' dh-turbo':''}" onclick="goToGame('${g.id}')">
     <span class="dh-time">${g.tm}</span>
     ${turbo?'<span class="dh-turbobadge">⚡2×</span>':''}
-    <span class="dh-teams">${g.fA} <b>${g.tA}</b> <i>×</i> ${g.fB} <b>${g.tB}</b></span>
+    <span class="dh-teams"><span class="dh-scroll">${g.fA} <b>${g.tA}</b> <i>×</i> ${g.fB} <b>${g.tB}</b>${miss?' <span class="dh-miss">• falta palpite</span>':''}</span></span>
     <span class="dh-cd" data-t="${t}">${fmtCountdown(t-Date.now())}</span>
   </div>`;
+}
+// Faz o texto dos jogos do dia "rolar" (vai-e-volta) quando não cabe na largura
+function setupMarquees(){
+  document.querySelectorAll('.day-hero .dh-teams').forEach(el=>{
+    const inner=el.querySelector('.dh-scroll');
+    if(!inner)return;
+    const over=inner.scrollWidth-el.clientWidth;
+    if(over>10){
+      el.classList.add('marq');
+      inner.style.setProperty('--shift',-over+'px');
+      inner.style.animationDuration=Math.max(7,over/12)+'s';
+    }else{
+      el.classList.remove('marq');
+      inner.style.removeProperty('--shift');
+    }
+  });
 }
 function heroHTML(){
   const slate=todaySlate();
@@ -673,7 +703,8 @@ function renderPalpites(){
   else if(filterMode==='naocons') list=games.filter(g=>g.removed);
   else list=games;   // Todos (inclui os desconsiderados, com tag)
 
-  const sorted=[...list].sort((a,b)=>sortKey(a)-sortKey(b));
+  const desc=['finished','geral','jxv'].includes(filterMode);   // mais recente primeiro
+  const sorted=[...list].sort((a,b)=>desc?sortKey(b)-sortKey(a):sortKey(a)-sortKey(b));
   const pill=(id,label,n,cls)=>`<button class="pill${cls?' '+cls:''}${filterMode===id?' active':''}" onclick="setFilter('${id}')">${label} (${n})</button>`;
 
   let html=heroHTML();
@@ -699,6 +730,7 @@ function renderPalpites(){
   }
 
   document.getElementById('tab-palpites').innerHTML=html;
+  setupMarquees();
   if(_cdInterval){clearInterval(_cdInterval);_cdInterval=null;}
   if(document.querySelector('.dh-cd'))_cdInterval=setInterval(tickCountdown,1000);
 }
