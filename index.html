@@ -55,15 +55,15 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .card.is-naocons{opacity:.62;}
 
 .card-head{display:flex;justify-content:space-between;align-items:center;padding:13px 15px;background:linear-gradient(135deg,var(--gd),var(--g));gap:8px;flex-wrap:wrap;}
-.card-head .grp-tag{font-size:15px;font-weight:800;color:var(--gold);letter-spacing:.5px;display:flex;align-items:center;gap:11px;flex-wrap:wrap;}
-.card-head .dt-tag{font-size:14px;font-weight:700;color:#fff;white-space:nowrap;}
-.bl-tag{font-size:9px;font-weight:800;letter-spacing:.5px;padding:2px 7px;border-radius:5px;}
-.bl-tag.geral{background:rgba(255,255,255,.14);color:rgba(255,255,255,.55);}
-.bl-tag.jxv{background:rgba(255,255,255,.1);color:rgba(255,255,255,.4);}
-.bl-tag.nao{background:#e8c44a;color:#5c4708;}
-.bl-tag.turbo{background:linear-gradient(90deg,#ff8c00,#ff5252);color:#fff;box-shadow:0 0 9px rgba(255,140,0,.55);animation:turboPulse 1.6s ease-in-out infinite;}
-@keyframes turboPulse{0%,100%{box-shadow:0 0 6px rgba(255,140,0,.4);}50%{box-shadow:0 0 13px rgba(255,140,0,.75);}}
-.card.is-turbo{border-color:#ff8c00;box-shadow:0 0 0 2px rgba(255,140,0,.35),0 4px 16px rgba(255,140,0,.22);}
+.card-head .grp-tag{font-size:11px;font-weight:800;color:var(--gold);letter-spacing:.2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.card-head .dt-tag{font-size:15.5px;font-weight:800;color:#fff;white-space:nowrap;}
+.bl-tag{font-size:7.5px;font-weight:800;letter-spacing:.3px;padding:2px 5px;border-radius:5px;}
+.bl-tag.geral{background:rgba(255,255,255,.14);color:rgba(255,255,255,.5);}
+.bl-tag.jxv{background:rgba(255,255,255,.1);color:rgba(255,255,255,.38);}
+.bl-tag.nao{background:#e8c44a;color:#5c4708;font-size:9px;}
+.bl-tag.turbo{font-size:9.5px;padding:2px 7px;background:linear-gradient(90deg,#ff7a00,#ff3d3d);color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.2);box-shadow:0 0 12px rgba(255,122,0,.7);animation:turboPulse 1.4s ease-in-out infinite;}
+@keyframes turboPulse{0%,100%{box-shadow:0 0 8px rgba(255,122,0,.55);}50%{box-shadow:0 0 18px rgba(255,90,0,.95);}}
+.card.is-turbo{border-color:#ff7a00;box-shadow:0 0 0 3px rgba(255,122,0,.5),0 6px 22px rgba(255,122,0,.35);}
 
 .matchup{display:flex;align-items:flex-start;justify-content:center;padding:16px 8px 11px;gap:6px;}
 .team{flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;min-width:0;}
@@ -80,21 +80,22 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .btn-remove.confirm{background:#c0392b;color:#fff;border-color:#c0392b;}
 
 /* Predictions: humano (2/3) à esquerda em uma linha, IA (1/3) à direita compacto */
-.preds-grid{display:grid;grid-template-columns:2fr 1fr;gap:7px;padding:0 12px 13px;align-items:stretch;}
+.preds-grid{display:grid;grid-template-columns:3fr 2fr;gap:7px;padding:0 12px 13px;align-items:stretch;}
 .pred-cell{background:var(--bg);border-radius:11px;border:1.5px solid transparent;min-width:0;}
 .pred-cell.ia{padding:7px 7px;display:flex;flex-direction:column;justify-content:center;}
-.pred-cell.human{background:#fff;border-color:var(--brd);padding:7px 7px;display:flex;align-items:center;gap:6px;}
-.hum-av{width:31px;height:31px;border-radius:50%;flex-shrink:0;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:13px;}
-.hum-name{font-size:13px;font-weight:800;color:var(--txt);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pred-cell.human{background:#fff;border-color:var(--brd);padding:7px 6px;display:flex;align-items:center;gap:5px;}
+.hum-av{width:29px;height:29px;border-radius:50%;flex-shrink:0;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:12px;}
+.hum-name{font-size:12.5px;font-weight:800;color:var(--txt);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pred-cell.human .pts-badge{font-size:9px;padding:1px 4px;}
 .av-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
 .rk-av,.pod-av,.stat-avatar{position:relative;overflow:hidden;}
 .pc-top{display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:5px;min-height:14px;}
 .pc-name{display:flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:var(--mu);line-height:1.15;min-width:0;}
 .pc-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
 .pc-inputs{display:flex;align-items:center;justify-content:center;gap:6px;flex-shrink:0;}
-.pred-cell.human .pc-inputs{gap:4px;}
-.pred-cell.human .pc-inputs input{width:37px;height:40px;font-size:18px;}
-.pred-cell.human .pc-inputs .sep{font-size:12px;}
+.pred-cell.human .pc-inputs{gap:3px;}
+.pred-cell.human .pc-inputs input{width:34px;height:38px;font-size:17px;}
+.pred-cell.human .pc-inputs .sep{font-size:11px;}
 .pc-inputs input{width:40px;height:36px;text-align:center;border:1.5px solid var(--brd);border-radius:9px;font-size:16px;font-weight:700;background:var(--bg);color:var(--txt);-moz-appearance:textfield;}
 .pc-inputs.small{gap:3px;}
 .pc-inputs.small input{width:31px;height:31px;font-size:13px;border-radius:7px;}
@@ -111,6 +112,7 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .rr-finish{flex:1;padding:6px 4px;border-radius:9px;border:1.5px solid rgba(255,255,255,.45);background:rgba(255,255,255,.12);color:#fff;font-size:11px;font-weight:800;line-height:1.25;cursor:pointer;transition:background .15s;}
 .rr-finish:active{background:rgba(255,255,255,.22);}
 .rr-finish.done{background:var(--gold);color:#5c4708;border-color:var(--gold);}
+.rr-finish .chk-off{color:rgba(255,255,255,.5);font-size:14px;font-weight:900;}
 .real-row input{width:44px;height:36px;text-align:center;border:1.5px solid rgba(255,255,255,.35);border-radius:9px;font-size:17px;font-weight:700;background:rgba(255,255,255,.16);color:#fff;-moz-appearance:textfield;}
 .real-row input::-webkit-outer-spin-button,.real-row input::-webkit-inner-spin-button{-webkit-appearance:none;}
 .real-row input::placeholder{color:rgba(255,255,255,.5);}
@@ -256,6 +258,8 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .dh-teams{flex:1;font-size:12.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .dh-teams i{color:rgba(255,255,255,.5);font-style:normal;font-weight:700;margin:0 2px;}
 .dh-miss{color:var(--gold);font-size:10px;font-weight:700;}
+.dh-row.dh-turbo{border:1.5px solid #ff7a00;background:rgba(255,122,0,.1);box-shadow:0 0 10px rgba(255,122,0,.3);}
+.dh-turbobadge{background:linear-gradient(90deg,#ff7a00,#ff3d3d);color:#fff;font-size:9px;font-weight:800;padding:1px 5px;border-radius:4px;white-space:nowrap;}
 .dh-cd{font-size:12px;font-weight:800;background:rgba(255,255,255,.16);border-radius:7px;padding:3px 8px;flex-shrink:0;font-variant-numeric:tabular-nums;}
 .dh-soon{font-size:13px;flex-shrink:0;opacity:.6;}
 
@@ -310,7 +314,7 @@ const PARTICIPANTS = [
   {id:'jessica', name:'Jeca',          type:'human', color:'#e05c8b', init:'J',  team:'jeca',   editable:true, img:'fotos/jeca.jpg'},
   {id:'chatgpt', name:'ChatGPT Jeca',  type:'ia',    color:'#19c37d', init:'G',  team:'jeca'},
   {id:'tonius',  name:'Tonius',        type:'human', color:'#7e57c2', init:'T',  team:'tonius', editable:true, img:'fotos/tonius.jpg'},
-  {id:'claudio', name:'Claude Tonius', type:'ia',    color:'#5e35b1', init:'CT', team:'tonius', editable:true},
+  {id:'claudio', name:'Claude Tonius', type:'ia',    color:'#5e35b1', init:'CT', team:'tonius'},
   {id:'vinicius',name:'Vini',          type:'human', color:'#3d8ef0', init:'V',  team:'vini',   editable:true, img:'fotos/vini.jpg'},
   {id:'claude',  name:'Claude Vini',   type:'ia',    color:'#cc6b2c', init:'CV', team:'vini'},
 ];
@@ -429,9 +433,9 @@ function getGame(id){
       jessica:  {a:n(c.jessica_a),  b:n(c.jessica_b)},
       vinicius: {a:n(c.vinicius_a), b:n(c.vinicius_b)},
       tonius:   {a:n(c.tonius_a),   b:n(c.tonius_b)},
-      claudio:  {a:n(c.claudio_a),  b:n(c.claudio_b)},
       chatgpt:  t.g||{a:'',b:''},
       claude:   t.c||{a:'',b:''},
+      claudio:  t.d||{a:'',b:''},
     }
   };
 }
@@ -461,7 +465,7 @@ async function loadData(){
 }
 
 // Colunas de dados que importam para detectar mudanças reais (ignora updated_at etc.)
-const DATA_COLS=['finished','removed','real_a','real_b','jessica_a','jessica_b','vinicius_a','vinicius_b','tonius_a','tonius_b','claudio_a','claudio_b'];
+const DATA_COLS=['finished','removed','real_a','real_b','jessica_a','jessica_b','vinicius_a','vinicius_b','tonius_a','tonius_b'];
 function norm(v){return (v===undefined||v===null||v==='')?null:v;}
 function sameRow(a,b){
   return DATA_COLS.every(c=>{
@@ -501,7 +505,7 @@ function applyRemoteScores(gid){
   if(!card)return;
   const g=getGame(gid);
   const setInput=(inp,v)=>{if(inp&&document.activeElement!==inp)inp.value=norm(v)===null?'':v;};
-  ['jessica','vinicius','tonius','claudio'].forEach(pid=>{
+  ['jessica','vinicius','tonius'].forEach(pid=>{
     const cell=card.querySelector(`.pred-cell[data-pid="${pid}"]`);
     if(!cell)return;
     const ins=cell.querySelectorAll('input');
@@ -527,7 +531,8 @@ function showErr(msg){const el=document.getElementById('error-banner');el.textCo
 
 // ─── VIEW STATE ───────────────────────────────────────────────────────────────
 let filterMode=localStorage.getItem('bf')||'all';
-if(filterMode==='removed')filterMode='naocons';   // migração do nome antigo
+if(filterMode==='removed')filterMode='naocons';   // migração de nomes antigos
+if(filterMode==='missing')filterMode='pending';
 let activeTab='palpites';
 
 function setFilter(f){filterMode=f;localStorage.setItem('bf',f);renderPalpites();}
@@ -594,11 +599,11 @@ function fmtCountdown(ms){
 }
 let _cdInterval=null,_cdTarget=0;
 function tickCountdown(){
-  const el=document.getElementById('nh-clock');
-  if(!el){if(_cdInterval){clearInterval(_cdInterval);_cdInterval=null;}return;}
-  const rem=_cdTarget-Date.now();
-  if(rem<=0){ if(!isTyping())renderPalpites(); return; }   // jogo começou: atualiza a lista do dia
-  el.textContent=fmtCountdown(rem);
+  const els=document.querySelectorAll('.dh-cd[data-t]');
+  if(!els.length){if(_cdInterval){clearInterval(_cdInterval);_cdInterval=null;}return;}
+  let expired=false;
+  els.forEach(el=>{const rem=+el.dataset.t-Date.now(); if(rem<=0)expired=true; else el.textContent=fmtCountdown(rem);});
+  if(expired&&!isTyping())renderPalpites();   // algum jogo começou: atualiza a lista do dia
 }
 // Jogos do dia: do agora até as 6h da próxima manhã (madrugada conta como o mesmo "dia")
 function todaySlate(){
@@ -613,29 +618,30 @@ function todaySlate(){
     .sort((a,b)=>a.t-b.t)
     .map(x=>x.g);
 }
-function dayRow(g,first){
+function dayRow(g){
   const miss=missingPred(g);
-  return `<div class="dh-row" onclick="goToGame('${g.id}')">
+  const t=gameDate(g).getTime();
+  const turbo=isTurbo(g);
+  return `<div class="dh-row${turbo?' dh-turbo':''}" onclick="goToGame('${g.id}')">
     <span class="dh-time">${g.tm}</span>
+    ${turbo?'<span class="dh-turbobadge">⚡2×</span>':''}
     <span class="dh-teams">${g.fA} <b>${g.tA}</b> <i>×</i> <b>${g.tB}</b> ${g.fB}${miss?' <span class="dh-miss">• falta palpite</span>':''}</span>
-    ${first?`<span class="dh-cd" id="nh-clock">${fmtCountdown(_cdTarget-Date.now())}</span>`:`<span class="dh-soon">⚽</span>`}
+    <span class="dh-cd" data-t="${t}">${fmtCountdown(t-Date.now())}</span>
   </div>`;
 }
 function heroHTML(){
   const slate=todaySlate();
   if(slate.length){
-    _cdTarget=gameDate(slate[0]).getTime();
     return `<div class="day-hero">
       <div class="dh-head"><span class="nh-live"></span>JOGOS DE HOJE · ${slate.length}</div>
-      <div class="dh-list">${slate.map((g,i)=>dayRow(g,i===0)).join('')}</div>
+      <div class="dh-list">${slate.map(g=>dayRow(g)).join('')}</div>
     </div>`;
   }
   const nx=findNextGame();
   if(!nx)return '';
-  _cdTarget=gameDate(nx).getTime();
   return `<div class="day-hero">
     <div class="dh-head"><span class="nh-live"></span>PRÓXIMO JOGO</div>
-    <div class="dh-list">${dayRow(nx,true)}</div>
+    <div class="dh-list">${dayRow(nx)}</div>
   </div>`;
 }
 function goToGame(gid){
@@ -653,21 +659,19 @@ function renderPalpites(){
   const isJxv=g=>!g.removed&&sortKey(g)<CUT;
 
   const cAll=games.length;
-  const cGeral=games.filter(isGeral).length;
-  const cJxv=games.filter(isJxv).length;
-  const cMiss=games.filter(g=>!g.removed&&missingPred(g)).length;
   const cPend=games.filter(g=>!g.removed&&!g.finished).length;
   const cFin=games.filter(g=>!g.removed&&g.finished).length;
+  const cGeral=games.filter(isGeral).length;
+  const cJxv=games.filter(isJxv).length;
   const cNao=games.filter(g=>g.removed).length;
 
   let list;
-  if(filterMode==='geral')        list=games.filter(isGeral);
-  else if(filterMode==='jxv')     list=games.filter(isJxv);
-  else if(filterMode==='missing') list=games.filter(g=>!g.removed&&missingPred(g));
-  else if(filterMode==='pending') list=games.filter(g=>!g.removed&&!g.finished);
+  if(filterMode==='pending')      list=games.filter(g=>!g.removed&&!g.finished);
   else if(filterMode==='finished')list=games.filter(g=>!g.removed&&g.finished);
+  else if(filterMode==='geral')   list=games.filter(isGeral);
+  else if(filterMode==='jxv')     list=games.filter(isJxv);
   else if(filterMode==='naocons') list=games.filter(g=>g.removed);
-  else list=games;   // Todos (inclui os não considerados, com tag)
+  else list=games;   // Todos (inclui os desconsiderados, com tag)
 
   const sorted=[...list].sort((a,b)=>sortKey(a)-sortKey(b));
   const pill=(id,label,n,cls)=>`<button class="pill${cls?' '+cls:''}${filterMode===id?' active':''}" onclick="setFilter('${id}')">${label} (${n})</button>`;
@@ -675,12 +679,11 @@ function renderPalpites(){
   let html=heroHTML();
   html+=`<div class="controls"><div class="filters">
     ${pill('all','Todos',cAll)}
-    ${pill('missing','Faltam Palpites',cMiss,'warn')}
-    ${pill('pending','A acontecer',cPend)}
+    ${pill('pending','Pendentes',cPend,'warn')}
     ${pill('finished','Finalizados',cFin)}
     ${pill('geral','Bolão Geral',cGeral)}
     ${pill('jxv','Bolão JxV',cJxv)}
-    ${pill('naocons','Não considerados',cNao)}
+    ${pill('naocons','Desconsiderados',cNao)}
   </div></div>`;
 
   if(!sorted.length){
@@ -697,7 +700,7 @@ function renderPalpites(){
 
   document.getElementById('tab-palpites').innerHTML=html;
   if(_cdInterval){clearInterval(_cdInterval);_cdInterval=null;}
-  if(document.getElementById('nh-clock'))_cdInterval=setInterval(tickCountdown,1000);
+  if(document.querySelector('.dh-cd'))_cdInterval=setInterval(tickCountdown,1000);
 }
 
 function winCls(hasReal,g,side){
@@ -718,7 +721,7 @@ function renderCard(g){
   const tag=g.removed?`<span class="bl-tag nao">NÃO CONSIDERADO</span>`
     :sortKey(g)>=CUT?`<span class="bl-tag geral">BOLÃO GERAL</span>`
     :`<span class="bl-tag jxv">BOLÃO JxV</span>`;
-  const turboTag=turbo?`<span class="bl-tag turbo">⚡ VALE 2×</span>`:'';
+  const turboTag=turbo?`<span class="bl-tag turbo">⚡ TURBO 2×</span>`:'';
 
   let html=`<div class="${cls.join(' ')}" data-id="${g.id}">
     <div class="card-head">
@@ -770,7 +773,7 @@ function renderCard(g){
         <span class="sep">×</span>
         <input type="number" min="0" max="99" inputmode="numeric" value="${g.realB!==''?g.realB:''}" placeholder="–" oninput="updReal('${g.id}','b',this.value)">
       </div>
-      <button class="rr-finish${g.finished?' done':''}" onclick="toggleFinish('${g.id}')">Já aconteceu<br>${g.finished?'✅':'☑️'}</button>
+      <button class="rr-finish${g.finished?' done':''}" onclick="toggleFinish('${g.id}')">${g.finished?'Finalizado':'Finalizar'}<br>${g.finished?'✅':'<span class="chk-off">✓</span>'}</button>
     </div>`;
   html+=`</div>`;
   return html;
@@ -997,7 +1000,7 @@ function rkRow(p,i,mx,withTeam){
 // Pódio dos 3 primeiros (2º à esquerda, 1º no centro mais alto, 3º à direita)
 function podium(ranked){
   const t=ranked.slice(0,3);
-  if(t.length<3||t[0].total<=0)return '';
+  if(t.length<3)return '';
   const cols=[{p:t[1],pl:2,m:'🥈'},{p:t[0],pl:1,m:'🥇'},{p:t[2],pl:3,m:'🥉'}];
   return `<div class="podium">${cols.map(c=>`
     <div class="pod pod-${c.pl}">
