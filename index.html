@@ -257,12 +257,12 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Ordem pensada para o grid 2 colunas dos cards: esquerda = humanos (editáveis), direita = IAs; cada linha = um time
 const PARTICIPANTS = [
-  {id:'jessica', name:'Jeca',    type:'human', color:'#e05c8b', init:'J',  team:'jeca'},
-  {id:'chatgpt', name:'ChatGPT', type:'ia',    color:'#19c37d', init:'G',  team:'jeca'},
-  {id:'vinicius',name:'Vini',    type:'human', color:'#3d8ef0', init:'V',  team:'vini'},
-  {id:'claude',  name:'Claude',  type:'ia',    color:'#cc6b2c', init:'C',  team:'vini'},
-  {id:'tonius',  name:'Tonius',  type:'human', color:'#7e57c2', init:'T',  team:'tonius'},
-  {id:'claudio', name:'Claudio', type:'ia',    color:'#5e35b1', init:'Cd', team:'tonius'},
+  {id:'jessica', name:'Jeca',          type:'human', color:'#e05c8b', init:'J',  team:'jeca'},
+  {id:'chatgpt', name:'ChatGPT Jeca',  type:'ia',    color:'#19c37d', init:'G',  team:'jeca'},
+  {id:'vinicius',name:'Vini',          type:'human', color:'#3d8ef0', init:'V',  team:'vini'},
+  {id:'claude',  name:'Claude Vini',   type:'ia',    color:'#cc6b2c', init:'CV', team:'vini'},
+  {id:'tonius',  name:'Tonius',        type:'human', color:'#7e57c2', init:'T',  team:'tonius'},
+  {id:'claudio', name:'Claude Tonius', type:'ia',    color:'#5e35b1', init:'CT', team:'tonius'},
 ];
 const TEAMS = [
   {id:'jeca',   name:'Time Jeca',   human:'jessica', ia:'chatgpt', color:'#e05c8b'},
@@ -865,7 +865,6 @@ function teamRace(title,rows){
 function statCard(p){
   const bL=p.bias>0.3?'↑ Otimista':p.bias<-0.3?'↓ Pessimista':'≈ Neutro';
   const bC=p.bias>0.3?'#e05c8b':p.bias<-0.3?'#3d8ef0':'var(--gl)';
-  const cS=p.played>0?Math.max(0,10-p.sd):0;
   const team=TEAMS.find(t=>t.id===p.team);
   const crav=p.cravadas.length
     ? p.cravadas.map(g=>`<div class="crav-item">🎯 <strong>${g.fA} ${g.tA} ${g.realA}×${g.realB} ${g.tB} ${g.fB}</strong></div>`).join('')
@@ -877,18 +876,13 @@ function statCard(p){
     </div>
     <div class="stat-grid">
       <div class="stat-box"><div class="val">${p.total}</div><div class="lbl">Pontos</div></div>
-      <div class="stat-box"><div class="val">${p.avg.toFixed(1)}</div><div class="lbl">Média/jogo ${q('media')}</div></div>
-      <div class="stat-box"><div class="val">${(p.aprov*100).toFixed(0)}%</div><div class="lbl">Aproveitamento ${q('aproveitamento')}</div></div>
-      <div class="stat-box"><div class="val">${p.rHits}</div><div class="lbl">Vencedor/Empate ${q('resultado')}</div></div>
+      <div class="stat-box"><div class="val">${p.avg.toFixed(1)}</div><div class="lbl">Pontos por jogo ${q('media')}</div></div>
+      <div class="stat-box"><div class="val">${p.rHits}</div><div class="lbl">Acerto ganhador/empate ${q('resultado')}</div></div>
       <div class="stat-box"><div class="val">${p.eHits}</div><div class="lbl">Placares cravados ${q('cravados')}</div></div>
-      <div class="stat-box"><div class="val">${p.bestP<0?'–':p.bestP}</div><div class="lbl">Maior nota ${q('maiornota')}</div></div>
     </div>
     <div class="stat-line-lbl">Viés de gols ${q('vies')}</div>
     <div style="font-size:13px;color:${bC};font-weight:800;margin-bottom:11px">${bL} <span style="font-weight:600;color:var(--mu);font-size:11px">(${p.bias>=0?'+':''}${p.bias.toFixed(2)} gols por palpite)</span></div>
-    <div class="stat-line-lbl">Consistência ${q('consistencia')}</div>
-    <div class="cons-bar-wrap"><div class="cons-bar"><div class="cons-fill" style="width:${(cS/10*100).toFixed(0)}%;background:${p.color}"></div></div>
-      <span style="font-size:11px;color:var(--mu);font-weight:700;min-width:34px;text-align:right">${cS.toFixed(1)}/10</span></div>
-    <div class="stat-line-lbl" style="margin-top:12px">🎯 Placares cravados ${q('cravados')}</div>
+    <div class="stat-line-lbl">🎯 Placares cravados ${q('cravados')}</div>
     <div class="crav-list">${crav}</div>
   </div>`;
 }
@@ -931,14 +925,16 @@ function rankingNew(){
   const iP=sAll.filter(p=>p.type==='ia').reduce((s,p)=>s+p.total,0);
 
   html+=`<div class="section-title">⚔️ COMPARATIVOS</div>`;
-  html+=versus('🤝 Humanos vs Máquinas','Humanos','Jeca + Vini + Tonius',hP,'#3d8ef0','Máquinas','ChatGPT + Claude + Claudio',iP,'#e8c44a');
+  html+=versus('🤝 Humanos vs Máquinas','Humanos','Jeca + Tonius + Vini',hP,'#3d8ef0','Máquinas','ChatGPT + Claude Vini + Claude Tonius',iP,'#e8c44a');
   html+=teamRace('👥 Time Jeca vs Time Vini vs Time Tonius', TEAMS.map(t=>({
     name:t.name, mem:PARTICIPANTS.find(x=>x.id===t.human).name+' + '+PARTICIPANTS.find(x=>x.id===t.ia).name,
     pts:byId(t.human)+byId(t.ia), col:t.color
   })));
 
+  // Ordem pedida: humanos (Jeca, Tonius, Vini) e depois a IA de cada um, na mesma ordem
+  const statsOrder=['jessica','tonius','vinicius','chatgpt','claudio','claude'];
   html+=`<div class="section-title">📊 ESTATÍSTICAS INDIVIDUAIS</div>`;
-  sAll.forEach(p=>{html+=statCard(p);});
+  statsOrder.forEach(id=>{const p=sAll.find(x=>x.id===id);if(p)html+=statCard(p);});
   return html;
 }
 
