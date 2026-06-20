@@ -58,14 +58,14 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .card.is-finished{border-color:var(--gl);box-shadow:0 2px 12px rgba(45,150,83,.18);}
 .card.is-naocons{opacity:.62;}
 
-.card-head{display:flex;justify-content:space-between;align-items:center;padding:11px 11px;background:linear-gradient(135deg,var(--gd),var(--g));gap:5px;flex-wrap:wrap;}
-.card-head .grp-tag{font-size:10px;font-weight:800;color:var(--gold);letter-spacing:0;display:flex;align-items:center;gap:4px;flex-wrap:nowrap;white-space:nowrap;}
-.card-head .dt-tag{font-size:12.5px;font-weight:800;color:#fff;white-space:nowrap;}
+.card-head{display:flex;justify-content:space-between;align-items:center;padding:11px 10px;background:linear-gradient(135deg,var(--gd),var(--g));gap:3px;flex-wrap:wrap;}
+.card-head .grp-tag{font-size:9.5px;font-weight:800;color:var(--gold);letter-spacing:0;display:flex;align-items:center;gap:3px;flex-wrap:nowrap;white-space:nowrap;}
+.card-head .dt-tag{font-size:11px;font-weight:800;color:#fff;white-space:nowrap;}
 .bl-tag{font-size:6px;font-weight:800;letter-spacing:.2px;padding:1px 3px;border-radius:4px;}
 .bl-tag.geral{background:rgba(255,255,255,.14);color:rgba(255,255,255,.5);}
 .bl-tag.jxv{background:rgba(255,255,255,.1);color:rgba(255,255,255,.38);}
 .bl-tag.nao{background:#e8c44a;color:#5c4708;font-size:8.5px;}
-.bl-tag.turbo{font-size:8px;padding:2px 5px;background:linear-gradient(90deg,#ff7a00,#ff3d3d);color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.2);box-shadow:0 0 12px rgba(255,122,0,.7);animation:turboPulse 1.4s ease-in-out infinite;}
+.bl-tag.turbo{font-size:7.5px;padding:2px 4px;background:linear-gradient(90deg,#ff7a00,#ff3d3d);color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.2);box-shadow:0 0 12px rgba(255,122,0,.7);animation:turboPulse 1.4s ease-in-out infinite;}
 @keyframes turboPulse{0%,100%{box-shadow:0 0 8px rgba(255,122,0,.55);}50%{box-shadow:0 0 18px rgba(255,90,0,.95);}}
 .card.is-turbo{border-color:#ff7a00;box-shadow:0 0 0 3px rgba(255,122,0,.5),0 6px 22px rgba(255,122,0,.35);}
 
@@ -612,6 +612,8 @@ function gameDate(g){
   return new Date(2026,mm-1,dd,hh,mi,0);   // horário de Brasília (dispositivo)
 }
 function emptyVal(x){return x===''||x===null||x===undefined;}
+const WD=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+function weekday(g){return WD[gameDate(g).getDay()];}
 function missingPred(g){
   const need=[g.predictions.jessica.a, g.predictions.vinicius.a];
   if(sortKey(g)>=CUT){need.push(g.predictions.tonius.a, g.predictions.leo.a);}   // Tonius e Leo a partir de 20/06
@@ -782,7 +784,7 @@ function renderCard(g){
   let html=`<div class="${cls.join(' ')}" data-id="${g.id}">
     <div class="card-head">
       <span class="grp-tag">GRUPO ${g.grp} · RODADA ${g.r}${tag}${turboTag}</span>
-      <span class="dt-tag">${g.dt} · ${g.tm}</span>
+      <span class="dt-tag">${weekday(g)}, ${g.dt} · ${g.tm}</span>
     </div>
     <div class="matchup">
       <div class="${winCls(hasReal,g,'A')}"><span class="team-flag">${flagImg(g.fA)}</span><span class="team-name">${g.tA}</span></div>
