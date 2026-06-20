@@ -54,14 +54,14 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .card.is-finished{border-color:var(--gl);box-shadow:0 2px 12px rgba(45,150,83,.18);}
 .card.is-naocons{opacity:.62;}
 
-.card-head{display:flex;justify-content:space-between;align-items:center;padding:13px 15px;background:linear-gradient(135deg,var(--gd),var(--g));gap:8px;flex-wrap:wrap;}
-.card-head .grp-tag{font-size:11px;font-weight:800;color:var(--gold);letter-spacing:.2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
-.card-head .dt-tag{font-size:15.5px;font-weight:800;color:#fff;white-space:nowrap;}
-.bl-tag{font-size:7.5px;font-weight:800;letter-spacing:.3px;padding:2px 5px;border-radius:5px;}
+.card-head{display:flex;justify-content:space-between;align-items:center;padding:11px 11px;background:linear-gradient(135deg,var(--gd),var(--g));gap:5px;flex-wrap:wrap;}
+.card-head .grp-tag{font-size:10px;font-weight:800;color:var(--gold);letter-spacing:0;display:flex;align-items:center;gap:4px;flex-wrap:nowrap;white-space:nowrap;}
+.card-head .dt-tag{font-size:12.5px;font-weight:800;color:#fff;white-space:nowrap;}
+.bl-tag{font-size:6px;font-weight:800;letter-spacing:.2px;padding:1px 3px;border-radius:4px;}
 .bl-tag.geral{background:rgba(255,255,255,.14);color:rgba(255,255,255,.5);}
 .bl-tag.jxv{background:rgba(255,255,255,.1);color:rgba(255,255,255,.38);}
-.bl-tag.nao{background:#e8c44a;color:#5c4708;font-size:9px;}
-.bl-tag.turbo{font-size:9.5px;padding:2px 7px;background:linear-gradient(90deg,#ff7a00,#ff3d3d);color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.2);box-shadow:0 0 12px rgba(255,122,0,.7);animation:turboPulse 1.4s ease-in-out infinite;}
+.bl-tag.nao{background:#e8c44a;color:#5c4708;font-size:8.5px;}
+.bl-tag.turbo{font-size:8px;padding:2px 5px;background:linear-gradient(90deg,#ff7a00,#ff3d3d);color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.2);box-shadow:0 0 12px rgba(255,122,0,.7);animation:turboPulse 1.4s ease-in-out infinite;}
 @keyframes turboPulse{0%,100%{box-shadow:0 0 8px rgba(255,122,0,.55);}50%{box-shadow:0 0 18px rgba(255,90,0,.95);}}
 .card.is-turbo{border-color:#ff7a00;box-shadow:0 0 0 3px rgba(255,122,0,.5),0 6px 22px rgba(255,122,0,.35);}
 
@@ -109,10 +109,10 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .real-row{display:flex;flex-direction:row;align-items:stretch;gap:9px;background:linear-gradient(135deg,var(--gd),var(--g));padding:11px 12px;}
 .real-row .rr-line{flex:3;display:flex;align-items:center;justify-content:center;gap:8px;}
 .real-row .rr-label{font-size:11px;font-weight:800;color:var(--gold);letter-spacing:.5px;}
-.rr-finish{flex:1;padding:6px 4px;border-radius:9px;border:1.5px solid rgba(255,255,255,.45);background:rgba(255,255,255,.12);color:#fff;font-size:11px;font-weight:800;line-height:1.25;cursor:pointer;transition:background .15s;}
+.rr-finish{flex:0 0 auto;padding:8px 12px;border-radius:9px;border:1.5px solid rgba(255,255,255,.45);background:rgba(255,255,255,.12);color:#fff;font-size:12px;font-weight:800;white-space:nowrap;cursor:pointer;transition:background .15s;}
 .rr-finish:active{background:rgba(255,255,255,.22);}
 .rr-finish.done{background:var(--gold);color:#5c4708;border-color:var(--gold);}
-.rr-finish .chk-off{color:rgba(255,255,255,.5);font-size:14px;font-weight:900;}
+.rr-finish .chk-off{color:rgba(255,255,255,.55);font-weight:900;}
 .real-row input{width:44px;height:36px;text-align:center;border:1.5px solid rgba(255,255,255,.35);border-radius:9px;font-size:17px;font-weight:700;background:rgba(255,255,255,.16);color:#fff;-moz-appearance:textfield;}
 .real-row input::-webkit-outer-spin-button,.real-row input::-webkit-inner-spin-button{-webkit-appearance:none;}
 .real-row input::placeholder{color:rgba(255,255,255,.5);}
@@ -132,6 +132,7 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 
 /* ─── Ranking & Estatísticas ─── */
 .section-title{display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:800;color:var(--gd);letter-spacing:.4px;margin:18px 4px 10px;}
+.tiebreak{font-size:10px;color:var(--mu);text-align:center;line-height:1.3;margin:14px 8px -2px;}
 
 /* Leaderboard */
 .lead-board{background:var(--card);border-radius:16px;border:1px solid var(--brd);overflow:hidden;box-shadow:0 2px 12px rgba(15,68,36,.08);}
@@ -361,46 +362,46 @@ const GT = [
 {id:'g30',grp:'C',r:2,dt:'19/06',tm:'16h',ven:'Seattle',tA:'EUA',fA:'🇺🇸',tB:'Austrália',fB:'🇦🇺',c:{a:2,b:1},g:{a:2,b:1}},
 {id:'g31',grp:'D',r:2,dt:'19/06',tm:'19h',ven:'Boston',tA:'Escócia',fA:'🏴󠁧󠁢󠁳󠁣󠁴󠁿',tB:'Marrocos',fB:'🇲🇦',c:{a:1,b:2},g:{a:1,b:1}},
 {id:'g32',grp:'D',r:2,dt:'19/06',tm:'21h30',ven:'Filadélfia',tA:'Brasil',fA:'🇧🇷',tB:'Haiti',fB:'🇭🇹',c:{a:3,b:0},g:{a:3,b:0}},
-{id:'g33',grp:'F',r:2,dt:'20/06',tm:'14h',ven:'Houston',tA:'Holanda',fA:'🇳🇱',tB:'Suécia',fB:'🇸🇪',c:{a:2,b:0},g:{a:1,b:1}},
-{id:'g34',grp:'E',r:2,dt:'20/06',tm:'17h',ven:'Toronto',tA:'Alemanha',fA:'🇩🇪',tB:'Costa do Marfim',fB:'🇨🇮',c:{a:2,b:1},g:{a:2,b:1}},
-{id:'g35',grp:'E',r:2,dt:'20/06',tm:'21h',ven:'Kansas City',tA:'Equador',fA:'🇪🇨',tB:'Curaçao',fB:'🇨🇼',c:{a:2,b:0},g:{a:2,b:0}},
-{id:'g36',grp:'F',r:2,dt:'21/06',tm:'1h',ven:'Monterrey',tA:'Tunísia',fA:'🇹🇳',tB:'Japão',fB:'🇯🇵',c:{a:0,b:2},g:{a:1,b:2}},
-{id:'g37',grp:'G',r:2,dt:'21/06',tm:'13h',ven:'Atlanta',tA:'Espanha',fA:'🇪🇸',tB:'Arábia Saudita',fB:'🇸🇦',c:{a:2,b:0},g:{a:2,b:0}},
-{id:'g38',grp:'H',r:2,dt:'21/06',tm:'16h',ven:'Los Angeles',tA:'Bélgica',fA:'🇧🇪',tB:'Irã',fB:'🇮🇷',c:{a:2,b:1},g:{a:2,b:1}},
-{id:'g39',grp:'G',r:2,dt:'21/06',tm:'19h',ven:'Miami',tA:'Uruguai',fA:'🇺🇾',tB:'Cabo Verde',fB:'🇨🇻',c:{a:2,b:0},g:{a:2,b:0}},
-{id:'g40',grp:'H',r:2,dt:'21/06',tm:'22h',ven:'Vancouver',tA:'Nova Zelândia',fA:'🇳🇿',tB:'Egito',fB:'🇪🇬',c:{a:0,b:2},g:{a:1,b:1}},
-{id:'g41',grp:'I',r:2,dt:'22/06',tm:'14h',ven:'Dallas',tA:'Argentina',fA:'🇦🇷',tB:'Áustria',fB:'🇦🇹',c:{a:2,b:1},g:{a:2,b:0}},
-{id:'g42',grp:'J',r:2,dt:'22/06',tm:'18h',ven:'Filadélfia',tA:'França',fA:'🇫🇷',tB:'Iraque',fB:'🇮🇶',c:{a:2,b:0},g:{a:2,b:0}},
-{id:'g43',grp:'J',r:2,dt:'22/06',tm:'21h',ven:'Nova York/NJ',tA:'Noruega',fA:'🇳🇴',tB:'Senegal',fB:'🇸🇳',c:{a:1,b:1},g:{a:1,b:1}},
-{id:'g44',grp:'I',r:2,dt:'23/06',tm:'0h',ven:'San Francisco',tA:'Jordânia',fA:'🇯🇴',tB:'Argélia',fB:'🇩🇿',c:{a:0,b:2},g:{a:1,b:1}},
-{id:'g45',grp:'K',r:2,dt:'23/06',tm:'14h',ven:'Houston',tA:'Portugal',fA:'🇵🇹',tB:'Uzbequistão',fB:'🇺🇿',c:{a:2,b:0},g:{a:2,b:1}},
-{id:'g46',grp:'L',r:2,dt:'23/06',tm:'17h',ven:'Boston',tA:'Inglaterra',fA:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',tB:'Gana',fB:'🇬🇭',c:{a:2,b:0},g:{a:3,b:1}},
-{id:'g47',grp:'L',r:2,dt:'23/06',tm:'20h',ven:'Toronto',tA:'Panamá',fA:'🇵🇦',tB:'Croácia',fB:'🇭🇷',c:{a:0,b:2},g:{a:1,b:1}},
-{id:'g48',grp:'K',r:2,dt:'23/06',tm:'23h',ven:'Guadalajara',tA:'Colômbia',fA:'🇨🇴',tB:'RD Congo',fB:'🇨🇩',c:{a:2,b:0},g:{a:2,b:0}},
-{id:'g49',grp:'B',r:3,dt:'24/06',tm:'16h',ven:'Vancouver',tA:'Suíça',fA:'🇨🇭',tB:'Canadá',fB:'🇨🇦',c:{a:1,b:1},g:{a:2,b:1}},
-{id:'g50',grp:'B',r:3,dt:'24/06',tm:'16h',ven:'Seattle',tA:'Bósnia e Herz.',fA:'🇧🇦',tB:'Catar',fB:'🇶🇦',c:{a:2,b:1},g:{a:1,b:1}},
-{id:'g51',grp:'D',r:3,dt:'24/06',tm:'19h',ven:'Miami',tA:'Escócia',fA:'🏴󠁧󠁢󠁳󠁣󠁴󠁿',tB:'Brasil',fB:'🇧🇷',c:{a:0,b:2},g:{a:1,b:2}},
-{id:'g52',grp:'D',r:3,dt:'24/06',tm:'19h',ven:'Atlanta',tA:'Marrocos',fA:'🇲🇦',tB:'Haiti',fB:'🇭🇹',c:{a:3,b:0},g:{a:2,b:0}},
-{id:'g53',grp:'A',r:3,dt:'24/06',tm:'22h',ven:'Cidade do México',tA:'Rep. Tcheca',fA:'🇨🇿',tB:'México',fB:'🇲🇽',c:{a:0,b:2},g:{a:1,b:2}},
-{id:'g54',grp:'A',r:3,dt:'24/06',tm:'22h',ven:'Monterrey',tA:'África do Sul',fA:'🇿🇦',tB:'Coreia do Sul',fB:'🇰🇷',c:{a:0,b:2},g:{a:0,b:1}},
-{id:'g55',grp:'E',r:3,dt:'25/06',tm:'17h',ven:'Nova York/NJ',tA:'Equador',fA:'🇪🇨',tB:'Alemanha',fB:'🇩🇪',c:{a:1,b:2},g:{a:1,b:2}},
-{id:'g56',grp:'E',r:3,dt:'25/06',tm:'17h',ven:'Filadélfia',tA:'Curaçao',fA:'🇨🇼',tB:'Costa do Marfim',fB:'🇨🇮',c:{a:0,b:2},g:{a:0,b:2}},
-{id:'g57',grp:'F',r:3,dt:'25/06',tm:'20h',ven:'Dallas',tA:'Japão',fA:'🇯🇵',tB:'Suécia',fB:'🇸🇪',c:{a:2,b:1},g:{a:1,b:1}},
-{id:'g58',grp:'F',r:3,dt:'25/06',tm:'20h',ven:'Kansas City',tA:'Tunísia',fA:'🇹🇳',tB:'Holanda',fB:'🇳🇱',c:{a:0,b:2},g:{a:0,b:2}},
-{id:'g59',grp:'C',r:3,dt:'25/06',tm:'23h',ven:'Los Angeles',tA:'Turquia',fA:'🇹🇷',tB:'EUA',fB:'🇺🇸',c:{a:1,b:2},g:{a:1,b:1}},
-{id:'g60',grp:'C',r:3,dt:'25/06',tm:'23h',ven:'San Francisco',tA:'Paraguai',fA:'🇵🇾',tB:'Austrália',fB:'🇦🇺',c:{a:1,b:0},g:{a:1,b:1}},
-{id:'g61',grp:'J',r:3,dt:'26/06',tm:'16h',ven:'Boston',tA:'Noruega',fA:'🇳🇴',tB:'França',fB:'🇫🇷',c:{a:1,b:2},g:{a:1,b:1}},
-{id:'g62',grp:'J',r:3,dt:'26/06',tm:'16h',ven:'Toronto',tA:'Senegal',fA:'🇸🇳',tB:'Iraque',fB:'🇮🇶',c:{a:2,b:0},g:{a:2,b:0}},
-{id:'g63',grp:'G',r:3,dt:'26/06',tm:'21h',ven:'Houston',tA:'Cabo Verde',fA:'🇨🇻',tB:'Arábia Saudita',fB:'🇸🇦',c:{a:1,b:1},g:{a:1,b:0}},
-{id:'g64',grp:'G',r:3,dt:'26/06',tm:'21h',ven:'Guadalajara',tA:'Uruguai',fA:'🇺🇾',tB:'Espanha',fB:'🇪🇸',c:{a:1,b:2},g:{a:1,b:1}},
-{id:'g65',grp:'H',r:3,dt:'27/06',tm:'0h',ven:'Seattle',tA:'Egito',fA:'🇪🇬',tB:'Irã',fB:'🇮🇷',c:{a:1,b:1},g:{a:1,b:1}},
-{id:'g66',grp:'H',r:3,dt:'27/06',tm:'0h',ven:'Vancouver',tA:'Nova Zelândia',fA:'🇳🇿',tB:'Bélgica',fB:'🇧🇪',c:{a:0,b:2},g:{a:0,b:2}},
-{id:'g67',grp:'L',r:3,dt:'27/06',tm:'18h',ven:'Nova York/NJ',tA:'Panamá',fA:'🇵🇦',tB:'Inglaterra',fB:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',c:{a:0,b:2},g:{a:0,b:2}},
-{id:'g68',grp:'L',r:3,dt:'27/06',tm:'18h',ven:'Filadélfia',tA:'Croácia',fA:'🇭🇷',tB:'Gana',fB:'🇬🇭',c:{a:2,b:1},g:{a:2,b:1}},
-{id:'g69',grp:'K',r:3,dt:'27/06',tm:'20h30',ven:'Miami',tA:'Colômbia',fA:'🇨🇴',tB:'Portugal',fB:'🇵🇹',c:{a:1,b:1},g:{a:1,b:1}},
-{id:'g70',grp:'K',r:3,dt:'27/06',tm:'20h30',ven:'Atlanta',tA:'RD Congo',fA:'🇨🇩',tB:'Uzbequistão',fB:'🇺🇿',c:{a:1,b:1},g:{a:1,b:1}},
-{id:'g71',grp:'I',r:3,dt:'27/06',tm:'23h',ven:'Kansas City',tA:'Argélia',fA:'🇩🇿',tB:'Áustria',fB:'🇦🇹',c:{a:1,b:1},g:{a:1,b:1}},
-{id:'g72',grp:'I',r:3,dt:'27/06',tm:'23h',ven:'Dallas',tA:'Jordânia',fA:'🇯🇴',tB:'Argentina',fB:'🇦🇷',c:{a:0,b:3},g:{a:0,b:2}},
+{id:'g33',grp:'F',r:2,dt:'20/06',tm:'14h',ven:'Houston',tA:'Holanda',fA:'🇳🇱',tB:'Suécia',fB:'🇸🇪',c:{a:2,b:0},g:{a:1,b:1},d:{a:2,b:1}},
+{id:'g34',grp:'E',r:2,dt:'20/06',tm:'17h',ven:'Toronto',tA:'Alemanha',fA:'🇩🇪',tB:'Costa do Marfim',fB:'🇨🇮',c:{a:2,b:1},g:{a:2,b:1},d:{a:2,b:1}},
+{id:'g35',grp:'E',r:2,dt:'20/06',tm:'21h',ven:'Kansas City',tA:'Equador',fA:'🇪🇨',tB:'Curaçao',fB:'🇨🇼',c:{a:2,b:0},g:{a:2,b:0},d:{a:3,b:0}},
+{id:'g36',grp:'F',r:2,dt:'21/06',tm:'1h',ven:'Monterrey',tA:'Tunísia',fA:'🇹🇳',tB:'Japão',fB:'🇯🇵',c:{a:0,b:2},g:{a:1,b:2},d:{a:0,b:2}},
+{id:'g37',grp:'G',r:2,dt:'21/06',tm:'13h',ven:'Atlanta',tA:'Espanha',fA:'🇪🇸',tB:'Arábia Saudita',fB:'🇸🇦',c:{a:2,b:0},g:{a:2,b:0},d:{a:3,b:0}},
+{id:'g38',grp:'H',r:2,dt:'21/06',tm:'16h',ven:'Los Angeles',tA:'Bélgica',fA:'🇧🇪',tB:'Irã',fB:'🇮🇷',c:{a:2,b:1},g:{a:2,b:1},d:{a:2,b:0}},
+{id:'g39',grp:'G',r:2,dt:'21/06',tm:'19h',ven:'Miami',tA:'Uruguai',fA:'🇺🇾',tB:'Cabo Verde',fB:'🇨🇻',c:{a:2,b:0},g:{a:2,b:0},d:{a:2,b:0}},
+{id:'g40',grp:'H',r:2,dt:'21/06',tm:'22h',ven:'Vancouver',tA:'Nova Zelândia',fA:'🇳🇿',tB:'Egito',fB:'🇪🇬',c:{a:0,b:2},g:{a:1,b:1},d:{a:0,b:2}},
+{id:'g41',grp:'I',r:2,dt:'22/06',tm:'14h',ven:'Dallas',tA:'Argentina',fA:'🇦🇷',tB:'Áustria',fB:'🇦🇹',c:{a:2,b:1},g:{a:2,b:0},d:{a:2,b:0}},
+{id:'g42',grp:'J',r:2,dt:'22/06',tm:'18h',ven:'Filadélfia',tA:'França',fA:'🇫🇷',tB:'Iraque',fB:'🇮🇶',c:{a:2,b:0},g:{a:2,b:0},d:{a:3,b:0}},
+{id:'g43',grp:'J',r:2,dt:'22/06',tm:'21h',ven:'Nova York/NJ',tA:'Noruega',fA:'🇳🇴',tB:'Senegal',fB:'🇸🇳',c:{a:1,b:1},g:{a:1,b:1},d:{a:2,b:1}},
+{id:'g44',grp:'I',r:2,dt:'23/06',tm:'0h',ven:'San Francisco',tA:'Jordânia',fA:'🇯🇴',tB:'Argélia',fB:'🇩🇿',c:{a:0,b:2},g:{a:1,b:1},d:{a:1,b:2}},
+{id:'g45',grp:'K',r:2,dt:'23/06',tm:'14h',ven:'Houston',tA:'Portugal',fA:'🇵🇹',tB:'Uzbequistão',fB:'🇺🇿',c:{a:2,b:0},g:{a:2,b:1},d:{a:2,b:0}},
+{id:'g46',grp:'L',r:2,dt:'23/06',tm:'17h',ven:'Boston',tA:'Inglaterra',fA:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',tB:'Gana',fB:'🇬🇭',c:{a:2,b:0},g:{a:3,b:1},d:{a:2,b:1}},
+{id:'g47',grp:'L',r:2,dt:'23/06',tm:'20h',ven:'Toronto',tA:'Panamá',fA:'🇵🇦',tB:'Croácia',fB:'🇭🇷',c:{a:0,b:2},g:{a:1,b:1},d:{a:1,b:2}},
+{id:'g48',grp:'K',r:2,dt:'23/06',tm:'23h',ven:'Guadalajara',tA:'Colômbia',fA:'🇨🇴',tB:'RD Congo',fB:'🇨🇩',c:{a:2,b:0},g:{a:2,b:0},d:{a:2,b:1}},
+{id:'g49',grp:'B',r:3,dt:'24/06',tm:'16h',ven:'Vancouver',tA:'Suíça',fA:'🇨🇭',tB:'Canadá',fB:'🇨🇦',c:{a:1,b:1},g:{a:2,b:1},d:{a:1,b:1}},
+{id:'g50',grp:'B',r:3,dt:'24/06',tm:'16h',ven:'Seattle',tA:'Bósnia e Herz.',fA:'🇧🇦',tB:'Catar',fB:'🇶🇦',c:{a:2,b:1},g:{a:1,b:1},d:{a:2,b:1}},
+{id:'g51',grp:'D',r:3,dt:'24/06',tm:'19h',ven:'Miami',tA:'Escócia',fA:'🏴󠁧󠁢󠁳󠁣󠁴󠁿',tB:'Brasil',fB:'🇧🇷',c:{a:0,b:2},g:{a:1,b:2},d:{a:0,b:2}},
+{id:'g52',grp:'D',r:3,dt:'24/06',tm:'19h',ven:'Atlanta',tA:'Marrocos',fA:'🇲🇦',tB:'Haiti',fB:'🇭🇹',c:{a:3,b:0},g:{a:2,b:0},d:{a:3,b:0}},
+{id:'g53',grp:'A',r:3,dt:'24/06',tm:'22h',ven:'Cidade do México',tA:'Rep. Tcheca',fA:'🇨🇿',tB:'México',fB:'🇲🇽',c:{a:0,b:2},g:{a:1,b:2},d:{a:0,b:2}},
+{id:'g54',grp:'A',r:3,dt:'24/06',tm:'22h',ven:'Monterrey',tA:'África do Sul',fA:'🇿🇦',tB:'Coreia do Sul',fB:'🇰🇷',c:{a:0,b:2},g:{a:0,b:1},d:{a:1,b:2}},
+{id:'g55',grp:'E',r:3,dt:'25/06',tm:'17h',ven:'Nova York/NJ',tA:'Equador',fA:'🇪🇨',tB:'Alemanha',fB:'🇩🇪',c:{a:1,b:2},g:{a:1,b:2},d:{a:1,b:2}},
+{id:'g56',grp:'E',r:3,dt:'25/06',tm:'17h',ven:'Filadélfia',tA:'Curaçao',fA:'🇨🇼',tB:'Costa do Marfim',fB:'🇨🇮',c:{a:0,b:2},g:{a:0,b:2},d:{a:0,b:3}},
+{id:'g57',grp:'F',r:3,dt:'25/06',tm:'20h',ven:'Dallas',tA:'Japão',fA:'🇯🇵',tB:'Suécia',fB:'🇸🇪',c:{a:2,b:1},g:{a:1,b:1},d:{a:1,b:1}},
+{id:'g58',grp:'F',r:3,dt:'25/06',tm:'20h',ven:'Kansas City',tA:'Tunísia',fA:'🇹🇳',tB:'Holanda',fB:'🇳🇱',c:{a:0,b:2},g:{a:0,b:2},d:{a:0,b:2}},
+{id:'g59',grp:'C',r:3,dt:'25/06',tm:'23h',ven:'Los Angeles',tA:'Turquia',fA:'🇹🇷',tB:'EUA',fB:'🇺🇸',c:{a:1,b:2},g:{a:1,b:1},d:{a:1,b:2}},
+{id:'g60',grp:'C',r:3,dt:'25/06',tm:'23h',ven:'San Francisco',tA:'Paraguai',fA:'🇵🇾',tB:'Austrália',fB:'🇦🇺',c:{a:1,b:0},g:{a:1,b:1},d:{a:1,b:0}},
+{id:'g61',grp:'J',r:3,dt:'26/06',tm:'16h',ven:'Boston',tA:'Noruega',fA:'🇳🇴',tB:'França',fB:'🇫🇷',c:{a:1,b:2},g:{a:1,b:1},d:{a:1,b:1}},
+{id:'g62',grp:'J',r:3,dt:'26/06',tm:'16h',ven:'Toronto',tA:'Senegal',fA:'🇸🇳',tB:'Iraque',fB:'🇮🇶',c:{a:2,b:0},g:{a:2,b:0},d:{a:2,b:0}},
+{id:'g63',grp:'G',r:3,dt:'26/06',tm:'21h',ven:'Houston',tA:'Cabo Verde',fA:'🇨🇻',tB:'Arábia Saudita',fB:'🇸🇦',c:{a:1,b:1},g:{a:1,b:0},d:{a:1,b:1}},
+{id:'g64',grp:'G',r:3,dt:'26/06',tm:'21h',ven:'Guadalajara',tA:'Uruguai',fA:'🇺🇾',tB:'Espanha',fB:'🇪🇸',c:{a:1,b:2},g:{a:1,b:1},d:{a:1,b:2}},
+{id:'g65',grp:'H',r:3,dt:'27/06',tm:'0h',ven:'Seattle',tA:'Egito',fA:'🇪🇬',tB:'Irã',fB:'🇮🇷',c:{a:1,b:1},g:{a:1,b:1},d:{a:1,b:1}},
+{id:'g66',grp:'H',r:3,dt:'27/06',tm:'0h',ven:'Vancouver',tA:'Nova Zelândia',fA:'🇳🇿',tB:'Bélgica',fB:'🇧🇪',c:{a:0,b:2},g:{a:0,b:2},d:{a:0,b:2}},
+{id:'g67',grp:'L',r:3,dt:'27/06',tm:'18h',ven:'Nova York/NJ',tA:'Panamá',fA:'🇵🇦',tB:'Inglaterra',fB:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',c:{a:0,b:2},g:{a:0,b:2},d:{a:0,b:3}},
+{id:'g68',grp:'L',r:3,dt:'27/06',tm:'18h',ven:'Filadélfia',tA:'Croácia',fA:'🇭🇷',tB:'Gana',fB:'🇬🇭',c:{a:2,b:1},g:{a:2,b:1},d:{a:2,b:1}},
+{id:'g69',grp:'K',r:3,dt:'27/06',tm:'20h30',ven:'Miami',tA:'Colômbia',fA:'🇨🇴',tB:'Portugal',fB:'🇵🇹',c:{a:1,b:1},g:{a:1,b:1},d:{a:1,b:1}},
+{id:'g70',grp:'K',r:3,dt:'27/06',tm:'20h30',ven:'Atlanta',tA:'RD Congo',fA:'🇨🇩',tB:'Uzbequistão',fB:'🇺🇿',c:{a:1,b:1},g:{a:1,b:1},d:{a:1,b:0}},
+{id:'g71',grp:'I',r:3,dt:'27/06',tm:'23h',ven:'Kansas City',tA:'Argélia',fA:'🇩🇿',tB:'Áustria',fB:'🇦🇹',c:{a:1,b:1},g:{a:1,b:1},d:{a:1,b:1}},
+{id:'g72',grp:'I',r:3,dt:'27/06',tm:'23h',ven:'Dallas',tA:'Jordânia',fA:'🇯🇴',tB:'Argentina',fB:'🇦🇷',c:{a:0,b:3},g:{a:0,b:2},d:{a:0,b:3}},
 ];
 
 function sortKey(g){
@@ -619,13 +620,12 @@ function todaySlate(){
     .map(x=>x.g);
 }
 function dayRow(g){
-  const miss=missingPred(g);
   const t=gameDate(g).getTime();
   const turbo=isTurbo(g);
   return `<div class="dh-row${turbo?' dh-turbo':''}" onclick="goToGame('${g.id}')">
     <span class="dh-time">${g.tm}</span>
     ${turbo?'<span class="dh-turbobadge">⚡2×</span>':''}
-    <span class="dh-teams">${g.fA} <b>${g.tA}</b> <i>×</i> <b>${g.tB}</b> ${g.fB}${miss?' <span class="dh-miss">• falta palpite</span>':''}</span>
+    <span class="dh-teams">${g.fA} <b>${g.tA}</b> <i>×</i> ${g.fB} <b>${g.tB}</b></span>
     <span class="dh-cd" data-t="${t}">${fmtCountdown(t-Date.now())}</span>
   </div>`;
 }
@@ -683,7 +683,7 @@ function renderPalpites(){
     ${pill('finished','Finalizados',cFin)}
     ${pill('geral','Bolão Geral',cGeral)}
     ${pill('jxv','Bolão JxV',cJxv)}
-    ${pill('naocons','Desconsiderados',cNao)}
+    ${pill('naocons','Fora',cNao)}
   </div></div>`;
 
   if(!sorted.length){
@@ -773,7 +773,7 @@ function renderCard(g){
         <span class="sep">×</span>
         <input type="number" min="0" max="99" inputmode="numeric" value="${g.realB!==''?g.realB:''}" placeholder="–" oninput="updReal('${g.id}','b',this.value)">
       </div>
-      <button class="rr-finish${g.finished?' done':''}" onclick="toggleFinish('${g.id}')">${g.finished?'Finalizado':'Finalizar'}<br>${g.finished?'✅':'<span class="chk-off">✓</span>'}</button>
+      <button class="rr-finish${g.finished?' done':''}" onclick="toggleFinish('${g.id}')">${g.finished?'Finalizado':'Finalizar'} ${g.finished?'✅':'<span class="chk-off">✓</span>'}</button>
     </div>`;
   html+=`</div>`;
   return html;
@@ -1019,7 +1019,7 @@ function rankingNew(){
   const fin=GT.map(t=>getGame(t.id)).filter(g=>!g.removed&&g.finished&&g.realA!==''&&inRank(g)).length;
   const tot=GT.map(t=>getGame(t.id)).filter(g=>!g.removed&&inRank(g)).length;
   const sAll=PARTICIPANTS.map(p=>({...p,...getStats(p.id,inRank)}));
-  const ranked=[...sAll].sort((a,b)=>b.total-a.total||b.rHits-a.rHits||b.eHits-a.eHits);
+  const ranked=[...sAll].sort((a,b)=>b.total-a.total||b.eHits-a.eHits||b.rHits-a.rHits);
   const mx=Math.max(1,...ranked.map(s=>s.total));
 
   let html=podium(ranked);
@@ -1035,6 +1035,7 @@ function rankingNew(){
   const hP=sAll.filter(p=>p.type==='human').reduce((s,p)=>s+p.total,0);
   const iP=sAll.filter(p=>p.type==='ia').reduce((s,p)=>s+p.total,0);
 
+  html+=`<div class="tiebreak">Empate na pontuação? Desempate: 1º mais placares cravados · 2º mais acertos de ganhador/empate.</div>`;
   html+=`<div class="section-title">⚔️ COMPARATIVOS</div>`;
   html+=versus('🤝 Humanos vs Máquinas','Humanos','Jeca + Tonius + Vini',hP,'#3d8ef0','Máquinas','ChatGPT + Claude Vini + Claude Tonius',iP,'#e8c44a');
   html+=teamRace('👥 Time Jeca vs Time Vini vs Time Tonius', TEAMS.map(t=>({
@@ -1054,7 +1055,7 @@ function rankingOld(){
   const fin=GT.map(t=>getGame(t.id)).filter(g=>!g.removed&&g.finished&&g.realA!=='').length;
   const tot=GT.filter(t=>!getGame(t.id).removed).length;
   const sAll=OLD_IDS.map(id=>{const p=PARTICIPANTS.find(x=>x.id===id);return {...p,...getStats(p.id)};});
-  const ranked=[...sAll].sort((a,b)=>b.total-a.total||b.rHits-a.rHits||b.eHits-a.eHits);
+  const ranked=[...sAll].sort((a,b)=>b.total-a.total||b.eHits-a.eHits||b.rHits-a.rHits);
   const mx=Math.max(1,...ranked.map(s=>s.total));
 
   let html=podium(ranked);
@@ -1070,6 +1071,7 @@ function rankingOld(){
   const hP=sAll.filter(p=>p.type==='human').reduce((s,p)=>s+p.total,0);
   const iP=sAll.filter(p=>p.type==='ia').reduce((s,p)=>s+p.total,0);
 
+  html+=`<div class="tiebreak">Empate na pontuação? Desempate: 1º mais placares cravados · 2º mais acertos de ganhador/empate.</div>`;
   html+=`<div class="section-title">⚔️ COMPARATIVOS</div>`;
   html+=versus('🤝 Humanos vs IAs','Humanos','Jeca + Vini',hP,'#3d8ef0','IAs','ChatGPT + Claude',iP,'#e8c44a');
   html+=versus('👥 Time Jeca vs Time Vini','Time Jeca','Jeca + ChatGPT',byId('jessica')+byId('chatgpt'),'#e05c8b','Time Vini','Vini + Claude',byId('vinicius')+byId('claude'),'#3d8ef0');
