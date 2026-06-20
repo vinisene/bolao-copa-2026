@@ -92,10 +92,10 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .pc-score.empty{color:#c4d0c4;}
 
 /* Real score full-bleed footer */
-.real-row{display:flex;flex-direction:column;align-items:stretch;gap:9px;background:linear-gradient(135deg,var(--gd),var(--g));padding:11px 12px;}
-.real-row .rr-line{display:flex;align-items:center;justify-content:center;gap:9px;}
+.real-row{display:flex;flex-direction:row;align-items:stretch;gap:9px;background:linear-gradient(135deg,var(--gd),var(--g));padding:11px 12px;}
+.real-row .rr-line{flex:3;display:flex;align-items:center;justify-content:center;gap:8px;}
 .real-row .rr-label{font-size:11px;font-weight:800;color:var(--gold);letter-spacing:.5px;}
-.rr-finish{padding:9px;border-radius:9px;border:1.5px solid rgba(255,255,255,.45);background:rgba(255,255,255,.12);color:#fff;font-size:12px;font-weight:800;cursor:pointer;transition:background .15s;}
+.rr-finish{flex:1;padding:6px 4px;border-radius:9px;border:1.5px solid rgba(255,255,255,.45);background:rgba(255,255,255,.12);color:#fff;font-size:11px;font-weight:800;line-height:1.25;cursor:pointer;transition:background .15s;}
 .rr-finish:active{background:rgba(255,255,255,.22);}
 .rr-finish.done{background:var(--gold);color:#5c4708;border-color:var(--gold);}
 .real-row input{width:44px;height:36px;text-align:center;border:1.5px solid rgba(255,255,255,.35);border-radius:9px;font-size:17px;font-weight:700;background:rgba(255,255,255,.16);color:#fff;-moz-appearance:textfield;}
@@ -249,17 +249,18 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 /* ── Pódio ── */
 .podium{display:flex;align-items:flex-end;justify-content:center;gap:9px;margin-bottom:14px;padding:0 4px;}
 .pod{flex:1;max-width:120px;display:flex;flex-direction:column;align-items:center;}
-.pod-medal{font-size:22px;line-height:1;margin-bottom:3px;}
-.pod-1 .pod-medal{font-size:28px;}
-.pod-av{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;color:#fff;border:3px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.18);}
-.pod-1 .pod-av{width:58px;height:58px;font-size:22px;}
-.pod-name{font-size:12px;font-weight:800;margin-top:5px;text-align:center;line-height:1.1;}
+.pod-avwrap{position:relative;}
+.pod-av{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;color:#fff;border:3px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.18);}
+.pod-1 .pod-av{width:60px;height:60px;font-size:23px;}
+.pod-badge{position:absolute;bottom:-4px;right:-6px;font-size:21px;line-height:1;filter:drop-shadow(0 1px 2px rgba(0,0,0,.3));}
+.pod-1 .pod-badge{font-size:27px;bottom:-6px;right:-9px;}
+.pod-name{font-size:12px;font-weight:800;margin-top:7px;text-align:center;line-height:1.1;}
 .pod-pts{font-size:14px;font-weight:800;color:var(--g);}
 .pod-pts span{font-size:9px;color:var(--mu);font-weight:600;}
-.pod-base{width:100%;margin-top:6px;border-radius:8px 8px 0 0;display:flex;align-items:flex-start;justify-content:center;padding-top:8px;color:#fff;font-weight:800;font-size:14px;background:linear-gradient(180deg,var(--gl),var(--g));}
-.pod-1 .pod-base{height:72px;background:linear-gradient(180deg,var(--gold),#c9a227);color:#5c4708;}
-.pod-2 .pod-base{height:54px;}
-.pod-3 .pod-base{height:40px;}
+.pod-base{width:100%;margin-top:6px;border-radius:8px 8px 0 0;display:flex;align-items:flex-start;justify-content:center;padding-top:8px;font-weight:800;font-size:14px;}
+.pod-1 .pod-base{height:72px;background:linear-gradient(180deg,#f0d055,#c9a227);color:#5c4708;}
+.pod-2 .pod-base{height:54px;background:linear-gradient(180deg,#d8dde2,#a7adb4);color:#3a3f44;}
+.pod-3 .pod-base{height:40px;background:linear-gradient(180deg,#d99e6a,#b06f3c);color:#4a2c12;}
 </style>
 </head>
 <body>
@@ -293,11 +294,11 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Ordem pensada para o grid 2 colunas dos cards: esquerda = humanos (editáveis), direita = IAs; cada linha = um time
 const PARTICIPANTS = [
-  {id:'jessica', name:'Jeca',          type:'human', color:'#e05c8b', init:'J',  team:'jeca'},
+  {id:'jessica', name:'Jeca',          type:'human', color:'#e05c8b', init:'J',  team:'jeca',   editable:true},
   {id:'chatgpt', name:'ChatGPT Jeca',  type:'ia',    color:'#19c37d', init:'G',  team:'jeca'},
-  {id:'tonius',  name:'Tonius',        type:'human', color:'#7e57c2', init:'T',  team:'tonius'},
-  {id:'claudio', name:'Claude Tonius', type:'ia',    color:'#5e35b1', init:'CT', team:'tonius'},
-  {id:'vinicius',name:'Vini',          type:'human', color:'#3d8ef0', init:'V',  team:'vini'},
+  {id:'tonius',  name:'Tonius',        type:'human', color:'#7e57c2', init:'T',  team:'tonius', editable:true},
+  {id:'claudio', name:'Claude Tonius', type:'ia',    color:'#5e35b1', init:'CT', team:'tonius', editable:true},
+  {id:'vinicius',name:'Vini',          type:'human', color:'#3d8ef0', init:'V',  team:'vini',   editable:true},
   {id:'claude',  name:'Claude Vini',   type:'ia',    color:'#cc6b2c', init:'CV', team:'vini'},
 ];
 const TEAMS = [
@@ -413,9 +414,9 @@ function getGame(id){
       jessica:  {a:n(c.jessica_a),  b:n(c.jessica_b)},
       vinicius: {a:n(c.vinicius_a), b:n(c.vinicius_b)},
       tonius:   {a:n(c.tonius_a),   b:n(c.tonius_b)},
+      claudio:  {a:n(c.claudio_a),  b:n(c.claudio_b)},
       chatgpt:  t.g||{a:'',b:''},
       claude:   t.c||{a:'',b:''},
-      claudio:  t.d||{a:'',b:''},
     }
   };
 }
@@ -445,7 +446,7 @@ async function loadData(){
 }
 
 // Colunas de dados que importam para detectar mudanças reais (ignora updated_at etc.)
-const DATA_COLS=['finished','removed','real_a','real_b','jessica_a','jessica_b','vinicius_a','vinicius_b','tonius_a','tonius_b'];
+const DATA_COLS=['finished','removed','real_a','real_b','jessica_a','jessica_b','vinicius_a','vinicius_b','tonius_a','tonius_b','claudio_a','claudio_b'];
 function norm(v){return (v===undefined||v===null||v==='')?null:v;}
 function sameRow(a,b){
   return DATA_COLS.every(c=>{
@@ -485,10 +486,11 @@ function applyRemoteScores(gid){
   if(!card)return;
   const g=getGame(gid);
   const setInput=(inp,v)=>{if(inp&&document.activeElement!==inp)inp.value=norm(v)===null?'':v;};
-  ['jessica','vinicius','tonius'].forEach(pid=>{
+  ['jessica','vinicius','tonius','claudio'].forEach(pid=>{
     const cell=card.querySelector(`.pred-cell[data-pid="${pid}"]`);
     if(!cell)return;
     const ins=cell.querySelectorAll('input');
+    if(!ins.length)return;
     setInput(ins[0],g.predictions[pid].a);
     setInput(ins[1],g.predictions[pid].b);
   });
@@ -649,11 +651,11 @@ function renderPalpites(){
   let html=heroHTML();
   html+=`<div class="controls"><div class="filters">
     ${pill('all','Todos',cAll)}
-    ${pill('geral','Bolão Geral',cGeral)}
-    ${pill('jxv','Bolão JxV',cJxv)}
     ${pill('missing','Faltam Palpites',cMiss,'warn')}
     ${pill('pending','A acontecer',cPend)}
     ${pill('finished','Finalizados',cFin)}
+    ${pill('geral','Bolão Geral',cGeral)}
+    ${pill('jxv','Bolão JxV',cJxv)}
     ${pill('naocons','Não considerados',cNao)}
   </div></div>`;
 
@@ -709,13 +711,13 @@ function renderCard(g){
     const hasPred=pred.a!==''&&pred.a!==null&&pred.a!==undefined;
     const pts=hasReal&&hasPred?calcPts(pred,g.realA,g.realB):null;
     const bc=ptsClass(pts);
-    const isHuman=p.type==='human';
-    html+=`<div class="pred-cell ${isHuman?'human':'ia'}" data-pid="${p.id}">
+    const editable=p.editable;
+    html+=`<div class="pred-cell ${editable?'human':'ia'}" data-pid="${p.id}">
       <div class="pc-top">
         <span class="pc-name"><span class="pc-dot" style="background:${p.color}"></span>${p.name}</span>
         ${pts!==null?`<span class="pts-badge ${bc}">${pts}</span>`:''}
       </div>`;
-    if(isHuman){
+    if(editable){
       html+=`<div class="pc-inputs">
         <input type="number" min="0" max="99" inputmode="numeric" value="${hasPred?pred.a:''}" placeholder="–" oninput="updPred('${g.id}','${p.id}','a',this.value)">
         <span class="sep">×</span>
@@ -739,7 +741,7 @@ function renderCard(g){
         <span class="sep">×</span>
         <input type="number" min="0" max="99" inputmode="numeric" value="${g.realB!==''?g.realB:''}" placeholder="–" oninput="updReal('${g.id}','b',this.value)">
       </div>
-      <button class="rr-finish${g.finished?' done':''}" onclick="toggleFinish('${g.id}')">${g.finished?'✓ Já aconteceu':'Marcar como já aconteceu'}</button>
+      <button class="rr-finish${g.finished?' done':''}" onclick="toggleFinish('${g.id}')">Já aconteceu<br>${g.finished?'✅':'☑️'}</button>
     </div>`;
   html+=`</div>`;
   return html;
@@ -965,8 +967,10 @@ function podium(ranked){
   const cols=[{p:t[1],pl:2,m:'🥈'},{p:t[0],pl:1,m:'🥇'},{p:t[2],pl:3,m:'🥉'}];
   return `<div class="podium">${cols.map(c=>`
     <div class="pod pod-${c.pl}">
-      <div class="pod-medal">${c.m}</div>
-      <div class="pod-av" style="background:${c.p.color};border-color:${c.p.color}">${c.p.init||c.p.name[0]}</div>
+      <div class="pod-avwrap">
+        <div class="pod-av" style="background:${c.p.color}">${c.p.init||c.p.name[0]}</div>
+        <span class="pod-badge">${c.m}</span>
+      </div>
       <div class="pod-name">${c.p.name}</div>
       <div class="pod-pts">${c.p.total}<span> pts</span></div>
       <div class="pod-base"><span>${c.pl}º</span></div>
@@ -1019,7 +1023,7 @@ function rankingOld(){
   let html=podium(ranked);
   html+=`<div class="lead-board">
     <div class="lead-head">
-      <div class="lh-title">🏆 RANKING JxV (ANTIGO)</div>
+      <div class="lh-title">🏆 BOLÃO JxV</div>
       <div class="lh-sub">${fin} de ${tot} jogos · conta todos os jogos da Copa ${q('pontuacao')}</div>
     </div>`;
   ranked.forEach((p,i)=>{html+=rkRow(p,i,mx,false);});
@@ -1043,8 +1047,8 @@ function setRank(m){rankMode=m;localStorage.setItem('brm',m);renderRanking();}
 
 function renderRanking(){
   const toggle=`<div class="rank-toggle">
-    <button class="${rankMode==='geral'?'active':''}" onclick="setRank('geral')">🏆 Geral</button>
-    <button class="${rankMode==='jxv'?'active':''}" onclick="setRank('jxv')">Antigo (JxV)</button>
+    <button class="${rankMode==='geral'?'active':''}" onclick="setRank('geral')">🏆 Bolão Geral</button>
+    <button class="${rankMode==='jxv'?'active':''}" onclick="setRank('jxv')">Bolão JxV</button>
   </div>`;
   document.getElementById('tab-ranking').innerHTML=toggle+(rankMode==='jxv'?rankingOld():rankingNew());
 }
