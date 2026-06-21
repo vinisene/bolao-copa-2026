@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Bolão Sene Piovan · Copa 2026</title>
-<link rel="icon" href="fotos/logo-copa-preto.png">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
 :root{--g:#1a6b3a;--gl:#2d9653;--gd:#0f4424;--gold:#e8c44a;--bg:#f4f7f4;--card:#fff;--txt:#1a1a1a;--mu:#666;--brd:#dde6dd;--je:#e05c8b;--vi:#3d8ef0;--ch:#19c37d;--cl:#cc6b2c;}
@@ -91,9 +91,9 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .preds-grid{display:grid;grid-template-columns:3fr 2fr;gap:7px;padding:0 12px 13px;align-items:stretch;}
 .pred-cell{background:var(--bg);border-radius:11px;border:1.5px solid transparent;min-width:0;}
 .pred-cell.ia{padding:7px 7px;display:flex;flex-direction:column;justify-content:center;}
-.pred-cell.human{background:#fff;border-color:var(--brd);padding:7px 5px;display:flex;align-items:center;gap:4px;}
-.hum-av{width:27px;height:27px;border-radius:50%;flex-shrink:0;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:11px;}
-.hum-name{font-size:12.5px;font-weight:800;color:var(--txt);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pred-cell.human{background:#fff;border-color:var(--brd);padding:7px 6px;display:flex;align-items:center;gap:5px;}
+.hum-av{width:30px;height:30px;border-radius:50%;flex-shrink:0;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:12px;}
+.hum-name{font-size:14px;font-weight:800;color:var(--txt);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .pred-cell.human .pts-badge{font-size:9px;padding:1px 4px;}
 .av-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
 .rk-av,.pod-av,.stat-avatar{position:relative;overflow:hidden;}
@@ -102,7 +102,7 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .pc-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
 .pc-inputs{display:flex;align-items:center;justify-content:center;gap:6px;flex-shrink:0;}
 .pred-cell.human .pc-inputs{gap:3px;}
-.pred-cell.human .pc-inputs input{width:32px;height:37px;font-size:16px;}
+.pred-cell.human .pc-inputs input{width:36px;height:40px;font-size:18px;}
 .pred-cell.human .pc-inputs .sep{font-size:11px;}
 .pc-inputs input{width:40px;height:36px;text-align:center;border:1.5px solid var(--brd);border-radius:9px;font-size:16px;font-weight:700;background:var(--bg);color:var(--txt);-moz-appearance:textfield;}
 .pc-inputs.small{gap:3px;}
@@ -137,6 +137,10 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .pts-4{background:#fff3cd;color:#856404;}
 .pts-0{background:#f8d7da;color:#721c24;}
 .pts-badge{font-size:10px;font-weight:700;padding:1px 5px;border-radius:10px;}
+.pts-badge.preview{background:#dfe4df;color:#7a857a;}
+.hum-avwrap{position:relative;flex-shrink:0;}
+.pts-badge.on-av{position:absolute;bottom:-4px;right:-6px;border:1.6px solid #fff;min-width:16px;height:16px;padding:0 3px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:9px;box-shadow:0 1px 2px rgba(0,0,0,.25);}
+.prev-tag{font-size:8px;font-weight:800;background:rgba(255,255,255,.22);color:#fff;padding:1px 5px;border-radius:6px;margin-left:5px;letter-spacing:.3px;vertical-align:1px;}
 
 /* ─── Ranking & Estatísticas ─── */
 .section-title{display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:800;color:var(--gd);letter-spacing:.4px;margin:18px 4px 10px;}
@@ -771,6 +775,7 @@ function winCls(hasReal,g,side){
 }
 function renderCard(g){
   const hasReal=g.finished&&g.realA!==''&&g.realA!==null&&g.realA!==undefined;
+  const hasScore=!emptyVal(g.realA)&&!emptyVal(g.realB);   // placar do jogo preenchido (mesmo sem finalizar)
   const turbo=isTurbo(g);
   const cls=['card'];
   if(g.finished)cls.push('is-finished');
@@ -799,14 +804,14 @@ function renderCard(g){
   PARTICIPANTS.forEach(p=>{
     const pred=g.predictions[p.id];
     const hasPred=!emptyVal(pred.a);
-    const pts=hasReal&&hasPred?ptsOf(g,pred):null;
-    const badge=pts!==null?`<span class="pts-badge ${ptsClass(pts)}">${pts}</span>`:'';
+    const pts=hasScore&&hasPred?ptsOf(g,pred):null;
+    const badge=pts!==null?`<span class="pts-badge ${g.finished?ptsClass(pts):'preview'}">${pts}</span>`:'';
     const inp=side=>`<input type="number" min="0" max="99" inputmode="numeric" value="${hasPred?pred[side]:''}" placeholder="–" oninput="updPred('${g.id}','${p.id}','${side}',this.value)">`;
     if(p.type==='human'){
+      const hbadge=pts!==null?`<span class="pts-badge on-av ${g.finished?ptsClass(pts):'preview'}">${pts}</span>`:'';
       html+=`<div class="pred-cell human" data-pid="${p.id}">
-        <div class="hum-av" style="background:${p.color}">${avInner(p)}</div>
+        <div class="hum-avwrap"><div class="hum-av" style="background:${p.color}">${avInner(p)}</div>${hbadge}</div>
         <span class="hum-name">${p.name}</span>
-        ${badge}
         <div class="pc-inputs">${inp('a')}<span class="sep">×</span>${inp('b')}</div>
       </div>`;
     }else{
@@ -826,7 +831,7 @@ function renderCard(g){
   }
   html+=`<div class="real-row${g.finished?'':' pending'}">
       <div class="rr-line">
-        <span class="rr-label">PLACAR REAL</span>
+        <span class="rr-label">PLACAR DO JOGO${(!g.finished&&hasScore)?' <span class="prev-tag">prévia</span>':''}</span>
         <input type="number" min="0" max="99" inputmode="numeric" value="${g.realA!==''?g.realA:''}" placeholder="–" oninput="updReal('${g.id}','a',this.value)">
         <span class="sep">×</span>
         <input type="number" min="0" max="99" inputmode="numeric" value="${g.realB!==''?g.realB:''}" placeholder="–" oninput="updReal('${g.id}','b',this.value)">
@@ -873,26 +878,30 @@ function refreshPoints(gameId){
   if(!card)return;
   const g=getGame(gameId);
   const hasReal=g.finished&&g.realA!==''&&g.realA!==null&&g.realA!==undefined;
+  const hasScore=!emptyVal(g.realA)&&!emptyVal(g.realB);
   PARTICIPANTS.forEach(p=>{
     const cell=card.querySelector(`.pred-cell[data-pid="${p.id}"]`);
     if(!cell)return;
     const pred=g.predictions[p.id];
     const hasPred=!emptyVal(pred.a);
-    const pts=(hasReal&&hasPred)?ptsOf(g,pred):null;
+    const pts=(hasScore&&hasPred)?ptsOf(g,pred):null;
     let badge=cell.querySelector('.pts-badge');
     if(pts===null){if(badge)badge.remove();}
     else{
+      const wrap=cell.querySelector('.hum-avwrap'), top=cell.querySelector('.pc-top');
       if(!badge){
         badge=document.createElement('span');
-        const top=cell.querySelector('.pc-top'), inputs=cell.querySelector('.pc-inputs');
-        if(top)top.appendChild(badge);              // célula IA
-        else if(inputs)cell.insertBefore(badge,inputs); // célula humana: antes das caixas
+        if(wrap)wrap.appendChild(badge);            // humano: no canto do avatar
+        else if(top)top.appendChild(badge);         // IA
         else cell.appendChild(badge);
       }
-      badge.className='pts-badge '+ptsClass(pts);
+      badge.className=(wrap?'pts-badge on-av ':'pts-badge ')+(g.finished?ptsClass(pts):'preview');
       badge.textContent=pts;
     }
   });
+  // rótulo "prévia" ao vivo
+  const lbl=card.querySelector('.rr-label');
+  if(lbl)lbl.innerHTML='PLACAR DO JOGO'+((!g.finished&&hasScore)?' <span class="prev-tag">prévia</span>':'');
   const needWarn=g.finished&&!hasReal;
   let warn=card.querySelector('.warn-bar');
   if(needWarn&&!warn){
