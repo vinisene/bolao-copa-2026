@@ -65,6 +65,8 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .bl-tag.geral{background:rgba(255,255,255,.14);color:rgba(255,255,255,.5);}
 .bl-tag.jxv{background:rgba(255,255,255,.1);color:rgba(255,255,255,.38);}
 .bl-tag.nao{background:#e8c44a;color:#5c4708;font-size:8.5px;}
+.bl-tag.lock{font-size:7.5px;padding:2px 4px;background:rgba(255,255,255,.16);color:rgba(255,255,255,.7);}
+.pc-inputs input:disabled{opacity:.85;cursor:not-allowed;-webkit-text-fill-color:currentColor;}
 .bl-tag.turbo{font-size:7.5px;padding:2px 4px;background:linear-gradient(90deg,#ff7a00,#ff3d3d);color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.2);box-shadow:0 0 12px rgba(255,122,0,.7);animation:turboPulse 1.4s ease-in-out infinite;}
 @keyframes turboPulse{0%,100%{box-shadow:0 0 8px rgba(255,122,0,.55);}50%{box-shadow:0 0 18px rgba(255,90,0,.95);}}
 .card.is-turbo{border-color:#ff7a00;box-shadow:0 0 0 3px rgba(255,122,0,.5),0 6px 22px rgba(255,122,0,.35);}
@@ -404,43 +406,43 @@ const GT = [
 {id:'g33',grp:'F',r:2,dt:'20/06',tm:'14h',ven:'Houston',tA:'Holanda',fA:'🇳🇱',tB:'Suécia',fB:'🇸🇪',c:{a:2,b:0},g:{a:1,b:1},d:{a:2,b:1},e:{a:2,b:1}},
 {id:'g34',grp:'E',r:2,dt:'20/06',tm:'17h',ven:'Toronto',tA:'Alemanha',fA:'🇩🇪',tB:'Costa do Marfim',fB:'🇨🇮',c:{a:2,b:1},g:{a:2,b:1},d:{a:2,b:1},e:{a:3,b:0}},
 {id:'g35',grp:'E',r:2,dt:'20/06',tm:'21h',ven:'Kansas City',tA:'Equador',fA:'🇪🇨',tB:'Curaçao',fB:'🇨🇼',c:{a:2,b:0},g:{a:2,b:0},d:{a:3,b:0},e:{a:2,b:0}},
-{id:'g36',grp:'F',r:2,dt:'21/06',tm:'1h',ven:'Monterrey',tA:'Tunísia',fA:'🇹🇳',tB:'Japão',fB:'🇯🇵',c:{a:0,b:2},g:{a:1,b:2},d:{a:0,b:2}},
-{id:'g37',grp:'G',r:2,dt:'21/06',tm:'13h',ven:'Atlanta',tA:'Espanha',fA:'🇪🇸',tB:'Arábia Saudita',fB:'🇸🇦',c:{a:2,b:0},g:{a:2,b:0},d:{a:3,b:0}},
-{id:'g38',grp:'H',r:2,dt:'21/06',tm:'16h',ven:'Los Angeles',tA:'Bélgica',fA:'🇧🇪',tB:'Irã',fB:'🇮🇷',c:{a:2,b:1},g:{a:2,b:1},d:{a:2,b:0}},
-{id:'g39',grp:'G',r:2,dt:'21/06',tm:'19h',ven:'Miami',tA:'Uruguai',fA:'🇺🇾',tB:'Cabo Verde',fB:'🇨🇻',c:{a:2,b:0},g:{a:2,b:0},d:{a:2,b:0}},
-{id:'g40',grp:'H',r:2,dt:'21/06',tm:'22h',ven:'Vancouver',tA:'Nova Zelândia',fA:'🇳🇿',tB:'Egito',fB:'🇪🇬',c:{a:0,b:2},g:{a:1,b:1},d:{a:0,b:2}},
-{id:'g41',grp:'I',r:2,dt:'22/06',tm:'14h',ven:'Dallas',tA:'Argentina',fA:'🇦🇷',tB:'Áustria',fB:'🇦🇹',c:{a:2,b:1},g:{a:2,b:0},d:{a:2,b:0}},
-{id:'g42',grp:'J',r:2,dt:'22/06',tm:'18h',ven:'Filadélfia',tA:'França',fA:'🇫🇷',tB:'Iraque',fB:'🇮🇶',c:{a:2,b:0},g:{a:2,b:0},d:{a:3,b:0}},
-{id:'g43',grp:'J',r:2,dt:'22/06',tm:'21h',ven:'Nova York/NJ',tA:'Noruega',fA:'🇳🇴',tB:'Senegal',fB:'🇸🇳',c:{a:1,b:1},g:{a:1,b:1},d:{a:2,b:1}},
-{id:'g44',grp:'I',r:2,dt:'23/06',tm:'0h',ven:'San Francisco',tA:'Jordânia',fA:'🇯🇴',tB:'Argélia',fB:'🇩🇿',c:{a:0,b:2},g:{a:1,b:1},d:{a:1,b:2}},
-{id:'g45',grp:'K',r:2,dt:'23/06',tm:'14h',ven:'Houston',tA:'Portugal',fA:'🇵🇹',tB:'Uzbequistão',fB:'🇺🇿',c:{a:2,b:0},g:{a:2,b:1},d:{a:2,b:0}},
-{id:'g46',grp:'L',r:2,dt:'23/06',tm:'17h',ven:'Boston',tA:'Inglaterra',fA:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',tB:'Gana',fB:'🇬🇭',c:{a:2,b:0},g:{a:3,b:1},d:{a:2,b:1}},
-{id:'g47',grp:'L',r:2,dt:'23/06',tm:'20h',ven:'Toronto',tA:'Panamá',fA:'🇵🇦',tB:'Croácia',fB:'🇭🇷',c:{a:0,b:2},g:{a:1,b:1},d:{a:1,b:2}},
-{id:'g48',grp:'K',r:2,dt:'23/06',tm:'23h',ven:'Guadalajara',tA:'Colômbia',fA:'🇨🇴',tB:'RD Congo',fB:'🇨🇩',c:{a:2,b:0},g:{a:2,b:0},d:{a:2,b:1}},
-{id:'g49',grp:'B',r:3,dt:'24/06',tm:'16h',ven:'Vancouver',tA:'Suíça',fA:'🇨🇭',tB:'Canadá',fB:'🇨🇦',c:{a:1,b:1},g:{a:2,b:1},d:{a:1,b:1}},
-{id:'g50',grp:'B',r:3,dt:'24/06',tm:'16h',ven:'Seattle',tA:'Bósnia e Herz.',fA:'🇧🇦',tB:'Catar',fB:'🇶🇦',c:{a:2,b:1},g:{a:1,b:1},d:{a:2,b:1}},
-{id:'g51',grp:'D',r:3,dt:'24/06',tm:'19h',ven:'Miami',tA:'Escócia',fA:'🏴󠁧󠁢󠁳󠁣󠁴󠁿',tB:'Brasil',fB:'🇧🇷',c:{a:0,b:2},g:{a:1,b:2},d:{a:0,b:2}},
-{id:'g52',grp:'D',r:3,dt:'24/06',tm:'19h',ven:'Atlanta',tA:'Marrocos',fA:'🇲🇦',tB:'Haiti',fB:'🇭🇹',c:{a:3,b:0},g:{a:2,b:0},d:{a:3,b:0}},
-{id:'g53',grp:'A',r:3,dt:'24/06',tm:'22h',ven:'Cidade do México',tA:'Rep. Tcheca',fA:'🇨🇿',tB:'México',fB:'🇲🇽',c:{a:0,b:2},g:{a:1,b:2},d:{a:0,b:2}},
-{id:'g54',grp:'A',r:3,dt:'24/06',tm:'22h',ven:'Monterrey',tA:'África do Sul',fA:'🇿🇦',tB:'Coreia do Sul',fB:'🇰🇷',c:{a:0,b:2},g:{a:0,b:1},d:{a:1,b:2}},
-{id:'g55',grp:'E',r:3,dt:'25/06',tm:'17h',ven:'Nova York/NJ',tA:'Equador',fA:'🇪🇨',tB:'Alemanha',fB:'🇩🇪',c:{a:1,b:2},g:{a:1,b:2},d:{a:1,b:2}},
-{id:'g56',grp:'E',r:3,dt:'25/06',tm:'17h',ven:'Filadélfia',tA:'Curaçao',fA:'🇨🇼',tB:'Costa do Marfim',fB:'🇨🇮',c:{a:0,b:2},g:{a:0,b:2},d:{a:0,b:3}},
-{id:'g57',grp:'F',r:3,dt:'25/06',tm:'20h',ven:'Dallas',tA:'Japão',fA:'🇯🇵',tB:'Suécia',fB:'🇸🇪',c:{a:2,b:1},g:{a:1,b:1},d:{a:1,b:1}},
-{id:'g58',grp:'F',r:3,dt:'25/06',tm:'20h',ven:'Kansas City',tA:'Tunísia',fA:'🇹🇳',tB:'Holanda',fB:'🇳🇱',c:{a:0,b:2},g:{a:0,b:2},d:{a:0,b:2}},
-{id:'g59',grp:'C',r:3,dt:'25/06',tm:'23h',ven:'Los Angeles',tA:'Turquia',fA:'🇹🇷',tB:'EUA',fB:'🇺🇸',c:{a:1,b:2},g:{a:1,b:1},d:{a:1,b:2}},
-{id:'g60',grp:'C',r:3,dt:'25/06',tm:'23h',ven:'San Francisco',tA:'Paraguai',fA:'🇵🇾',tB:'Austrália',fB:'🇦🇺',c:{a:1,b:0},g:{a:1,b:1},d:{a:1,b:0}},
-{id:'g61',grp:'J',r:3,dt:'26/06',tm:'16h',ven:'Boston',tA:'Noruega',fA:'🇳🇴',tB:'França',fB:'🇫🇷',c:{a:1,b:2},g:{a:1,b:1},d:{a:1,b:1}},
-{id:'g62',grp:'J',r:3,dt:'26/06',tm:'16h',ven:'Toronto',tA:'Senegal',fA:'🇸🇳',tB:'Iraque',fB:'🇮🇶',c:{a:2,b:0},g:{a:2,b:0},d:{a:2,b:0}},
-{id:'g63',grp:'G',r:3,dt:'26/06',tm:'21h',ven:'Houston',tA:'Cabo Verde',fA:'🇨🇻',tB:'Arábia Saudita',fB:'🇸🇦',c:{a:1,b:1},g:{a:1,b:0},d:{a:1,b:1}},
-{id:'g64',grp:'G',r:3,dt:'26/06',tm:'21h',ven:'Guadalajara',tA:'Uruguai',fA:'🇺🇾',tB:'Espanha',fB:'🇪🇸',c:{a:1,b:2},g:{a:1,b:1},d:{a:1,b:2}},
-{id:'g65',grp:'H',r:3,dt:'27/06',tm:'0h',ven:'Seattle',tA:'Egito',fA:'🇪🇬',tB:'Irã',fB:'🇮🇷',c:{a:1,b:1},g:{a:1,b:1},d:{a:1,b:1}},
-{id:'g66',grp:'H',r:3,dt:'27/06',tm:'0h',ven:'Vancouver',tA:'Nova Zelândia',fA:'🇳🇿',tB:'Bélgica',fB:'🇧🇪',c:{a:0,b:2},g:{a:0,b:2},d:{a:0,b:2}},
-{id:'g67',grp:'L',r:3,dt:'27/06',tm:'18h',ven:'Nova York/NJ',tA:'Panamá',fA:'🇵🇦',tB:'Inglaterra',fB:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',c:{a:0,b:2},g:{a:0,b:2},d:{a:0,b:3}},
-{id:'g68',grp:'L',r:3,dt:'27/06',tm:'18h',ven:'Filadélfia',tA:'Croácia',fA:'🇭🇷',tB:'Gana',fB:'🇬🇭',c:{a:2,b:1},g:{a:2,b:1},d:{a:2,b:1}},
-{id:'g69',grp:'K',r:3,dt:'27/06',tm:'20h30',ven:'Miami',tA:'Colômbia',fA:'🇨🇴',tB:'Portugal',fB:'🇵🇹',c:{a:1,b:1},g:{a:1,b:1},d:{a:1,b:1}},
-{id:'g70',grp:'K',r:3,dt:'27/06',tm:'20h30',ven:'Atlanta',tA:'RD Congo',fA:'🇨🇩',tB:'Uzbequistão',fB:'🇺🇿',c:{a:1,b:1},g:{a:1,b:1},d:{a:1,b:0}},
-{id:'g71',grp:'I',r:3,dt:'27/06',tm:'23h',ven:'Kansas City',tA:'Argélia',fA:'🇩🇿',tB:'Áustria',fB:'🇦🇹',c:{a:1,b:1},g:{a:1,b:1},d:{a:1,b:1}},
-{id:'g72',grp:'I',r:3,dt:'27/06',tm:'23h',ven:'Dallas',tA:'Jordânia',fA:'🇯🇴',tB:'Argentina',fB:'🇦🇷',c:{a:0,b:3},g:{a:0,b:2},d:{a:0,b:3}},
+{id:'g36',grp:'F',r:2,dt:'21/06',tm:'1h',ven:'Monterrey',tA:'Tunísia',fA:'🇹🇳',tB:'Japão',fB:'🇯🇵',c:{a:0,b:2},g:{a:1,b:2},d:{a:0,b:2},e:{a:0,b:2}},
+{id:'g37',grp:'G',r:2,dt:'21/06',tm:'13h',ven:'Atlanta',tA:'Espanha',fA:'🇪🇸',tB:'Arábia Saudita',fB:'🇸🇦',c:{a:2,b:0},g:{a:2,b:0},d:{a:3,b:0},e:{a:3,b:0}},
+{id:'g38',grp:'H',r:2,dt:'21/06',tm:'16h',ven:'Los Angeles',tA:'Bélgica',fA:'🇧🇪',tB:'Irã',fB:'🇮🇷',c:{a:2,b:1},g:{a:2,b:1},d:{a:2,b:0},e:{a:2,b:1}},
+{id:'g39',grp:'G',r:2,dt:'21/06',tm:'19h',ven:'Miami',tA:'Uruguai',fA:'🇺🇾',tB:'Cabo Verde',fB:'🇨🇻',c:{a:2,b:0},g:{a:2,b:0},d:{a:2,b:0},e:{a:2,b:0}},
+{id:'g40',grp:'H',r:2,dt:'21/06',tm:'22h',ven:'Vancouver',tA:'Nova Zelândia',fA:'🇳🇿',tB:'Egito',fB:'🇪🇬',c:{a:0,b:2},g:{a:1,b:1},d:{a:0,b:2},e:{a:1,b:2}},
+{id:'g41',grp:'I',r:2,dt:'22/06',tm:'14h',ven:'Dallas',tA:'Argentina',fA:'🇦🇷',tB:'Áustria',fB:'🇦🇹',c:{a:2,b:1},g:{a:2,b:0},d:{a:2,b:0},e:{a:2,b:0}},
+{id:'g42',grp:'J',r:2,dt:'22/06',tm:'18h',ven:'Filadélfia',tA:'França',fA:'🇫🇷',tB:'Iraque',fB:'🇮🇶',c:{a:2,b:0},g:{a:2,b:0},d:{a:3,b:0},e:{a:3,b:1}},
+{id:'g43',grp:'J',r:2,dt:'22/06',tm:'21h',ven:'Nova York/NJ',tA:'Noruega',fA:'🇳🇴',tB:'Senegal',fB:'🇸🇳',c:{a:1,b:1},g:{a:1,b:1},d:{a:2,b:1},e:{a:2,b:2}},
+{id:'g44',grp:'I',r:2,dt:'23/06',tm:'0h',ven:'San Francisco',tA:'Jordânia',fA:'🇯🇴',tB:'Argélia',fB:'🇩🇿',c:{a:0,b:2},g:{a:1,b:1},d:{a:1,b:2},e:{a:1,b:2}},
+{id:'g45',grp:'K',r:2,dt:'23/06',tm:'14h',ven:'Houston',tA:'Portugal',fA:'🇵🇹',tB:'Uzbequistão',fB:'🇺🇿',c:{a:2,b:0},g:{a:2,b:1},d:{a:2,b:0},e:{a:2,b:0}},
+{id:'g46',grp:'L',r:2,dt:'23/06',tm:'17h',ven:'Boston',tA:'Inglaterra',fA:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',tB:'Gana',fB:'🇬🇭',c:{a:2,b:0},g:{a:3,b:1},d:{a:2,b:1},e:{a:3,b:1}},
+{id:'g47',grp:'L',r:2,dt:'23/06',tm:'20h',ven:'Toronto',tA:'Panamá',fA:'🇵🇦',tB:'Croácia',fB:'🇭🇷',c:{a:0,b:2},g:{a:1,b:1},d:{a:1,b:2},e:{a:1,b:2}},
+{id:'g48',grp:'K',r:2,dt:'23/06',tm:'23h',ven:'Guadalajara',tA:'Colômbia',fA:'🇨🇴',tB:'RD Congo',fB:'🇨🇩',c:{a:2,b:0},g:{a:2,b:0},d:{a:2,b:1},e:{a:2,b:0}},
+{id:'g49',grp:'B',r:3,dt:'24/06',tm:'16h',ven:'Vancouver',tA:'Suíça',fA:'🇨🇭',tB:'Canadá',fB:'🇨🇦',c:{a:1,b:1},g:{a:2,b:1},d:{a:1,b:1},e:{a:2,b:1}},
+{id:'g50',grp:'B',r:3,dt:'24/06',tm:'16h',ven:'Seattle',tA:'Bósnia e Herz.',fA:'🇧🇦',tB:'Catar',fB:'🇶🇦',c:{a:2,b:1},g:{a:1,b:1},d:{a:2,b:1},e:{a:2,b:0}},
+{id:'g51',grp:'D',r:3,dt:'24/06',tm:'19h',ven:'Miami',tA:'Escócia',fA:'🏴󠁧󠁢󠁳󠁣󠁴󠁿',tB:'Brasil',fB:'🇧🇷',c:{a:0,b:2},g:{a:1,b:2},d:{a:0,b:2},e:{a:1,b:2}},
+{id:'g52',grp:'D',r:3,dt:'24/06',tm:'19h',ven:'Atlanta',tA:'Marrocos',fA:'🇲🇦',tB:'Haiti',fB:'🇭🇹',c:{a:3,b:0},g:{a:2,b:0},d:{a:3,b:0},e:{a:3,b:0}},
+{id:'g53',grp:'A',r:3,dt:'24/06',tm:'22h',ven:'Cidade do México',tA:'Rep. Tcheca',fA:'🇨🇿',tB:'México',fB:'🇲🇽',c:{a:0,b:2},g:{a:1,b:2},d:{a:0,b:2},e:{a:1,b:1}},
+{id:'g54',grp:'A',r:3,dt:'24/06',tm:'22h',ven:'Monterrey',tA:'África do Sul',fA:'🇿🇦',tB:'Coreia do Sul',fB:'🇰🇷',c:{a:0,b:2},g:{a:0,b:1},d:{a:1,b:2},e:{a:1,b:2}},
+{id:'g55',grp:'E',r:3,dt:'25/06',tm:'17h',ven:'Nova York/NJ',tA:'Equador',fA:'🇪🇨',tB:'Alemanha',fB:'🇩🇪',c:{a:1,b:2},g:{a:1,b:2},d:{a:1,b:2},e:{a:1,b:2}},
+{id:'g56',grp:'E',r:3,dt:'25/06',tm:'17h',ven:'Filadélfia',tA:'Curaçao',fA:'🇨🇼',tB:'Costa do Marfim',fB:'🇨🇮',c:{a:0,b:2},g:{a:0,b:2},d:{a:0,b:3},e:{a:0,b:2}},
+{id:'g57',grp:'F',r:3,dt:'25/06',tm:'20h',ven:'Dallas',tA:'Japão',fA:'🇯🇵',tB:'Suécia',fB:'🇸🇪',c:{a:2,b:1},g:{a:1,b:1},d:{a:1,b:1},e:{a:2,b:1}},
+{id:'g58',grp:'F',r:3,dt:'25/06',tm:'20h',ven:'Kansas City',tA:'Tunísia',fA:'🇹🇳',tB:'Holanda',fB:'🇳🇱',c:{a:0,b:2},g:{a:0,b:2},d:{a:0,b:2},e:{a:0,b:3}},
+{id:'g59',grp:'C',r:3,dt:'25/06',tm:'23h',ven:'Los Angeles',tA:'Turquia',fA:'🇹🇷',tB:'EUA',fB:'🇺🇸',c:{a:1,b:2},g:{a:1,b:1},d:{a:1,b:2},e:{a:1,b:2}},
+{id:'g60',grp:'C',r:3,dt:'25/06',tm:'23h',ven:'San Francisco',tA:'Paraguai',fA:'🇵🇾',tB:'Austrália',fB:'🇦🇺',c:{a:1,b:0},g:{a:1,b:1},d:{a:1,b:0},e:{a:1,b:1}},
+{id:'g61',grp:'J',r:3,dt:'26/06',tm:'16h',ven:'Boston',tA:'Noruega',fA:'🇳🇴',tB:'França',fB:'🇫🇷',c:{a:1,b:2},g:{a:1,b:1},d:{a:1,b:1},e:{a:1,b:2}},
+{id:'g62',grp:'J',r:3,dt:'26/06',tm:'16h',ven:'Toronto',tA:'Senegal',fA:'🇸🇳',tB:'Iraque',fB:'🇮🇶',c:{a:2,b:0},g:{a:2,b:0},d:{a:2,b:0},e:{a:2,b:0}},
+{id:'g63',grp:'G',r:3,dt:'26/06',tm:'21h',ven:'Houston',tA:'Cabo Verde',fA:'🇨🇻',tB:'Arábia Saudita',fB:'🇸🇦',c:{a:1,b:1},g:{a:1,b:0},d:{a:1,b:1},e:{a:1,b:1}},
+{id:'g64',grp:'G',r:3,dt:'26/06',tm:'21h',ven:'Guadalajara',tA:'Uruguai',fA:'🇺🇾',tB:'Espanha',fB:'🇪🇸',c:{a:1,b:2},g:{a:1,b:1},d:{a:1,b:2},e:{a:1,b:1}},
+{id:'g65',grp:'H',r:3,dt:'27/06',tm:'0h',ven:'Seattle',tA:'Egito',fA:'🇪🇬',tB:'Irã',fB:'🇮🇷',c:{a:1,b:1},g:{a:1,b:1},d:{a:1,b:1},e:{a:1,b:1}},
+{id:'g66',grp:'H',r:3,dt:'27/06',tm:'0h',ven:'Vancouver',tA:'Nova Zelândia',fA:'🇳🇿',tB:'Bélgica',fB:'🇧🇪',c:{a:0,b:2},g:{a:0,b:2},d:{a:0,b:2},e:{a:0,b:2}},
+{id:'g67',grp:'L',r:3,dt:'27/06',tm:'18h',ven:'Nova York/NJ',tA:'Panamá',fA:'🇵🇦',tB:'Inglaterra',fB:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',c:{a:0,b:2},g:{a:0,b:2},d:{a:0,b:3},e:{a:0,b:3}},
+{id:'g68',grp:'L',r:3,dt:'27/06',tm:'18h',ven:'Filadélfia',tA:'Croácia',fA:'🇭🇷',tB:'Gana',fB:'🇬🇭',c:{a:2,b:1},g:{a:2,b:1},d:{a:2,b:1},e:{a:2,b:1}},
+{id:'g69',grp:'K',r:3,dt:'27/06',tm:'20h30',ven:'Miami',tA:'Colômbia',fA:'🇨🇴',tB:'Portugal',fB:'🇵🇹',c:{a:1,b:1},g:{a:1,b:1},d:{a:1,b:1},e:{a:1,b:1}},
+{id:'g70',grp:'K',r:3,dt:'27/06',tm:'20h30',ven:'Atlanta',tA:'RD Congo',fA:'🇨🇩',tB:'Uzbequistão',fB:'🇺🇿',c:{a:1,b:1},g:{a:1,b:1},d:{a:1,b:0},e:{a:1,b:2}},
+{id:'g71',grp:'I',r:3,dt:'27/06',tm:'23h',ven:'Kansas City',tA:'Argélia',fA:'🇩🇿',tB:'Áustria',fB:'🇦🇹',c:{a:1,b:1},g:{a:1,b:1},d:{a:1,b:1},e:{a:1,b:1}},
+{id:'g72',grp:'I',r:3,dt:'27/06',tm:'23h',ven:'Dallas',tA:'Jordânia',fA:'🇯🇴',tB:'Argentina',fB:'🇦🇷',c:{a:0,b:3},g:{a:0,b:2},d:{a:0,b:3},e:{a:0,b:3}},
 ];
 
 function sortKey(g){
@@ -776,6 +778,7 @@ function winCls(hasReal,g,side){
 function renderCard(g){
   const hasReal=g.finished&&g.realA!==''&&g.realA!==null&&g.realA!==undefined;
   const hasScore=!emptyVal(g.realA)&&!emptyVal(g.realB);   // placar do jogo preenchido (mesmo sem finalizar)
+  const started=gameDate(g).getTime()<=Date.now();   // jogo já começou → palpites travados
   const turbo=isTurbo(g);
   const cls=['card'];
   if(g.finished)cls.push('is-finished');
@@ -785,10 +788,11 @@ function renderCard(g){
     :sortKey(g)>=CUT?`<span class="bl-tag geral">BOLÃO GERAL</span>`
     :`<span class="bl-tag jxv">BOLÃO JxV</span>`;
   const turboTag=turbo?`<span class="bl-tag turbo">⚡ TURBO 2×</span>`:'';
+  const lockTag=(started&&!g.finished)?`<span class="bl-tag lock">🔒 PALPITES FECHADOS</span>`:'';
 
   let html=`<div class="${cls.join(' ')}" data-id="${g.id}">
     <div class="card-head">
-      <span class="grp-tag">GRUPO ${g.grp} · RODADA ${g.r}${tag}${turboTag}</span>
+      <span class="grp-tag">GRUPO ${g.grp} · RODADA ${g.r}${tag}${turboTag}${lockTag}</span>
       <span class="dt-tag">${weekday(g)}, ${g.dt} · ${g.tm}</span>
     </div>
     <div class="matchup">
@@ -806,7 +810,7 @@ function renderCard(g){
     const hasPred=!emptyVal(pred.a);
     const pts=hasScore&&hasPred?ptsOf(g,pred):null;
     const badge=pts!==null?`<span class="pts-badge ${g.finished?ptsClass(pts):'preview'}">${pts}</span>`:'';
-    const inp=side=>`<input type="number" min="0" max="99" inputmode="numeric" value="${hasPred?pred[side]:''}" placeholder="–" oninput="updPred('${g.id}','${p.id}','${side}',this.value)">`;
+    const inp=side=>`<input type="number" min="0" max="99" inputmode="numeric" value="${hasPred?pred[side]:''}" placeholder="–"${started?' disabled':''} oninput="updPred('${g.id}','${p.id}','${side}',this.value)">`;
     if(p.type==='human'){
       const hbadge=pts!==null?`<span class="pts-badge on-av ${g.finished?ptsClass(pts):'preview'}">${pts}</span>`:'';
       html+=`<div class="pred-cell human" data-pid="${p.id}">
@@ -912,6 +916,7 @@ function refreshPoints(gameId){
 }
 
 function updPred(gameId,pid,side,val){
+  if(gameDate(getGame(gameId)).getTime()<=Date.now())return;   // jogo começou: palpite travado
   const cur=CACHE[gameId]||{};
   const col=`${pid}_${side}`;
   const num=val===''?null:parseInt(val);
