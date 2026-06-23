@@ -287,7 +287,7 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .dh-soon{font-size:13px;flex-shrink:0;opacity:.6;}
 
 /* ── Barra rolante do ranking (aba Palpites) ── */
-.rank-marquee{background:linear-gradient(135deg,var(--gd),var(--g));border-radius:14px;padding:9px 0 10px;margin-bottom:12px;color:#fff;overflow:hidden;box-shadow:0 4px 14px rgba(15,68,36,.22);}
+.rank-marquee{background:repeating-linear-gradient(135deg,var(--gd),var(--gd) 10px,#123d22 10px,#123d22 20px);border-radius:14px;padding:9px 0 10px;margin-bottom:12px;color:#fff;overflow:hidden;box-shadow:0 4px 14px rgba(15,68,36,.22);}
 .rm-head{font-size:10px;font-weight:800;letter-spacing:1.1px;color:var(--gold);margin:0 13px 8px;display:flex;align-items:center;gap:6px;}
 .rm-hint{font-weight:600;letter-spacing:0;color:rgba(255,255,255,.45);font-size:8.5px;}
 .rm-track-wrap{overflow:hidden;width:100%;}
@@ -320,11 +320,9 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .hist-svg{display:block;}
 .hist-grid{stroke:var(--brd);stroke-width:1;}
 .hist-ylbl{fill:var(--mu);font-size:9px;font-weight:700;text-anchor:end;}
-.hist-endlbl{fill:#fff;font-size:6.5px;font-weight:800;text-anchor:middle;}
-.hist-legwrap{display:flex;flex-wrap:wrap;gap:5px 12px;justify-content:center;padding:10px 12px 0;}
-.hist-leg{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--txt);}
-.hist-leg b{color:var(--g);}
-.hist-sw{width:11px;height:3px;border-radius:2px;flex-shrink:0;}
+.hist-x{fill:var(--mu);font-size:8px;font-weight:700;text-anchor:middle;}
+.hist-name{font-weight:800;dominant-baseline:middle;}
+.hist-svg g[data-pid]{cursor:pointer;transition:opacity .15s;}
 .hist-empty{font-size:12px;color:var(--mu);text-align:center;padding:18px 14px;background:var(--card);border:1px solid var(--brd);border-radius:14px;}
 
 /* ── Pódio ── */
@@ -1190,42 +1188,73 @@ function deltaBadge(d){
   return `<span class="rk-delta flat">=</span>`;
 }
 // Gráfico de evolução: eixo X = jogos (bandeiras), eixo Y = posição 1..8
+// No desktop preenche a largura (último jogo na direita); no celular cresce e rola pro lado.
+// Interativo: passar o mouse (desktop) realça a linha; clicar/tocar fixa o destaque.
+let histLocked=null;
 function histChart(steps){
+  histLocked=null;
   if(steps.length<2)return `<div class="hist-empty">O gráfico de evolução aparece a partir de 2 jogos finalizados no Bolão Geral.</div>`;
   const N=steps.length;
-  const colW=46,leftAxis=24,rightPad=14,topPad=14,bottomPad=50,rowH=26;
-  const W=leftAxis+N*colW+rightPad, H=topPad+7*rowH+bottomPad;
+  const host=document.getElementById('tab-ranking');
+  const hostW=(host&&host.clientWidth)?host.clientWidth:Math.min(892,(window.innerWidth||375)-28);
+  const availW=Math.max(300,hostW-12);
+  const big=availW>=560;
+  const rowH=big?40:26, endR=big?18:12, nameFont=big?13:10, leftAxis=big?30:24, topPad=big?18:14;
+  const flagW=big?22:18, flagH=big?15:12, xGap=big?13:11, lineW=big?2.8:2.4, dotR=big?3:2.4;
+  const nameMax=big?130:98;
+  const rightPad=2*endR+10+nameMax;
+  const bottomPad=2*flagH+xGap+14;
+  const innerAvail=availW-leftAxis-rightPad;
+  const fillColW=innerAvail/N;
+  const minColW=big?34:46;                       // largura mínima por jogo antes de rolar
+  const fit=fillColW>=minColW;                   // enche a largura (último jogo na direita)?
+  const colW=fit?fillColW:minColW;
+  const W=fit?availW:(leftAxis+N*colW+rightPad);
+  const H = topPad+7*rowH+bottomPad;
   const X=i=>leftAxis+i*colW+colW/2;
   const Y=pos=>topPad+(pos-1)*rowH;
   let svg=`<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" class="hist-svg" xmlns="http://www.w3.org/2000/svg">`;
+  svg+=`<rect x="0" y="0" width="${W}" height="${H}" fill="transparent" style="pointer-events:all" onclick="histClick('')"/>`;
   for(let pos=1;pos<=8;pos++){
     const y=Y(pos);
-    svg+=`<line x1="${leftAxis}" y1="${y}" x2="${W-rightPad}" y2="${y}" class="hist-grid"/>`;
+    svg+=`<line x1="${leftAxis}" y1="${y}" x2="${leftAxis+N*colW}" y2="${y}" class="hist-grid"/>`;
     svg+=`<text x="${leftAxis-5}" y="${y+3}" class="hist-ylbl">${pos}</text>`;
   }
   const fy=topPad+7*rowH+8;
   steps.forEach((s,i)=>{
     const x=X(i),ua=flagUrl(s.g.fA),ub=flagUrl(s.g.fB);
-    if(ua)svg+=`<image href="${ua}" x="${x-9}" y="${fy}" width="18" height="12"/>`;
-    if(ub)svg+=`<image href="${ub}" x="${x-9}" y="${fy+15}" width="18" height="12"/>`;
+    if(ua)svg+=`<image href="${ua}" x="${x-flagW/2}" y="${fy}" width="${flagW}" height="${flagH}"/>`;
+    svg+=`<text x="${x}" y="${fy+flagH+xGap-3}" class="hist-x">×</text>`;
+    if(ub)svg+=`<image href="${ub}" x="${x-flagW/2}" y="${fy+flagH+xGap}" width="${flagW}" height="${flagH}"/>`;
   });
   PARTICIPANTS.forEach(p=>{
     const pts=steps.map((s,i)=>`${X(i)},${Y(s.pos[p.id])}`).join(' ');
-    svg+=`<polyline points="${pts}" fill="none" stroke="${p.color}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" opacity="0.92"/>`;
-    steps.forEach((s,i)=>{svg+=`<circle cx="${X(i)}" cy="${Y(s.pos[p.id])}" r="2.4" fill="${p.color}"/>`;});
-    const lx=X(N-1),ly=Y(steps[N-1].pos[p.id]);
-    svg+=`<circle cx="${lx}" cy="${ly}" r="7" fill="${p.color}"/><text x="${lx}" y="${ly+2.4}" class="hist-endlbl">${p.init}</text>`;
+    let g=`<g data-pid="${p.id}" onmouseover="histHover('${p.id}')" onmouseout="histHover('')" onclick="histClick('${p.id}')">`;
+    g+=`<polyline points="${pts}" fill="none" stroke="#000" stroke-opacity="0" stroke-width="${big?20:14}" style="pointer-events:stroke"/>`;   // alvo de clique
+    g+=`<polyline class="hist-line" points="${pts}" fill="none" stroke="${p.color}" stroke-width="${lineW}" stroke-linejoin="round" stroke-linecap="round"/>`;
+    steps.forEach((s,i)=>{g+=`<circle cx="${X(i)}" cy="${Y(s.pos[p.id])}" r="${dotR}" fill="${p.color}"/>`;});
+    const lx=X(N-1),ly=Y(steps[N-1].pos[p.id]),pcx=lx+10+endR;
+    g+=`<circle cx="${pcx}" cy="${ly}" r="${endR}" fill="${p.color}"/>`;
+    if(p.img)g+=`<image href="${p.img}" x="${pcx-endR}" y="${ly-endR}" width="${2*endR}" height="${2*endR}" preserveAspectRatio="xMidYMid slice" style="clip-path:circle(${endR}px at ${endR}px ${endR}px)"/>`;
+    g+=`<circle cx="${pcx}" cy="${ly}" r="${endR}" fill="none" stroke="#fff" stroke-width="2"/>`;
+    g+=`<text x="${pcx+endR+5}" y="${ly}" class="hist-name" style="font-size:${nameFont}px" fill="${p.color}">${p.name}</text>`;
+    g+=`</g>`;
+    svg+=g;
   });
   svg+=`</svg>`;
-  const cur=steps[N-1].pos;
-  const legend=PARTICIPANTS.slice().sort((a,b)=>cur[a.id]-cur[b.id]).map(p=>
-    `<div class="hist-leg"><span class="hist-sw" style="background:${p.color}"></span><b>${cur[p.id]}º</b> ${p.name}</div>`).join('');
   return `<div class="hist-wrap">
-    <div class="hist-scrollhint">↔ deslize para o lado · cada ponto é um jogo · linha pra cima = subiu na tabela</div>
+    <div class="hist-scrollhint">${fit?'Toque numa linha para destacar uma pessoa (no PC, passe o mouse).':'↔ deslize para o lado · toque numa linha para destacá-la'}</div>
     <div class="hist-scroll">${svg}</div>
-    <div class="hist-legwrap">${legend}</div>
   </div>`;
 }
+// realça a linha de uma pessoa (apaga as outras); clique fixa, hover (desktop) prévia
+function histApply(pid){
+  document.querySelectorAll('.hist-svg g[data-pid]').forEach(g=>{
+    g.style.opacity=(!pid||g.dataset.pid===pid)?'1':'0.1';
+  });
+}
+function histHover(pid){ histApply(pid||histLocked); }
+function histClick(pid){ if(!pid)pid=null; histLocked=(histLocked===pid)?null:pid; histApply(histLocked); }
 // Barra rolante (aba Palpites) com a classificação geral atual
 function rankMarquee(){
   const steps=geralHistory();
@@ -1235,11 +1264,11 @@ function rankMarquee(){
   const item=p=>{
     const pos=cur.pos[p.id],d=deltas[p.id];
     const arrow=d>0?`<span class="rm-up">▲${d}</span>`:d<0?`<span class="rm-down">▼${-d}</span>`:`<span class="rm-flat">=</span>`;
-    return `<span class="rm-item"><span class="rm-pos">${medals[pos-1]||pos+'º'}</span><span class="rm-av" style="background:${p.color}">${avInner(p)}</span><span class="rm-nm">${p.name}</span>${arrow}<span class="rm-pts">${cur.tot[p.id]} pts</span></span>`;
+    return `<span class="rm-item"><span class="rm-pos">${medals[pos-1]||pos+'º'}</span>${arrow}<span class="rm-av" style="background:${p.color}">${avInner(p)}</span><span class="rm-nm">${p.name}</span><span class="rm-pts">${cur.tot[p.id]} pts</span></span>`;
   };
   const seq=order.map(item).join('');
   return `<div class="rank-marquee">
-    <div class="rm-head">🏆 CLASSIFICAÇÃO GERAL <span class="rm-hint">· últimos 3 jogos</span></div>
+    <div class="rm-head">🏆 CLASSIFICAÇÃO GERAL <span class="rm-hint">· variação dos últimos 3 jogos</span></div>
     <div class="rm-track-wrap"><div class="rm-track">${seq}${seq}</div></div>
   </div>`;
 }
