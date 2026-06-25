@@ -370,6 +370,15 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .mm-class{padding:9px 12px;border-top:1px solid var(--brd);background:#fafdfa;display:flex;flex-direction:column;gap:6px;}
 .mm-class-lbl{font-size:10px;font-weight:700;color:var(--mu);}
 .mm-class-btns{display:flex;gap:7px;flex-wrap:wrap;}
+.mm-iascore{background:var(--bg);border:1.5px solid var(--brd);border-radius:9px;padding:6px 10px;font-size:16px;font-weight:800;color:var(--txt);text-align:center;min-width:60px;}
+.mm-iascore.empty{color:var(--mu);font-weight:600;}
+.mm-qp-static{display:flex;align-items:center;gap:5px;padding-top:4px;border-top:1px dashed var(--brd);font-size:11px;color:var(--mu);font-weight:700;}
+.mm-qp-static .flag-img{height:12px;width:auto;border-radius:2px;}
+.pred-cell.ia.mm-cell{background:var(--bg);}
+/* Ambiente DEV: flag + botão de espelho (canto superior) */
+#dev-flag{position:fixed;top:8px;left:8px;z-index:300;background:#ff7a00;color:#fff;font-size:10px;font-weight:800;letter-spacing:1.5px;padding:3px 8px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,.3);}
+#mirror-btn{position:fixed;top:6px;right:8px;z-index:300;background:#b3261e;color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:800;cursor:pointer;box-shadow:0 2px 7px rgba(0,0,0,.35);}
+#mirror-btn:disabled{opacity:.6;cursor:default;}
 </style>
 </head>
 <body>
@@ -402,7 +411,14 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 // ─── CONFIGURAÇÃO SUPABASE ────────────────────────────────────────────────────
 const SUPABASE_URL = 'https://jgnmenwtxybaqshvxyer.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_-4B34BzFkro0ve-J-OMBKQ_9xO3C5tr';
-const TABLE = 'bolao_games';
+// Ambiente por hostname: na URL de preview do dev (hostname começa com "dev.") o app lê/escreve
+// num banco de DEV isolado (tabelas dev_*) no MESMO projeto Supabase. Qualquer outro hostname
+// (produção, localhost) usa as tabelas de produção, EXATAMENTE como hoje — produção não muda.
+function isDevEnv(h){return (h||location.hostname).startsWith('dev.');}
+const IS_DEV  = isDevEnv();
+const TABLE   = IS_DEV ? 'dev_bolao_games'     : 'bolao_games';
+const MM_TCONF= IS_DEV ? 'dev_mata_confrontos' : 'mata_confrontos';
+const MM_TPAL = IS_DEV ? 'dev_mata_palpites'   : 'mata_palpites';
 // ─────────────────────────────────────────────────────────────────────────────
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -1403,9 +1419,11 @@ function renderRanking(){
 }
 
 // ─── MATA-MATA (fase eliminatória) ────────────────────────────────────────────
-// Tabelas NOVAS e separadas (mata_confrontos, mata_palpites) — não tocam na fase de grupos.
-// Só os 4 HUMANOS palpitam no mata-mata.
-const MM_HUMANS=['jessica','tonius','leo','vinicius'];
+// Tabelas NOVAS e separadas (MM_TCONF/MM_TPAL = mata_confrontos|dev_mata_confrontos etc.) —
+// não tocam na fase de grupos. TODOS os 8 palpitam (humanos editam na UI; IAs entram pela
+// criação via Claude Code e aparecem como leitura). Criar/editar/remover confronto NÃO fica
+// exposto na UI do usuário final — é feito por fora (admin).
+const MM_HUMANS=['jessica','tonius','leo','vinicius'];   // quem é editável pela UI
 let MM_CONFRONTOS=[];     // linhas de mata_confrontos (ordem = created_at)
 let MM_PALPITES={};       // { confronto_id → { pid → {gols_a,gols_b,quem_passa} } }
 const mmDeb={}, mmRemoveConfirm={}, mmEditing={};
@@ -1416,8 +1434,8 @@ function mmIsTest(c){return /\[TESTE\]/i.test((c.team_a||'')+' '+(c.team_b||'')+
 async function loadMata(){
   try{
     const [rc,rp]=await Promise.all([
-      sb.from('mata_confrontos').select('*').order('created_at',{ascending:true}),
-      sb.from('mata_palpites').select('*'),
+      sb.from(MM_TCONF).select('*').order('created_at',{ascending:true}),
+      sb.from(MM_TPAL).select('*'),
     ]);
     if(rc.error||rp.error){console.warn('Mata-mata sem tabelas ainda?',(rc.error||rp.error).message);MM_CONFRONTOS=[];MM_PALPITES={};return false;}
     MM_CONFRONTOS=rc.data||[];
@@ -1430,8 +1448,8 @@ async function loadMata(){
 let _mmReloadT=null;
 function subscribeMata(){
   sb.channel('mata_realtime')
-    .on('postgres_changes',{event:'*',schema:'public',table:'mata_confrontos'},mmReload)
-    .on('postgres_changes',{event:'*',schema:'public',table:'mata_palpites'},mmReload)
+    .on('postgres_changes',{event:'*',schema:'public',table:MM_TCONF},mmReload)
+    .on('postgres_changes',{event:'*',schema:'public',table:MM_TPAL},mmReload)
     .subscribe();
 }
 function mmReload(){
@@ -1445,8 +1463,8 @@ function mmReload(){
 }
 
 // ── Escritas ──
-function mmUpsertConfronto(row){return sb.from('mata_confrontos').upsert({...row,updated_at:new Date().toISOString()},{onConflict:'id'});}
-function mmUpsertPalpite(cid,pid,fields){return sb.from('mata_palpites').upsert({confronto_id:cid,pid,...fields,updated_at:new Date().toISOString()},{onConflict:'confronto_id,pid'});}
+function mmUpsertConfronto(row){return sb.from(MM_TCONF).upsert({...row,updated_at:new Date().toISOString()},{onConflict:'id'});}
+function mmUpsertPalpite(cid,pid,fields){return sb.from(MM_TPAL).upsert({confronto_id:cid,pid,...fields,updated_at:new Date().toISOString()},{onConflict:'confronto_id,pid'});}
 
 async function mmAddConfronto(){
   const v=id=>(document.getElementById(id)?.value||'').trim();
@@ -1463,7 +1481,7 @@ async function mmRemoveConfronto(cid){
   if(!mmRemoveConfirm[cid]){mmRemoveConfirm[cid]=true;renderMata();setTimeout(()=>{delete mmRemoveConfirm[cid];if(activeTab==='mata')renderMata();},3000);return;}
   delete mmRemoveConfirm[cid];
   setSyncing(1);
-  const {error}=await sb.from('mata_confrontos').delete().eq('id',cid);   // cascade apaga os palpites
+  const {error}=await sb.from(MM_TCONF).delete().eq('id',cid);   // cascade apaga os palpites
   setSyncing(-1);
   if(error){showErr('Erro ao remover: '+error.message);return;}
   await loadMata(); renderMata();
@@ -1515,8 +1533,9 @@ function mmSetQuemPassa(cid,pid,side){
 }
 
 // ── Pontuação do mata-mata ──
-// Placar 90min (igual à fase de grupos: 5 resultado +1 gol A +1 gol B +3 exato)
-// + 4 SÓ se o palpite foi empate E acertou o classificado.
+// Placar FINAL = inclui prorrogação (não os 90 min). Empate só é empate se persistir após a
+// prorrogação → vai pros pênaltis. Regra igual à fase de grupos: 5 resultado +1 gol A +1 gol B
+// +3 exato; +4 SÓ se o palpite foi empate E acertou o "classificado" (quem passou nos pênaltis).
 function calcMataPts(pal,c){
   if(!pal||pal.gols_a==null||pal.gols_b==null)return null;
   if(c.real_a==null||c.real_b==null)return null;
@@ -1545,43 +1564,44 @@ function mataStats(pid){
 }
 
 // ── Render ──
-function mmQuemPassaHTML(c,pid){
+function mmQuemPassaHTML(c,pid,editable){
   const p=(MM_PALPITES[c.id]||{})[pid]||{};
   const draw=(p.gols_a!=null&&p.gols_b!=null&&p.gols_a===p.gols_b);
   if(!draw)return '';
   const fa=c.flag_a?flagImg(c.flag_a):'', fb=c.flag_b?flagImg(c.flag_b):'';
-  return `<div class="mm-qp-in"><span class="mm-qp-lbl">passa:</span>
+  if(!editable){   // IA: só mostra a escolha (leitura)
+    const t=p.quem_passa==='A'?`${fa} ${esc(c.team_a||'A')}`:p.quem_passa==='B'?`${fb} ${esc(c.team_b||'B')}`:'<i>(sem escolha)</i>';
+    return `<div class="mm-qp-static">passa nos pênaltis: ${t}</div>`;
+  }
+  return `<div class="mm-qp-in"><span class="mm-qp-lbl">passa nos pênaltis:</span>
     <button class="mm-qpb sm${p.quem_passa==='A'?' on':''}" onclick="mmSetQuemPassa('${c.id}','${pid}','A')">${fa} ${esc(c.team_a||'A')}</button>
     <button class="mm-qpb sm${p.quem_passa==='B'?' on':''}" onclick="mmSetQuemPassa('${c.id}','${pid}','B')">${fb} ${esc(c.team_b||'B')}</button>
   </div>`;
 }
 function mmRenderQuemPassa(cid,pid){
   const el=document.querySelector(`#tab-mata [data-cid="${cid}"] .mm-qp[data-pid="${pid}"]`);
-  if(el){const c=MM_CONFRONTOS.find(x=>x.id===cid);if(c)el.innerHTML=mmQuemPassaHTML(c,pid);}
+  if(el){const c=MM_CONFRONTOS.find(x=>x.id===cid);const p=PARTICIPANTS.find(x=>x.id===pid);if(c&&p)el.innerHTML=mmQuemPassaHTML(c,pid,p.type==='human');}
 }
 function mmRefreshPts(cid){
   const card=document.querySelector(`#tab-mata [data-cid="${cid}"]`); if(!card)return;
   const c=MM_CONFRONTOS.find(x=>x.id===cid); if(!c)return;
   const hasScore=c.real_a!=null&&c.real_b!=null;
-  MM_HUMANS.forEach(pid=>{
-    const badge=card.querySelector(`.mm-pts[data-pid="${pid}"]`); if(!badge)return;
-    const pts=hasScore?calcMataPts((MM_PALPITES[cid]||{})[pid],c):null;
+  PARTICIPANTS.forEach(p=>{
+    const badge=card.querySelector(`.mm-pts[data-pid="${p.id}"]`); if(!badge)return;
+    const pts=hasScore?calcMataPts((MM_PALPITES[cid]||{})[p.id],c):null;
     badge.className='pts-badge on-av mm-pts'+(pts!=null?' '+(c.finished?ptsClass(pts):'preview'):'');
     badge.textContent=pts!=null?pts:'';
   });
   const lbl=card.querySelector('.rr-label');
-  if(lbl)lbl.innerHTML='PLACAR 90 MIN'+((!c.finished&&hasScore)?' <span class="prev-tag">prévia</span>':'');
+  if(lbl)lbl.innerHTML='PLACAR FINAL'+((!c.finished&&hasScore)?' <span class="prev-tag">prévia</span>':'');
 }
 function mmCard(c){
   const test=mmIsTest(c), editing=mmEditing[c.id];
   const hasScore=c.real_a!=null&&c.real_b!=null, hasReal=c.finished&&hasScore;
   const cls=['card','mm-card']; if(c.finished)cls.push('is-finished'); if(test)cls.push('mm-test');
+  // Cabeçalho sem controles de admin (criar/editar/remover é feito por fora, via Claude Code).
   const head=`<div class="card-head">
     <span class="grp-tag">${esc(c.phase||'—')}${test?' <span class="bl-tag nao">TESTE</span>':''}</span>
-    <span class="mm-actions">
-      <button class="mm-iconbtn" title="Editar confronto" onclick="mmToggleEdit('${c.id}')">${editing?'✕':'✏️'}</button>
-      <button class="mm-iconbtn${mmRemoveConfirm[c.id]?' danger':''}" title="Remover confronto" onclick="mmRemoveConfronto('${c.id}')">${mmRemoveConfirm[c.id]?'Confirmar?':'🗑️'}</button>
-    </span>
   </div>`;
   let mid;
   if(editing){
@@ -1595,47 +1615,43 @@ function mmCard(c){
     const win=side=>{ if(!hasReal||c.real_a===c.real_b)return 'team'; const aw=c.real_a>c.real_b; return side==='A'?(aw?'team win':'team lose'):(aw?'team lose':'team win'); };
     mid=`<div class="matchup">
       <div class="${win('A')}"><span class="team-flag">${c.flag_a?flagImg(c.flag_a):''}</span><span class="team-name">${esc(c.team_a||'?')}</span></div>
-      <div class="mid">${hasReal?`<div class="score-final">${c.real_a}<small>×</small>${c.real_b}</div>`:`<div class="vs-badge">×</div>`}<div class="venue">90 min</div></div>
+      <div class="mid">${hasReal?`<div class="score-final">${c.real_a}<small>×</small>${c.real_b}</div>`:`<div class="vs-badge">×</div>`}<div class="venue">placar final</div></div>
       <div class="${win('B')}"><span class="team-flag">${c.flag_b?flagImg(c.flag_b):''}</span><span class="team-name">${esc(c.team_b||'?')}</span></div>
     </div>`;
   }
   let preds=`<div class="preds-grid mm-preds">`;
-  MM_HUMANS.forEach(pid=>{
-    const p=PARTICIPANTS.find(x=>x.id===pid);
+  PARTICIPANTS.forEach(p=>{
+    const pid=p.id, isHuman=p.type==='human';
     const pal=(MM_PALPITES[c.id]||{})[pid]||{};
     const hasPred=pal.gols_a!=null;
     const pts=hasScore&&hasPred?calcMataPts(pal,c):null;
     const inp=side=>`<input type="number" min="0" max="99" inputmode="numeric" value="${pal['gols_'+side]!=null?pal['gols_'+side]:''}" placeholder="–" oninput="mmUpdPalpite('${c.id}','${pid}','gols_${side}',this.value)">`;
-    preds+=`<div class="pred-cell human mm-cell" data-pid="${pid}">
+    const palpiteUI=isHuman
+      ? `<div class="pc-inputs">${inp('a')}<span class="sep">×</span>${inp('b')}</div>`
+      : `<div class="mm-iascore${hasPred?'':' empty'}">${hasPred?`${pal.gols_a} × ${pal.gols_b}`:'– × –'}</div>`;
+    preds+=`<div class="pred-cell ${isHuman?'human':'ia'} mm-cell" data-pid="${pid}">
       <div class="mm-cell-top">
         <div class="hum-avwrap"><div class="hum-av" style="background:${p.color}">${avInner(p)}</div><span class="pts-badge on-av mm-pts${pts!=null?' '+(c.finished?ptsClass(pts):'preview'):''}" data-pid="${pid}">${pts!=null?pts:''}</span></div>
         <span class="hum-name">${p.name}</span>
-        <div class="pc-inputs">${inp('a')}<span class="sep">×</span>${inp('b')}</div>
+        ${palpiteUI}
       </div>
-      <div class="mm-qp" data-pid="${pid}">${mmQuemPassaHTML(c,pid)}</div>
+      <div class="mm-qp" data-pid="${pid}">${mmQuemPassaHTML(c,pid,isHuman)}</div>
     </div>`;
   });
   preds+=`</div>`;
   const cbtn=(side,fl,tm)=>`<button class="mm-qpb${c.classificado===side?' on':''}" data-side="${side}" onclick="mmSetClassificado('${c.id}','${side}')">${fl?flagImg(fl):''} ${esc(tm||side)}</button>`;
-  const classRow=`<div class="mm-class"><span class="mm-class-lbl">Quem passou (decide em empate nos 90min):</span><div class="mm-class-btns">${cbtn('A',c.flag_a,c.team_a)}${cbtn('B',c.flag_b,c.team_b)}</div></div>`;
+  const classRow=`<div class="mm-class"><span class="mm-class-lbl">Quem passou nos pênaltis (se empatar após a prorrogação):</span><div class="mm-class-btns">${cbtn('A',c.flag_a,c.team_a)}${cbtn('B',c.flag_b,c.team_b)}</div></div>`;
   const realInp=side=>`<input type="number" min="0" max="99" inputmode="numeric" value="${c['real_'+side]!=null?c['real_'+side]:''}" placeholder="–" oninput="mmSetReal('${c.id}','${side}',this.value)">`;
   const resultRow=`<div class="real-row${c.finished?'':' pending'}">
-      <div class="rr-line"><span class="rr-label">PLACAR 90 MIN${(!c.finished&&hasScore)?' <span class="prev-tag">prévia</span>':''}</span>${realInp('a')}<span class="sep">×</span>${realInp('b')}</div>
+      <div class="rr-line"><span class="rr-label">PLACAR FINAL${(!c.finished&&hasScore)?' <span class="prev-tag">prévia</span>':''}</span>${realInp('a')}<span class="sep">×</span>${realInp('b')}</div>
       <button class="rr-finish${c.finished?' done':''}" onclick="mmSetFinished('${c.id}')">${c.finished?'Finalizado ✅':'Finalizar <span class="chk-off">✓</span>'}</button>
     </div>`;
   return `<div class="${cls.join(' ')}" data-cid="${c.id}">${head}${mid}${preds}${editing?'':classRow}${editing?'':resultRow}</div>`;
 }
 function renderMata(){
-  let html=`<div class="mm-intro">⚔️ <b>Fase Mata-Mata</b> — cada um palpita o placar dos <b>90 min</b>. Empatou no palpite? Escolha quem passa. Pontos: 5 resultado · +1 gol A · +1 gol B · +3 placar exato · <b>+4</b> se cravar quem passa num palpite de empate.</div>`;
-  html+=`<div class="mm-newform">
-    <div class="mm-nf-title">➕ Novo confronto</div>
-    <input id="mm-new-phase" placeholder="Fase (ex: 32 avos)" value="32 avos">
-    <div class="mm-nf-team"><input id="mm-new-fa" class="mm-flag" placeholder="🏳️"><input id="mm-new-ta" placeholder="Time A (mandante)"></div>
-    <div class="mm-nf-team"><input id="mm-new-fb" class="mm-flag" placeholder="🏳️"><input id="mm-new-tb" placeholder="Time B (visitante)"></div>
-    <button class="mm-add" onclick="mmAddConfronto()">Adicionar confronto</button>
-  </div>`;
+  let html=`<div class="mm-intro">⚔️ <b>Fase Mata-Mata</b> — palpite o <b>placar final</b> (inclui prorrogação). Empatou no palpite? Escolha quem passa nos pênaltis. Pontos: 5 resultado · +1 gol A · +1 gol B · +3 placar exato · <b>+4</b> se cravar quem passa num palpite de empate.</div>`;
   if(!MM_CONFRONTOS.length){
-    html+=`<div class="empty-state">Nenhum confronto ainda.<br>Crie acima, ou rode o seed de teste (veja CLAUDE.md → "Fase Mata-Mata"). Se nada aparecer, talvez falte rodar o SQL <code>supabase_mata_mata.sql</code> no Supabase.</div>`;
+    html+=`<div class="empty-state">Nenhum confronto disponível ainda.<br>Os confrontos são cadastrados pela organização.</div>`;
   }else{
     const phases=[...new Set(MM_CONFRONTOS.map(c=>c.phase||'—'))];
     phases.forEach(ph=>{
@@ -1646,6 +1662,37 @@ function renderMata(){
     });
   }
   document.getElementById('tab-mata').innerHTML=html;
+}
+
+// ─── ESPELHO PROD→DEV (só no ambiente de dev) ─────────────────────────────────
+// Lê a PRODUÇÃO (somente leitura) e regrava no banco de DEV (tabelas dev_*). Usa só a anon key.
+async function mirrorProdToDev(){
+  if(!IS_DEV){showErr('O espelho só funciona no ambiente de dev.');return;}
+  if(!confirm('Isso vai apagar todos os dados do dev e copiar os da produção. Continuar?'))return;
+  const btn=document.getElementById('mirror-btn'); if(btn){btn.disabled=true;btn.textContent='Espelhando…';}
+  try{
+    setSyncing(1);
+    // 1) lê produção (NÃO escreve nela)
+    const pg=await sb.from('bolao_games').select('*');      if(pg.error)throw pg.error;
+    const pc=await sb.from('mata_confrontos').select('*');  // podem ainda não existir em produção
+    const pp=await sb.from('mata_palpites').select('*');
+    // 2) zera o dev (filhos antes dos pais)
+    let r;
+    r=await sb.from('dev_mata_palpites').delete().not('confronto_id','is',null);  if(r.error)throw r.error;
+    r=await sb.from('dev_mata_confrontos').delete().not('id','is',null);          if(r.error)throw r.error;
+    r=await sb.from('dev_bolao_games').delete().not('game_id','is',null);         if(r.error)throw r.error;
+    // 3) copia produção → dev
+    if(pg.data&&pg.data.length){r=await sb.from('dev_bolao_games').insert(pg.data);         if(r.error)throw r.error;}
+    if(!pc.error&&pc.data&&pc.data.length){r=await sb.from('dev_mata_confrontos').insert(pc.data); if(r.error)throw r.error;}
+    if(!pp.error&&pp.data&&pp.data.length){r=await sb.from('dev_mata_palpites').insert(pp.data);    if(r.error)throw r.error;}
+    setSyncing(-1);
+    alert(`Pronto! Dev espelhado da produção: ${pg.data?pg.data.length:0} jogos, ${(!pc.error&&pc.data)?pc.data.length:0} confrontos. Recarregando…`);
+    location.reload();
+  }catch(e){
+    setSyncing(-1);
+    if(btn){btn.disabled=false;btn.textContent='🪞 Espelhar prod→dev';}
+    showErr('Erro ao espelhar (as tabelas dev_* existem? rode supabase_dev_setup.sql): '+(e.message||e));
+  }
 }
 
 // ─── TAB NAV ──────────────────────────────────────────────────────────────────
@@ -1661,6 +1708,9 @@ function showTab(name){
 }
 
 // ─── BOOT ─────────────────────────────────────────────────────────────────────
+if(IS_DEV){   // marca visual + botão de espelho, só no ambiente de dev (canto superior direito)
+  document.body.insertAdjacentHTML('afterbegin','<div id="dev-flag">DEV</div><button id="mirror-btn" onclick="mirrorProdToDev()">🪞 Espelhar prod→dev</button>');
+}
 loadData();
 </script>
 </body>

@@ -12,9 +12,9 @@ CREATE TABLE IF NOT EXISTS mata_confrontos (
   flag_a       TEXT,                       -- emoji da bandeira A (ex: 🇧🇷)
   team_b       TEXT,                       -- time B (visitante)
   flag_b       TEXT,
-  real_a       INTEGER,                    -- gols do time A nos 90 min
-  real_b       INTEGER,                    -- gols do time B nos 90 min
-  classificado TEXT,                       -- 'A' ou 'B' = quem avançou (só importa em empate nos 90min)
+  real_a       INTEGER,                    -- placar FINAL do time A (inclui prorrogação)
+  real_b       INTEGER,                    -- placar FINAL do time B (inclui prorrogação)
+  classificado TEXT,                       -- 'A' ou 'B' = quem passou (só importa se empatar → pênaltis)
   finished     BOOLEAN DEFAULT FALSE,      -- quando true, conta no ranking
   created_at   TIMESTAMPTZ DEFAULT NOW(),  -- ordem de exibição
   updated_at   TIMESTAMPTZ DEFAULT NOW()

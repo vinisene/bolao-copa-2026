@@ -230,40 +230,49 @@ Placar real e finalizar seguem o mesmo caminho: `updReal` (979) → coluna `real
 ## 10. Fase Mata-Mata (eliminatórias)
 
 Adição **separada** da fase de grupos — não toca em `GT`, `bolao_games`, `getStats` nem na lógica
-de grupos. Só os **4 humanos** palpitam no mata-mata (as IAs não entram aqui).
+de grupos. **Todos os 8 palpitam** (humanos editam na UI; IAs aparecem como leitura, com palpite
+inserido por fora/admin). O **placar que vale é o FINAL (inclui prorrogação)**, não os 90 min:
+empate só é empate se persistir após a prorrogação → pênaltis.
 
-**Tabelas novas (Supabase)** — schema em `supabase_mata_mata.sql` (rodar manualmente no SQL Editor;
-RLS público + realtime, mesmo padrão da fase de grupos):
-- `mata_confrontos`: `id` (text, gerado no app como `mm_<rnd>`), `phase` ("32 avos"…), `team_a/flag_a`,
-  `team_b/flag_b`, `real_a/real_b` (gols nos 90 min), `classificado` (`'A'`/`'B'` = quem avançou; só
-  importa em empate nos 90min), `finished` (só conta no ranking quando true), `created_at` (ordem).
+**Tabelas novas (Supabase)** — schema em `supabase_mata_mata.sql` (produção) e `supabase_dev_setup.sql`
+(dev, prefixo `dev_`). Rodar manualmente no SQL Editor; RLS público + realtime:
+- `mata_confrontos`: `id` (text, `mm_<rnd>`), `phase`, `team_a/flag_a`, `team_b/flag_b`,
+  `real_a/real_b` (**placar final, inclui prorrogação**), `classificado` (`'A'`/`'B'` = quem passou;
+  só importa se empatar → pênaltis), `finished` (só conta no ranking quando true), `created_at`.
 - `mata_palpites`: PK (`confronto_id`, `pid`), `gols_a`, `gols_b`, `quem_passa` (`'A'`/`'B'`, usado
-  só quando o palpite é empate). `pid` ∈ {jessica, tonius, leo, vinicius}.
+  só quando o palpite é empate). `pid` ∈ os 8 ids de `PARTICIPANTS`.
 
 **Onde no código (`index.html`)** — seção `// ─── MATA-MATA ───` (antes de TAB NAV):
-- Estado: `MM_CONFRONTOS`, `MM_PALPITES` (map `cid→pid→palpite`), `MM_HUMANS`.
-- Dados: `loadMata` (select; ignora silenciosamente se as tabelas não existirem), `subscribeMata`/
-  `mmReload` (realtime → recarrega; não re-renderiza enquanto edita). Chamados no `loadData`.
-- Escritas: `mmUpsertConfronto`/`mmUpsertPalpite`, `mmAddConfronto`, `mmRemoveConfronto` (confirma no
-  2º clique, cascade apaga palpites), `mmToggleEdit`/`mmSaveEdit`, `mmSetReal`/`mmSetClassificado`/
-  `mmSetFinished`, `mmUpdPalpite`/`mmSetQuemPassa` (debounce ~700ms).
-- Pontuação: **`calcMataPts(pal,c)`** — 90 min igual à fase de grupos (**5** resultado + **1** gol A +
-  **1** gol B + **3** placar exato) **+ 4 SÓ se o palpite foi empate E acertou o `classificado`**
-  (quem só palpitou vencedor não ganha o bônus). `mataStats(pid)` agrega para o ranking
-  (ignora confrontos `[TESTE]` e não finalizados).
-- Render: `renderMata` (aba `#tab-mata`), `mmCard` (mesma pegada visual do card de grupos, reusa
-  `.card/.matchup/.pred-cell/.real-row`), `mmQuemPassaHTML` (seletor "quem passa" que **só aparece
-  quando o palpite é empate**), `mmRefreshPts`/`mmRenderQuemPassa` (atualização cirúrgica).
-- Integração: `rankingNew` (1276) soma `mataStats` ao `total/eHits/rHits/played/cravadas` de cada um
-  (recalcula `avg`); nav ganhou a aba "⚔️ Mata-Mata"; `showTab`/`renderAll` tratam `'mata'`.
-  **O gráfico de evolução, os deltas e a barra rolante continuam só da fase de grupos** (não foram
-  estendidos pro mata-mata).
+- Tabelas por ambiente: `MM_TCONF`/`MM_TPAL` (= `mata_*` em produção, `dev_mata_*` no dev — ver §11).
+- Estado: `MM_CONFRONTOS`, `MM_PALPITES` (map `cid→pid→palpite`), `MM_HUMANS` (quem é editável na UI).
+- Dados: `loadMata`, `subscribeMata`/`mmReload` (realtime; não re-renderiza enquanto edita).
+- Escritas: `mmUpsertConfronto`/`mmUpsertPalpite`, `mmSetReal`/`mmSetClassificado`/`mmSetFinished`,
+  `mmUpdPalpite`/`mmSetQuemPassa` (debounce ~700ms). **`mmAddConfronto`/`mmRemoveConfronto`/
+  `mmToggleEdit`/`mmSaveEdit` continuam no código mas NÃO têm botão na UI** — criar/editar/remover
+  confronto é feito por fora (admin/Claude Code, via REST/script apontando pro banco de dev).
+- Pontuação: **`calcMataPts(pal,c)`** — placar final igual à fase de grupos (**5** resultado + **1**
+  gol A + **1** gol B + **3** exato) **+ 4 SÓ se o palpite foi empate E acertou o `classificado`**.
+  `mataStats(pid)` agrega para o ranking (ignora `[TESTE]` e não finalizados); roda pros 8.
+- Render: `renderMata` (aba `#tab-mata`, sem controles de admin), `mmCard` (reusa `.card/.matchup/
+  .pred-cell/.real-row`; humanos com inputs, IAs leitura via `.mm-iascore`), `mmQuemPassaHTML`
+  (seletor/leitura "quem passa", **só quando o palpite é empate**), `mmRefreshPts`/`mmRenderQuemPassa`.
+- Integração: `rankingNew` soma `mataStats` ao `total/eHits/rHits/played/cravadas` (recalcula `avg`);
+  nav tem a aba "⚔️ Mata-Mata"; `showTab`/`renderAll` tratam `'mata'`. **Gráfico de evolução, deltas
+  e barra rolante continuam só da fase de grupos.**
 
-**Dados de teste** (confrontos marcados com `[TESTE]` no nome; **não contam no ranking**):
-- `npm run seed:teste` → cria 2 confrontos `[TESTE]` (um decidido nos 90 min, um empate decidido nos
-  pênaltis) pra validar o cálculo ponta a ponta. Requer as tabelas já criadas.
-- **`npm run clean:teste`** → apaga **só** os confrontos `[TESTE]` (e os palpites deles por cascade).
-  Rodar antes de inserir os 16 confrontos reais.
+**Dados de teste** (confrontos com `[TESTE]` no nome; **não contam no ranking**) — escrevem no **dev**:
+- `npm run seed:teste` → cria 2 confrontos `[TESTE]` em `dev_mata_confrontos`. Requer `supabase_dev_setup.sql` rodado.
+- **`npm run clean:teste`** → apaga só os `[TESTE]` (cascade nos palpites). Rodar antes dos 16 reais.
+- Os scripts miram o dev por padrão; `MM_TABLE=mata_confrontos npm run …` aponta pra produção (não usar à toa).
 
-> ⚠️ As tabelas do mata-mata ficam no **mesmo Supabase da produção** (dev e main compartilham banco).
-> Confrontos reais inseridos na `dev` já valem pra todos. Os `[TESTE]` são isolados só pela marca no nome.
+## 11. Ambientes prod/dev (banco isolado por hostname)
+
+- **Detecção:** `isDevEnv()` (em `index.html`, junto da config) — `IS_DEV = hostname começa com "dev."`.
+  No dev, `TABLE`/`MM_TCONF`/`MM_TPAL` viram `dev_bolao_games`/`dev_mata_confrontos`/`dev_mata_palpites`.
+  Em produção/localhost ficam as tabelas sem prefixo — **produção não muda de comportamento**.
+- **Mesmo projeto Supabase, mesma anon key.** O isolamento é só pelo **nome das tabelas**. O banco de
+  dev é um sandbox (RLS deixa a anon key apagar/escrever). `supabase_dev_setup.sql` cria as `dev_*`.
+- **Botão "🪞 Espelhar prod→dev"** (`mirrorProdToDev`, canto sup. direito, só com `IS_DEV`): lê a
+  produção (somente leitura) e regrava tudo no dev. Usa só a anon key; nunca a service_role.
+- ⚠️ **localhost = produção** (não começa com `dev.`): ao testar local, o app lê/escreve na PRODUÇÃO.
+  Pra mexer em dados de teste sem risco, use a URL de preview `dev.*` (ou os scripts, que miram o dev).

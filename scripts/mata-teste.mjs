@@ -4,17 +4,20 @@
 //   npm run seed:teste   -> cria 2 confrontos [TESTE] de exemplo
 //   npm run clean:teste  -> apaga SÓ os confrontos marcados [TESTE]
 //                           (e, por cascade, os palpites deles)
-// Requer que as tabelas já existam (rode supabase_mata_mata.sql antes).
-// Usa a REST pública (mesma anon key do index.html).
+// Escreve no BANCO DE DEV (tabela dev_mata_confrontos) — nunca na produção.
+// Requer as tabelas dev_* já criadas (rode supabase_dev_setup.sql antes).
+// Pra mirar outra tabela: export MM_TABLE=mata_confrontos. Usa a anon key pública.
 // ============================================================
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://jgnmenwtxybaqshvxyer.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_KEY || 'sb_publishable_-4B34BzFkro0ve-J-OMBKQ_9xO3C5tr';
+const MM_TABLE = process.env.MM_TABLE || 'dev_mata_confrontos';   // escrita só no dev por padrão
 const H = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' };
-const T = `${SUPABASE_URL}/rest/v1/mata_confrontos`;
+const T = `${SUPABASE_URL}/rest/v1/${MM_TABLE}`;
 
 const isTest = (c) => /\[TESTE\]/i.test(`${c.team_a || ''} ${c.team_b || ''} ${c.phase || ''}`);
 
-// 2 exemplos: um decidido nos 90min e um empate decidido nos pênaltis.
+// 2 exemplos (placar FINAL, inclui prorrogação): um decidido no tempo normal/prorrogação
+// e um empate decidido nos pênaltis.
 const SEED = [
   { id: 'mm_teste1', phase: '32 avos', team_a: '[TESTE] Brasil', flag_a: '🇧🇷', team_b: 'Argentina', flag_b: '🇦🇷',
     real_a: 2, real_b: 1, classificado: null, finished: true },
@@ -28,8 +31,8 @@ async function seed() {
     headers: { ...H, Prefer: 'resolution=merge-duplicates,return=minimal' },
     body: JSON.stringify(SEED),
   });
-  if (!res.ok) { console.error(`Erro ${res.status}: ${await res.text()}\n(As tabelas existem? Rode supabase_mata_mata.sql)`); process.exit(1); }
-  console.log(`✅ Seed: ${SEED.length} confrontos [TESTE] criados/atualizados. Abra a aba Mata-Mata e preencha os palpites pra validar.`);
+  if (!res.ok) { console.error(`Erro ${res.status} em ${MM_TABLE}: ${await res.text()}\n(As tabelas dev_* existem? Rode supabase_dev_setup.sql)`); process.exit(1); }
+  console.log(`✅ Seed em ${MM_TABLE}: ${SEED.length} confrontos [TESTE]. Abra a aba Mata-Mata (URL dev) e preencha os palpites pra validar.`);
 }
 
 async function clean() {
