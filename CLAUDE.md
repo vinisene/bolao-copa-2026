@@ -1,149 +1,208 @@
 # CLAUDE.md
 
-Guia do projeto para o Claude Code (e para qualquer dev). Leia antes de editar.
+Guia de navegação do projeto. O objetivo é que, ao ler este arquivo, você saiba **onde mexer
+sem explorar o código**. Os números de linha **andam** a cada edição — confie nos **nomes de
+função** e nos **comentários de seção** (`// ─── NOME ───` no JS e `/* ── nome ── */` no CSS),
+que são âncoras estáveis. Os números aqui são referência aproximada (estado em ~1377 linhas).
 
-## Descrição geral
+---
 
-**Bolão Copa 2026** — um app web de bolão (palpites) da Copa do Mundo 2026 para um
-grupo de amigos/família ("Bolão Sene Piovan"). Cada participante palpita o placar dos
-72 jogos da fase de grupos; conforme os jogos acontecem, o placar real é preenchido e
-o app calcula a pontuação e monta rankings, estatísticas e comparativos.
+## 1. O que é
 
-São **8 "palpiteiros"** organizados em **4 times** (cada time = 1 humano + a IA dele):
+**Bolão Copa 2026** — app de palpites da Copa 2026 ("Bolão Sene Piovan"). Cada participante
+palpita o placar dos **72 jogos da fase de grupos**; quando o jogo acontece, preenche-se o
+placar real, o app calcula pontos e monta ranking/estatísticas/gráficos.
 
-| Time | Humano (edita no app) | IA (palpites fixos no código) |
-|------|------------------------|-------------------------------|
-| Time Jeca   | Jeca (Jéssica) | ChatGPT Jeca |
-| Time Tonius | Tonius (Ricardo) | Claude Tonius |
-| Time Leo    | Leo | ChatGPT Leo |
-| Time Vini   | Vini (Vinicius) | Claude Vini |
+**8 palpiteiros em 4 times** (cada time = 1 humano + a IA dele). Conhecimento de domínio que
+**não está óbvio no código** (IDs internos ≠ nomes de tela):
 
-Há **dois bolões**:
-- **Bolão Geral** (ranking padrão): conta só jogos a partir de **20/06 12h** (entrada do
-  Tonius e do Leo) — todos os 8 participantes.
-- **Bolão JxV** (legado): só os 4 originais (Jeca, Vini, ChatGPT Jeca, Claude Vini),
+| Time   | Humano (edita no app) · id interno | IA (palpite fixo no código) · id interno · campo no GT |
+|--------|-------------------------------------|--------------------------------------------------------|
+| Jeca   | Jeca (Jéssica) · `jessica`          | ChatGPT Jeca · `chatgpt` · `g`                         |
+| Tonius | Tonius (Ricardo) · `tonius`         | Claude Tonius · `claudio` · `d`                        |
+| Leo    | Leo · `leo`                         | ChatGPT Leo · `chatgptleo` · `e`                       |
+| Vini   | Vini (Vinicius) · `vinicius`        | Claude Vini · `claude` · `c`                          |
+
+**Dois bolões** (mesmos palpites, recortes diferentes):
+- **Bolão Geral** (padrão): só jogos com `sortKey(g) >= CUT` (a partir de **20/06 12h**, quando
+  Tonius e Leo entraram). Todos os 8 participantes.
+- **Bolão JxV** (legado): só os 4 de `OLD_IDS` (Jeca, Vini, ChatGPT Jeca, Claude Vini),
   contando a Copa inteira.
 
-## Stack tecnológica
+## 2. Stack / deploy / dev
 
-- **Frontend:** um único arquivo `index.html` (HTML + CSS + JS puro/vanilla, sem framework,
-  sem build). CSS inline em `<style>`, JS inline em `<script>`.
-- **Banco de dados / realtime:** [Supabase](https://supabase.com) (Postgres). Acessado pelo
-  navegador via `@supabase/supabase-js@2` (UMD, carregado por CDN jsdelivr). Tabela única
-  `bolao_games`. RLS com política pública (sem login) e Realtime habilitado para sincronizar
-  palpites entre dispositivos ao vivo.
-- **Bandeiras:** imagens de [flagcdn.com](https://flagcdn.com) (emoji de bandeira não renderiza
-  em Windows/alguns Android) — convertidas a partir do emoji em runtime (`flagImg`).
-- **Hospedagem:** Cloudflare Pages (produção: `bolao-copa-sene-piovan.pages.dev`), deploy
-  automático a cada push no GitHub (repo `vinisene/bolao-copa-2026`, branch `main`).
-  Foi migrado do Netlify (que tinha limite de créditos); `netlify.toml` é legado.
-- **Dev local:** `npx serve` na porta 3333 (ver `.claude/launch.json`).
+- **Frontend:** arquivo único `index.html` — HTML + CSS (`<style>`, linhas ~9–343) + JS vanilla
+  (`<script>`, linhas ~369–1375). Sem framework, sem build, sem `import`, sem `package.json`.
+- **DB/realtime:** Supabase (Postgres), tabela única `bolao_games`. SDK `@supabase/supabase-js@2`
+  via CDN (UMD). RLS público (sem login) + Realtime ligado. `supabase_setup.sql` é o schema inicial.
+- **Bandeiras:** flagcdn.com (emoji não renderiza em Windows). `flagImg`/`flagUrl` derivam o
+  código do país a partir do emoji.
+- **Deploy:** push na `main` → Cloudflare Pages publica sozinho (`bolao-copa-sene-piovan.pages.dev`,
+  repo `vinisene/bolao-copa-2026`). `netlify.toml` é legado.
+- **Dev local:** `npx serve` na porta 3333 (`.claude/launch.json`). Verificar no preview: console
+  sem erros + viewport **mobile 375px** (uso principal).
 
-## Estrutura de pastas
+## 3. Mapa do arquivo `index.html`
 
-```
-.
-├── index.html              # O app inteiro (UI + lógica + dados dos jogos). ~1180 linhas.
-├── supabase_setup.sql      # SQL inicial da tabela bolao_games (RLS + realtime)
-├── netlify.toml            # Redirect SPA (legado — hoje roda no Cloudflare Pages)
-├── fotos/                  # Avatares e logos (servidos como estáticos)
-│   ├── jeca.jpg, tonius.jpg, leo.jpg, vini.jpg        # fotos dos humanos
-│   ├── jeca-ia.jpeg, tonius-ia.jpeg, leo-ia.jpeg, vini-ia.jpg  # avatares das IAs
-│   ├── logo-copa-branco.png   # logo no cabeçalho (fundo verde escuro)
-│   └── logo-copa-preto.png
-├── .claude/launch.json     # Config do dev server (npx serve -p 3333)
-├── .mcp.json               # MCP server do Supabase (escopo projeto)
-├── .agents/skills/         # Agent Skills do Supabase (referência, não afeta runtime)
-└── .gitignore              # ignora .DS_Store e .claude/settings.local.json
-```
+### CSS (`<style>`, ~9–343) — uma regra por linha, cores em CSS vars no `:root` (~10)
+`:root` define `--g` (verde), `--gd` (verde escuro), `--gold`, `--mu` (texto fraco), `--brd`
+(borda), `--je/--vi/--ch/--cl` (cores legadas). Blocos por comentário:
+`/* ── Próximo jogo (hero) ── */` 211 · `Placar final + vencedor` 230 · `Animações & destaques`
+237 · `Toggle Geral/Antigo` 245 · `Corrida de times` 250 · `Hero "Jogos de hoje"` 271 ·
+`Barra rolante do ranking` 289 · `Delta de posição` 306 · `Gráfico de evolução` 316 · `Pódio` 328 ·
+`Ranking & Estatísticas` 147.
 
-> Não há `package.json`, build, nem dependências instaladas — tudo é estático.
+### DOM estático (`<body>`, ~345–367)
+Só 3 contêineres preenchidos por JS via `innerHTML`: `#tab-palpites` (365), `#tab-ranking` (366),
+`#error-banner` (364). `#loading-screen` (347), `header`/`nav` com os botões `showTab(...)` (352–362),
+`#sync-indicator` (357).
 
-## Arquitetura do `index.html`
+### JS (`<script>`, ~369–1375) — seções na ordem do arquivo
+| Seção (`// ─── … ───`) | Linha | Conteúdo-chave |
+|---|---|---|
+| CONFIGURAÇÃO SUPABASE | 370 | `SUPABASE_URL` 371, `SUPABASE_KEY` (anon, público) 372, `TABLE` 373, cliente `sb` 376 |
+| PARTICIPANTS/TEAMS/CUT | 379 | `PARTICIPANTS` 379, `TEAMS` 389, `OLD_IDS` 395, `CUT` 396, `avInner` 398, `TAGFLAGS` 401, `flagImg` 402, `flagUrl` 412 |
+| GT (dados dos jogos) | 422 | array dos 72 jogos; `sortKey` 497 |
+| STATE | 504 | `CACHE` 507, `debouncers` 509, `getGame` 514 |
+| SUPABASE OPS | 536 | `setSyncing` 537, `upsert` 543, `loadData` 550 |
+| Realtime (mesma região) | 561 | `DATA_COLS` 561, `sameRow` 563, `isTyping` 569, `subscribeRealtime` 575, `applyRemoteScores` 596 |
+| UI HELPERS | 621 | `hideLoading` 622, `showErr` 623 |
+| VIEW STATE | 625 | `filterMode` 626, `activeTab` 629, `setFilter` 631, `renderAll` 633 |
+| SCORING | 638 | `calcPts` 639, `ptsClass` 651, `turboIdForDate` 655, `isTurbo` 659, `ptsOf` 660 |
+| PRÓXIMO JOGO / CONTAGEM | 662 | `gameDate` 663, `emptyVal` 669, `weekday` 671, `missingPred` 672, `findNextGame` 677, `tickCountdown` 696, `todaySlate` 704, `dayRow` 716, `setupMarquees` 728, `heroHTML` 743, `goToGame` 758 |
+| RENDER PALPITES | 766 | `renderPalpites` 767, `winCls` 820, `renderCard` 828 |
+| ACTIONS | 899 | `toggleFinish` 900, `toggleRemove` 908, `refreshPoints` 930, `updPred` 968, `updReal` 979 |
+| RANKING (stats) | 989 | `getStats` 990 |
+| TOOLTIPS | 1012 | `TIPS` 1013, `showTip` 1025, `q` 1041 |
+| (comparativos/linhas) | 1043 | `versus` 1043, `teamRace` 1061, `statCard` 1084, `rkRow` 1110 |
+| RANKING GERAL | 1125 | `podium` 1127 |
+| HISTÓRICO DE CLASSIFICAÇÃO | 1143 | `geralHistory` 1146, `geralDeltas` 1172, `deltaBadge` 1184, `histChart` 1194 + `histApply/Hover/Click` 1251–1257, `rankMarquee` 1259, `rankingNew` 1276 |
+| RANKING ANTIGO (JxV) | 1318 | `rankingOld` 1319, `rankMode` 1350, `setRank` 1351, `renderRanking` 1353 |
+| TAB NAV | 1361 | `showTab` 1362 |
+| BOOT | 1373 | chama `loadData()` |
 
-O `<script>` é dividido por comentários de seção `// ─── NOME ───`:
+## 4. Variáveis e arrays centrais
 
-- **CONFIGURAÇÃO SUPABASE** — `SUPABASE_URL`, `SUPABASE_KEY` (anon/publishable, público de
-  propósito), `TABLE='bolao_games'`, cliente `sb`.
-- **PARTICIPANTS / TEAMS / CUT** — participantes (id, name, type `human|ia`, color, init,
-  team, `editable`, `img`), times, e `CUT` (sortKey de corte do Bolão Geral = 20/06 12h).
-- **GT** — array dos 72 jogos (template estático). Campos: `id` (g01–g72), `grp`, `r` (rodada),
-  `dt` ("DD/MM"), `tm` ("16h"/"20h30"/"1h"), `ven`, `tA`/`fA`, `tB`/`fB`, e os palpites das IAs:
-  `g`=ChatGPT Jeca, `c`=Claude Vini, `d`=Claude Tonius, `e`=ChatGPT Leo (`{a,b}` ou ausente).
-- **STATE** — `CACHE` (espelho da tabela: `game_id → row`), `getGame(id)` (mescla GT + CACHE
-  e monta `predictions` por participante).
-- **SUPABASE OPS** — `loadData` (select inicial + render + subscribe), `upsert`, `setSyncing`.
-- **Realtime** — `subscribeRealtime`, `sameRow` (ignora eco da própria escrita), `applyRemoteScores`
-  (atualização cirúrgica de um card sem re-render), `isTyping`.
-- **SCORING** — `calcPts(pred,rA,rB)` (regra: +5 resultado, +1 gols mandante, +1 gols visitante,
-  +3 bônus cravado = máx 10), `ptsClass`, e **TURBO** (`isTurbo`, `ptsOf`): 1 jogo/dia (≥20/06)
-  vale 2× — escolhido de forma determinística por data (`hashStr`/`turboIdForDate`).
-- **PRÓXIMO JOGO / CONTAGEM** — `gameDate`, `weekday`, `missingPred`, `todaySlate`, `heroHTML`
-  (bloco "Jogos de hoje"), `tickCountdown`, `setupMarquees` (rola o texto quando não cabe).
-- **RENDER PALPITES** — `renderPalpites` (filtros + seções por data), `renderCard`.
-- **ACTIONS** — `toggleFinish`, `updPred`/`updReal` (debounce + upsert), `refreshPoints`
-  (atualiza só os selos de pontos e a "prévia" sem reconstruir a lista).
-- **RANKING** — `getStats(pid, filterFn)`, `versus`, `teamRace`, `statCard`, `rkRow`, `podium`,
-  `rankingNew` (Geral), `rankingOld` (JxV), `renderRanking`, `showTab`.
+- **`GT`** (422) — fonte da verdade dos jogos (template estático, 72 itens). Campos por jogo:
+  `id` (`g01`–`g72`), `grp`, `r` (rodada 1–3), `dt` (`"DD/MM"`), `tm` (`"16h"`, `"20h30"`, `"1h"`,
+  `"0h"`), `ven`, `tA/fA`, `tB/fB`, e os **palpites das IAs**: `g`/`c`/`d`/`e` (cada um `{a,b}` ou
+  ausente). Ordem A×B importa: `a` = mandante (`tA`), `b` = visitante (`tB`).
+- **`CACHE`** (507) — espelho em memória da tabela: `{ game_id → row }`. Recebido por `loadData`
+  e mantido atualizado pelo realtime. Guarda **só o que vem do banco** (placar real + palpites
+  humanos + flags).
+- **`PARTICIPANTS`** (379) — 8 objetos `{id, name, type:'human'|'ia', color, init, team, editable?, img}`.
+  Ordem do array = ordem visual nos cards e na varredura de pontos. `id` é chave técnica; `name`
+  é o que aparece na tela.
+- **`CUT`** (396) — `20*10000 + 12*100`. Corte do Bolão Geral via `sortKey`.
+- **`DATA_COLS`** (561) — colunas do banco que contam como "mudança real" (usado por `sameRow`
+  para ignorar eco do próprio `upsert`). Precisa listar toda coluna nova de humano.
+- **`filterMode`** (626, `localStorage 'bf'`) e **`rankMode`** (1350, `localStorage 'brm'`) —
+  estado de UI persistido.
+- **`histLocked`** (1193) — pessoa fixada no gráfico de evolução (interação).
 
-### Modelo de dados (tabela `bolao_games`)
-Uma linha por jogo (`game_id` = id do GT). Colunas: `finished`, `removed`, `real_a/real_b`
-(placar do jogo), e os palpites dos **humanos**: `jessica_*`, `vinicius_*`, `tonius_*`, `leo_*`
-(+ `updated_at`). Os palpites das **IAs ficam no código** (GT), não no banco.
-Ao adicionar um novo humano, é preciso `ALTER TABLE` adicionando `<id>_a` e `<id>_b`.
+## 5. Fluxo de dados (ponta a ponta)
 
-## Features já implementadas
+### Leitura / merge
+`getGame(id)` (514) é o ponto único de leitura: mescla `GT.find(id)` + `CACHE[id]` e monta
+`predictions` por participante — humanos vêm das colunas `<id>_a/<id>_b` do `CACHE`; IAs vêm de
+`t.g/t.c/t.d/t.e` do GT. Quase tudo que renderiza chama `getGame`. **Palpite de IA mora no
+código (GT); palpite de humano mora no banco (CACHE).**
 
-- **Palpites:** card por jogo (cabeçalho com grupo/rodada/tag do bolão/data com dia da semana
-  abreviado; bandeiras como imagem; local com 📍 no centro). Coluna esquerda 3/5 (humanos,
-  editáveis: foto + nome + caixas de placar) e direita 2/5 (IAs, leitura).
-- **Placar do Jogo + prévia:** ao digitar o placar (sem finalizar), mostra a **prévia** dos
-  pontos de cada um em cinza; só conta no ranking ao clicar em **Finalizar**.
-- **Jogo TURBO ×2:** 1 jogo por dia (≥20/06) vale o dobro, com tag/glow laranja.
-- **Filtros:** Pendentes (padrão) · Todos · Finalizados · Bolão Geral · Bolão JxV · Fora
-  (= "removidos"/não considerados). Finalizados/Geral/JxV ordenam do mais recente p/ o antigo.
-- **Jogos de hoje:** bloco no topo com os jogos do dia (até a madrugada seguinte), contagem
-  regressiva por jogo, destaque do turbo, marquee quando o texto não cabe.
-- **Ranking & Stats:** alterna entre **Bolão Geral** e **Bolão JxV**. Pódio (ouro/prata/bronze
-  com foto + medalha), classificação, **comparativos** (Humanos vs Máquinas; corrida dos 4 times),
-  e **estatísticas individuais** (pontos, pontos/jogo, acerto ganhador/empate, placares cravados +
-  lista, viés de gols) com tooltips "?" explicativos.
-- **Critérios de pontuação e desempate** exibidos no ranking (desempate: 1º cravados, 2º
-  ganhador/empate — refletido na ordenação).
-- **Sync em tempo real** entre dispositivos (Supabase Realtime) com indicador "salvando/salvo".
-- **Avatares com foto** (fallback para inicial colorida se a foto faltar).
+### Como um palpite humano é salvo
+1. `<input oninput="updPred(gameId,pid,side,this.value)">` gerado em `renderCard` (828).
+2. `updPred` (968): **trava se o jogo já começou** (`gameDate(...).getTime() <= Date.now()` → `return`),
+   atualiza `CACHE[gameId][<pid>_<side>]`, chama `refreshPoints(gameId)` (atualização cirúrgica) e
+   agenda `upsert` com **debounce ~700ms** (`debouncers`).
+3. `upsert` (543): `sb.from(TABLE).upsert({game_id, ...campos, updated_at}, {onConflict:'game_id'})`
+   + `setSyncing` (indicador "salvando/salvo").
+4. Outros dispositivos recebem via `subscribeRealtime` (575) → `applyRemoteScores(gid)` (596)
+   atualiza **só os inputs/selos daquele card**, sem re-render (preserva foco/scroll). `sameRow`
+   (563) descarta o eco da própria escrita; `isTyping` evita reescrever input em foco.
 
-## Convenções de código
+Placar real e finalizar seguem o mesmo caminho: `updReal` (979) → coluna `real_a/real_b`;
+`toggleFinish` (900) → coluna `finished` (este re-renderiza a lista inteira, é ação estrutural).
 
-- **Tudo em um arquivo, vanilla JS.** Sem framework, sem build, sem `import`. Funções globais
-  (chamadas via `onclick=` no HTML gerado por template strings).
-- **Idioma:** UI, comentários e nomes de domínio em **português**; nomes de função em camelCase
-  (ex.: `renderCard`, `getStats`). IDs internos (`jessica`, `claudio`, `chatgptleo`) são chaves
-  técnicas e **não** aparecem na tela — o que o usuário vê é o `name` (ex.: "Claude Tonius").
-- **Estilo conciso:** linhas densas, poucas quebras; CSS minificado-ish numa linha por regra.
-  Cores via CSS vars no `:root` (`--gd` verde escuro, `--gold`, etc.); cores por participante
-  inline via `p.color`.
-- **Render por template string + `innerHTML`.** Para não perder foco/scroll ao digitar, NÃO
-  re-renderize a lista inteira em mudanças de input: use `refreshPoints`/`applyRemoteScores`
-  (atualização cirúrgica). Re-render completo só em ações estruturais (filtro, finalizar).
-- **Escrita no banco:** sempre `upsert` com `onConflict:'game_id'` e `updated_at`; escritas de
-  input são **debounced** (~700ms). O realtime ignora o eco da própria escrita via `sameRow`.
-- **Persistência de UI:** preferências do usuário em `localStorage` (`bf` = filtro, `brm` =
-  bolão geral/jxv).
-- **Datas/horários:** sempre horário de **Brasília**; jogos de madrugada (0h/1h) já têm a data
-  do dia correto no GT. `sortKey` = `dia*10000 + hora*100 + min` para ordenar.
-- **Deploy:** commit + push na `main` → Cloudflare publica sozinho. Mensagens de commit em
-  português, descritivas do que mudou.
-- **Verificação:** validar mudanças no preview local (porta 3333) — checar console sem erros e
-  conferir no viewport mobile (375px), que é o uso principal.
+### Como a pontuação é calculada
+- `calcPts(pred, rA, rB)` (639): regra **+5 resultado** (vitória A / vitória B / empate),
+  **+1 gols mandante**, **+1 gols visitante**, **+3 bônus se cravar** → máx **10**. Retorna `null`
+  se faltar palpite ou placar.
+- `ptsOf(g, pred)` (660): aplica TURBO — `isTurbo(g)` (659) dobra os pontos de **1 jogo por dia**
+  (≥20/06), escolhido deterministicamente por data em `turboIdForDate` (655, via `hashStr`).
+  **Use `ptsOf`, não `calcPts` direto**, em qualquer lugar que componha ranking/stats.
+- "Prévia": `renderCard`/`refreshPoints` mostram pontos em cinza quando há placar mas o jogo não
+  foi finalizado; só conta no ranking quando `finished` (filtro em `getStats`/`geralHistory`).
 
-## Cuidados / pegadinhas
+### Ranking e histórico
+- `getStats(pid, filterFn)` (990): varre `GT→getGame`, filtra finalizados (e `filterFn`, ex.:
+  `inRank` = `sortKey>=CUT`), soma via `ptsOf`, retorna `{total, rHits, eHits, avg, cravadas, ...}`.
+- Ordenação/desempate (em `rankingNew` 1276, `rankingOld` 1319, `geralHistory`): `total` →
+  `eHits` (cravados) → `rHits` (ganhador/empate). **Mude isso em todos os três juntos.**
+- `geralHistory()` (1146): reconta a classificação **após cada jogo finalizado** em ordem
+  cronológica → array `steps[i] = {g, pos:{pid→1..8}, tot:{pid→pontos}}`. Base de:
+  `geralDeltas` (1172, variação dos últimos 3 jogos → setas), `histChart` (1194, gráfico SVG
+  interativo) e `rankMarquee` (1259, barra rolante na aba Palpites).
 
-- **App em uso real** com dados de verdade no Supabase. Evite escrever no banco em testes; se
-  precisar, reverta o valor. Não exponha/!mexa em credenciais além das já públicas (anon key).
-- **Palpites das IAs** entram **no código** (campos `g/c/d/e` do GT). Palpites de **humanos**
-  entram pelo app (banco). Tonius e Leo foram pré-preenchidos no banco mas continuam editáveis.
-- Ao **adicionar participante humano**: criar colunas no Supabase, e atualizar `PARTICIPANTS`,
-  `TEAMS`, `getGame`, `DATA_COLS`, `applyRemoteScores`, `missingPred`, `statsOrder`.
-- `flagImg` deriva o código do país a partir do emoji; bandeiras especiais (Escócia/Inglaterra)
-  estão em `TAGFLAGS`.
+## 6. Onde está cada feature
+
+| Feature | Função / âncora |
+|---|---|
+| Card de um jogo (cabeçalho, bandeiras, inputs, prévia) | `renderCard` 828 |
+| **Trava de palpite ao começar o jogo** | flag `started` em `renderCard` (828, desabilita inputs + tag "PALPITES FECHADOS") **e** guarda em `updPred` 968 |
+| Lista/filtros/seções por data | `renderPalpites` 767 (filtros: pending/all/finished/geral/jxv/naocons) |
+| "Jogos de hoje" / próximo jogo + contagem | `heroHTML` 743, `todaySlate` 704, `dayRow` 716, `tickCountdown` 696 |
+| Jogo TURBO ×2 | `isTurbo` 659 / `turboIdForDate` 655 / `ptsOf` 660 |
+| Finalizar / remover jogo | `toggleFinish` 900, `toggleRemove` 908 |
+| Atualização cirúrgica de pontos (sem re-render) | `refreshPoints` 930 (local), `applyRemoteScores` 596 (remoto) |
+| Pódio + leaderboard (8 linhas, setas de variação) | `podium` 1127, `rkRow` 1110 (param `delta`), montados em `rankingNew` 1276 |
+| Comparativos (Humanos×Máquinas, corrida de times) | `versus` 1043, `teamRace` 1061 |
+| Estatísticas individuais + tooltips "?" | `statCard` 1084, `TIPS`/`q` 1013/1041 |
+| Gráfico de evolução (SVG, hover/clique, foto+nome) | `histChart` 1194 + `histApply/Hover/Click` 1251 |
+| Barra rolante do ranking (aba Palpites) | `rankMarquee` 1259 (chamada em `renderPalpites` 767) |
+| Toggle Geral/JxV | `setRank` 1351 / `renderRanking` 1353 |
+
+## 7. NÃO toque sem cuidado (e por quê)
+
+- **`PARTICIPANTS`, `OLD_IDS`, `GT` (campos `g/c/d/e`):** os IDs e o mapeamento IA→campo são
+  referenciados em dezenas de pontos por string. Renomear quebra `getGame`, `getStats`, etc.
+- **Critério de desempate** (`b.total||b.eHits||b.rHits`): duplicado em `rankingNew`, `rankingOld`
+  e `geralHistory`. Se mudar, mude **os três** ou o gráfico/setas divergem da tabela.
+- **`sameRow`/`DATA_COLS`/`isTyping`:** desligam o eco do realtime e protegem o input em foco.
+  Mexer errado faz o card "piscar"/perder o que está sendo digitado, ou entrar em loop de escrita.
+- **Re-render completo durante digitação:** `renderPalpites` reconstrói o `innerHTML` e **mata foco
+  e scroll**. Em mudança de input use só `refreshPoints`/`applyRemoteScores`. Re-render inteiro só
+  em ação estrutural (filtro, finalizar, trocar aba).
+- **`upsert` sem `onConflict:'game_id'` / sem `updated_at`:** cria linha duplicada ou some o
+  rastro de "salvo". Sempre use o helper `upsert` (543).
+- **Banco é produção real.** Não escreva valores de teste; se precisar testar escrita, reverta.
+  A `anon key` é pública de propósito — não troque nem exponha outras credenciais.
+- **`ptsOf` vs `calcPts`:** usar `calcPts` direto em ranking ignora o TURBO e dá pontuação errada.
+- **Horário:** tudo é horário de **Brasília** (relógio do dispositivo). Jogos de 0h/1h já têm a
+  **data do dia correto** no `GT`. `sortKey = dia*10000 + hora*100 + min`.
+
+## 8. Padrões para qualquer nova feature
+
+- **Tudo em `index.html`, vanilla.** Funções globais chamadas por `onclick=`/`oninput=` em HTML
+  gerado por template string + `innerHTML`. CSS numa linha por regra, cores via CSS var ou `p.color`.
+- **Idioma:** UI, comentários e domínio em **português**; nomes de função em camelCase.
+- **Render:** ler estado por `getGame`; nunca duplicar a lógica de merge. Ação estrutural →
+  re-render; mudança de valor pontual → atualização cirúrgica.
+- **Escrita:** sempre via `upsert` (com debounce se vier de input). Estado de UI → `localStorage`.
+- **Pontos/ranking:** derive de `getStats`/`ptsOf`/`geralHistory`; não recalcule à mão.
+- **Mobile-first (375px).** Verificar no preview (porta 3333), console limpo, e olhar no mobile.
+  No gráfico/SVG, lembrar que desktop preenche a largura e mobile rola pro lado.
+- **Deploy:** commit + push na `main` (mensagem em português, descritiva). Cloudflare publica.
+
+## 9. Adicionar um participante humano (checklist)
+
+1. **Supabase:** `ALTER TABLE bolao_games ADD COLUMN <id>_a int, ADD COLUMN <id>_b int;`
+2. `PARTICIPANTS` (379): novo objeto `{id, name, type:'human', color, init, team, editable:true, img}`.
+3. `TEAMS` (389) se formar/alterar time.
+4. `getGame` (514): adicionar `<id>: {a:n(c.<id>_a), b:n(c.<id>_b)}` em `predictions`.
+5. `DATA_COLS` (561): incluir `<id>_a`, `<id>_b`.
+6. `applyRemoteScores` (596): garantir que atualiza o input/selo do novo `pid`.
+7. `missingPred` (672): incluir o palpite se ele deve contar como "falta palpite".
+8. `statsOrder` em `rankingNew` (1276): incluir o `id` na ordem das estatísticas.
+9. Adicionar a foto em `fotos/<id>.jpg`.
+
+> Palpite de **IA** não usa banco: entra como campo `g/c/d/e` no objeto do jogo dentro do `GT`,
+> casando por **nome do time + rodada** (os rótulos de grupo de fontes externas podem divergir do `grp`).
