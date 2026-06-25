@@ -6,6 +6,8 @@
   "type": "module",
   "scripts": {
     "backup": "node scripts/backup-supabase.mjs",
+    "seed:teste": "node scripts/mata-teste.mjs seed",
+    "clean:teste": "node scripts/mata-teste.mjs clean",
     "dev": "npx serve -p 3333 ."
   }
 }

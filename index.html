@@ -340,6 +340,36 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .pod-1 .pod-base{height:76px;background:linear-gradient(180deg,#f0d055,#c9a227);color:#5c4708;font-size:30px;}
 .pod-2 .pod-base{height:58px;background:linear-gradient(180deg,#d8dde2,#a7adb4);color:#3a3f44;font-size:23px;}
 .pod-3 .pod-base{height:44px;background:linear-gradient(180deg,#d99e6a,#b06f3c);color:#4a2c12;font-size:18px;}
+
+/* ── Mata-Mata ── */
+.mm-intro{background:var(--card);border:1px solid var(--brd);border-radius:12px;padding:10px 12px;font-size:11.5px;line-height:1.5;color:var(--txt);margin-bottom:12px;}
+.mm-newform{background:linear-gradient(135deg,var(--gd),var(--g));border-radius:14px;padding:11px 12px;margin-bottom:14px;display:flex;flex-direction:column;gap:7px;box-shadow:0 4px 14px rgba(15,68,36,.18);}
+.mm-nf-title{font-size:11px;font-weight:800;letter-spacing:.8px;color:var(--gold);}
+.mm-newform input,.mm-edit input{border:1.5px solid rgba(255,255,255,.3);border-radius:8px;padding:8px 9px;font-size:13px;font-weight:600;background:rgba(255,255,255,.16);color:#fff;width:100%;}
+.mm-newform input::placeholder,.mm-edit input::placeholder{color:rgba(255,255,255,.55);}
+.mm-newform input:focus,.mm-edit input:focus{outline:none;border-color:var(--gold);background:rgba(255,255,255,.24);}
+.mm-nf-team{display:flex;gap:7px;}
+.mm-flag{flex:0 0 52px;text-align:center;}
+.mm-add{background:var(--gold);color:#5c4708;border:none;border-radius:9px;padding:9px;font-size:13px;font-weight:800;cursor:pointer;}
+.mm-actions{display:flex;gap:5px;}
+.mm-iconbtn{background:rgba(255,255,255,.16);border:none;color:#fff;border-radius:7px;padding:3px 7px;font-size:12px;font-weight:700;cursor:pointer;}
+.mm-iconbtn.danger{background:#e8c44a;color:#5c4708;}
+.mm-edit{display:flex;flex-direction:column;gap:7px;padding:13px 12px;background:linear-gradient(135deg,#163d27,#1c5235);}
+.mm-test{border-color:#e8c44a;box-shadow:0 0 0 2px rgba(232,196,74,.4);}
+.mm-cell{display:flex;flex-direction:column;align-items:stretch;gap:6px;}
+.mm-cell-top{display:flex;align-items:center;gap:5px;}
+.mm-cell-top .hum-name{flex:1;}
+.mm-preds{grid-template-columns:1fr;}
+.mm-qp{}
+.mm-qp-in{display:flex;align-items:center;flex-wrap:wrap;gap:5px;padding-top:3px;border-top:1px dashed var(--brd);}
+.mm-qp-lbl{font-size:10px;font-weight:700;color:var(--mu);}
+.mm-qpb{background:var(--bg);border:1.5px solid var(--brd);border-radius:8px;padding:5px 8px;font-size:11.5px;font-weight:700;color:var(--txt);cursor:pointer;display:inline-flex;align-items:center;gap:4px;}
+.mm-qpb.sm{padding:3px 6px;font-size:10.5px;}
+.mm-qpb .flag-img{height:13px;width:auto;border-radius:2px;}
+.mm-qpb.on{background:var(--g);border-color:var(--g);color:#fff;}
+.mm-class{padding:9px 12px;border-top:1px solid var(--brd);background:#fafdfa;display:flex;flex-direction:column;gap:6px;}
+.mm-class-lbl{font-size:10px;font-weight:700;color:var(--mu);}
+.mm-class-btns{display:flex;gap:7px;flex-wrap:wrap;}
 </style>
 </head>
 <body>
@@ -357,12 +387,14 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
   <div class="hdr-status"><span id="sync-indicator"></span></div>
   <nav>
     <button class="active" onclick="showTab('palpites')">🎯 Palpites</button>
-    <button onclick="showTab('ranking')">🏆 Ranking &amp; Stats</button>
+    <button onclick="showTab('mata')">⚔️ Mata-Mata</button>
+    <button onclick="showTab('ranking')">🏆 Ranking</button>
   </nav>
 </header>
 <main>
   <div id="error-banner" class="error-banner" style="display:none"></div>
   <div id="tab-palpites" class="tab active"></div>
+  <div id="tab-mata" class="tab"></div>
   <div id="tab-ranking" class="tab"></div>
 </main>
 
@@ -552,9 +584,11 @@ async function loadData(){
   if(error){showErr('Erro ao carregar: '+error.message);hideLoading();return;}
   CACHE={};
   if(data) data.forEach(row=>{CACHE[row.game_id]=row;});
+  await loadMata();              // mata-mata (tabelas novas; ignora se ainda não existirem)
   hideLoading();
   renderAll();
   subscribeRealtime();
+  subscribeMata();
 }
 
 // Colunas de dados que importam para detectar mudanças reais (ignora updated_at etc.)
@@ -632,6 +666,7 @@ function setFilter(f){filterMode=f;localStorage.setItem('bf',f);renderPalpites()
 
 function renderAll(){
   if(activeTab==='palpites')renderPalpites();
+  else if(activeTab==='mata')renderMata();
   else renderRanking();
 }
 
@@ -1278,6 +1313,15 @@ function rankingNew(){
   const fin=GT.map(t=>getGame(t.id)).filter(g=>!g.removed&&g.finished&&g.realA!==''&&inRank(g)).length;
   const tot=GT.map(t=>getGame(t.id)).filter(g=>!g.removed&&inRank(g)).length;
   const sAll=PARTICIPANTS.map(p=>({...p,...getStats(p.id,inRank)}));
+  // Soma os pontos do mata-mata (fase eliminatória) ao total/estatísticas do Bolão Geral.
+  let mataTotal=0;
+  sAll.forEach(s=>{
+    const m=mataStats(s.id);
+    s.total+=m.total; s.rHits+=m.rHits; s.eHits+=m.eHits; s.played+=m.played;
+    s.cravadas=s.cravadas.concat(m.cravadas);
+    s.avg=s.played?s.total/s.played:0;
+    s.mataPts=m.total; mataTotal+=m.total;
+  });
   const ranked=[...sAll].sort((a,b)=>b.total-a.total||b.eHits-a.eHits||b.rHits-a.rHits);
   const mx=Math.max(1,...ranked.map(s=>s.total));
   const hist=geralHistory();
@@ -1287,7 +1331,7 @@ function rankingNew(){
   html+=`<div class="lead-board">
     <div class="lead-head">
       <div class="lh-title">🏆 CLASSIFICAÇÃO GERAL</div>
-      <div class="lh-sub">${fin} de ${tot} jogos · vale a partir de 20/06 ${q('cutoff')}</div>
+      <div class="lh-sub">${fin} de ${tot} jogos${mataTotal>0?' + mata-mata':''} · vale a partir de 20/06 ${q('cutoff')}</div>
     </div>
     <div class="rk-legend">Ao lado da posição: quantas posições a pessoa <b class="up">▲ subiu</b> ou <b class="down">▼ caiu</b> nos últimos 3 jogos (<b>=</b> manteve).</div>`;
   ranked.forEach((p,i)=>{html+=rkRow(p,i,mx,true,deltas[p.id]);});
@@ -1358,13 +1402,259 @@ function renderRanking(){
   document.getElementById('tab-ranking').innerHTML=toggle+(rankMode==='jxv'?rankingOld():rankingNew());
 }
 
+// ─── MATA-MATA (fase eliminatória) ────────────────────────────────────────────
+// Tabelas NOVAS e separadas (mata_confrontos, mata_palpites) — não tocam na fase de grupos.
+// Só os 4 HUMANOS palpitam no mata-mata.
+const MM_HUMANS=['jessica','tonius','leo','vinicius'];
+let MM_CONFRONTOS=[];     // linhas de mata_confrontos (ordem = created_at)
+let MM_PALPITES={};       // { confronto_id → { pid → {gols_a,gols_b,quem_passa} } }
+const mmDeb={}, mmRemoveConfirm={}, mmEditing={};
+
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function mmIsTest(c){return /\[TESTE\]/i.test((c.team_a||'')+' '+(c.team_b||'')+' '+(c.phase||''));}
+
+async function loadMata(){
+  try{
+    const [rc,rp]=await Promise.all([
+      sb.from('mata_confrontos').select('*').order('created_at',{ascending:true}),
+      sb.from('mata_palpites').select('*'),
+    ]);
+    if(rc.error||rp.error){console.warn('Mata-mata sem tabelas ainda?',(rc.error||rp.error).message);MM_CONFRONTOS=[];MM_PALPITES={};return false;}
+    MM_CONFRONTOS=rc.data||[];
+    MM_PALPITES={};
+    (rp.data||[]).forEach(r=>{(MM_PALPITES[r.confronto_id]||(MM_PALPITES[r.confronto_id]={}))[r.pid]={gols_a:r.gols_a,gols_b:r.gols_b,quem_passa:r.quem_passa};});
+    return true;
+  }catch(e){console.warn('loadMata falhou',e);MM_CONFRONTOS=[];MM_PALPITES={};return false;}
+}
+
+let _mmReloadT=null;
+function subscribeMata(){
+  sb.channel('mata_realtime')
+    .on('postgres_changes',{event:'*',schema:'public',table:'mata_confrontos'},mmReload)
+    .on('postgres_changes',{event:'*',schema:'public',table:'mata_palpites'},mmReload)
+    .subscribe();
+}
+function mmReload(){
+  clearTimeout(_mmReloadT);
+  _mmReloadT=setTimeout(async()=>{
+    await loadMata();
+    const typing=document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#tab-mata');
+    if(typing)return;                       // não re-renderiza enquanto edita (dados já atualizados localmente)
+    if(activeTab==='mata')renderMata(); else if(activeTab==='ranking')renderRanking();
+  },250);
+}
+
+// ── Escritas ──
+function mmUpsertConfronto(row){return sb.from('mata_confrontos').upsert({...row,updated_at:new Date().toISOString()},{onConflict:'id'});}
+function mmUpsertPalpite(cid,pid,fields){return sb.from('mata_palpites').upsert({confronto_id:cid,pid,...fields,updated_at:new Date().toISOString()},{onConflict:'confronto_id,pid'});}
+
+async function mmAddConfronto(){
+  const v=id=>(document.getElementById(id)?.value||'').trim();
+  const ta=v('mm-new-ta'), tb=v('mm-new-tb');
+  if(!ta||!tb){showErr('Preencha os dois times do confronto.');return;}
+  const id='mm_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+  setSyncing(1);
+  const {error}=await mmUpsertConfronto({id,phase:v('mm-new-phase')||'32 avos',team_a:ta,flag_a:v('mm-new-fa'),team_b:tb,flag_b:v('mm-new-fb'),finished:false});
+  setSyncing(-1);
+  if(error){showErr('Erro ao criar confronto: '+error.message);return;}
+  await loadMata(); renderMata();
+}
+async function mmRemoveConfronto(cid){
+  if(!mmRemoveConfirm[cid]){mmRemoveConfirm[cid]=true;renderMata();setTimeout(()=>{delete mmRemoveConfirm[cid];if(activeTab==='mata')renderMata();},3000);return;}
+  delete mmRemoveConfirm[cid];
+  setSyncing(1);
+  const {error}=await sb.from('mata_confrontos').delete().eq('id',cid);   // cascade apaga os palpites
+  setSyncing(-1);
+  if(error){showErr('Erro ao remover: '+error.message);return;}
+  await loadMata(); renderMata();
+}
+function mmToggleEdit(cid){if(mmEditing[cid])delete mmEditing[cid];else mmEditing[cid]=true;renderMata();}
+async function mmSaveEdit(cid){
+  const v=id=>(document.getElementById(id)?.value||'').trim();
+  setSyncing(1);
+  const {error}=await mmUpsertConfronto({id:cid,phase:v('mm-e-phase-'+cid)||'—',team_a:v('mm-e-ta-'+cid),flag_a:v('mm-e-fa-'+cid),team_b:v('mm-e-tb-'+cid),flag_b:v('mm-e-fb-'+cid)});
+  setSyncing(-1);
+  if(error){showErr('Erro ao salvar: '+error.message);return;}
+  delete mmEditing[cid]; await loadMata(); renderMata();
+}
+function mmSetReal(cid,side,val){
+  const c=MM_CONFRONTOS.find(x=>x.id===cid); if(!c)return;
+  const num=val===''?null:parseInt(val); c['real_'+side]=num;
+  mmRefreshPts(cid);
+  clearTimeout(mmDeb[cid+'real'+side]);
+  mmDeb[cid+'real'+side]=setTimeout(()=>{mmUpsertConfronto({id:cid,['real_'+side]:num});if(activeTab==='ranking')renderRanking();},700);
+}
+function mmSetClassificado(cid,side){
+  const c=MM_CONFRONTOS.find(x=>x.id===cid); if(!c)return;
+  c.classificado=c.classificado===side?null:side;
+  document.querySelectorAll(`#tab-mata [data-cid="${cid}"] .mm-class .mm-qpb`).forEach(b=>b.classList.toggle('on',b.dataset.side===c.classificado));
+  mmRefreshPts(cid);
+  mmUpsertConfronto({id:cid,classificado:c.classificado});
+  if(activeTab==='ranking')renderRanking();
+}
+function mmSetFinished(cid){
+  const c=MM_CONFRONTOS.find(x=>x.id===cid); if(!c)return;
+  c.finished=!c.finished; renderMata();
+  mmUpsertConfronto({id:cid,finished:c.finished});
+  if(activeTab==='ranking')renderRanking();
+}
+function mmUpdPalpite(cid,pid,field,val){
+  const num=val===''?null:parseInt(val);
+  const p=(MM_PALPITES[cid]||(MM_PALPITES[cid]={}))[pid]||(MM_PALPITES[cid][pid]={});
+  p[field]=num;
+  if(p.gols_a==null||p.gols_b==null||p.gols_a!==p.gols_b)p.quem_passa=null;   // deixou de ser empate → zera "quem passa"
+  mmRefreshPts(cid); mmRenderQuemPassa(cid,pid);
+  clearTimeout(mmDeb[cid+pid+field]);
+  mmDeb[cid+pid+field]=setTimeout(()=>mmUpsertPalpite(cid,pid,{[field]:num,quem_passa:p.quem_passa}),700);
+}
+function mmSetQuemPassa(cid,pid,side){
+  const p=(MM_PALPITES[cid]||(MM_PALPITES[cid]={}))[pid]||(MM_PALPITES[cid][pid]={});
+  p.quem_passa=p.quem_passa===side?null:side;
+  mmRenderQuemPassa(cid,pid); mmRefreshPts(cid);
+  mmUpsertPalpite(cid,pid,{quem_passa:p.quem_passa});
+}
+
+// ── Pontuação do mata-mata ──
+// Placar 90min (igual à fase de grupos: 5 resultado +1 gol A +1 gol B +3 exato)
+// + 4 SÓ se o palpite foi empate E acertou o classificado.
+function calcMataPts(pal,c){
+  if(!pal||pal.gols_a==null||pal.gols_b==null)return null;
+  if(c.real_a==null||c.real_b==null)return null;
+  const pa=+pal.gols_a,pb=+pal.gols_b,ra=+c.real_a,rb=+c.real_b;
+  let p=0;
+  if((pa>pb?'A':pa<pb?'B':'E')===(ra>rb?'A':ra<rb?'B':'E'))p+=5;
+  if(pa===ra)p+=1;
+  if(pb===rb)p+=1;
+  if(pa===ra&&pb===rb)p+=3;
+  if(pa===pb&&pal.quem_passa&&c.classificado&&pal.quem_passa===c.classificado)p+=4;   // bônus do "quem passa"
+  return p;
+}
+// Estatísticas do mata-mata para o ranking (ignora confrontos de TESTE e não finalizados)
+function mataStats(pid){
+  let total=0,rHits=0,eHits=0,played=0,cravadas=[];
+  MM_CONFRONTOS.forEach(c=>{
+    if(mmIsTest(c)||!c.finished||c.real_a==null||c.real_b==null)return;
+    const pal=(MM_PALPITES[c.id]||{})[pid];
+    const pts=calcMataPts(pal,c); if(pts==null)return;
+    total+=pts; played++;
+    const ra=+c.real_a,rb=+c.real_b,pa=+pal.gols_a,pb=+pal.gols_b;
+    if((pa>pb?'A':pa<pb?'B':'E')===(ra>rb?'A':ra<rb?'B':'E'))rHits++;
+    if(pa===ra&&pb===rb){eHits++;cravadas.push({fA:c.flag_a,tA:c.team_a,realA:c.real_a,fB:c.flag_b,tB:c.team_b,realB:c.real_b});}
+  });
+  return {total,rHits,eHits,played,cravadas};
+}
+
+// ── Render ──
+function mmQuemPassaHTML(c,pid){
+  const p=(MM_PALPITES[c.id]||{})[pid]||{};
+  const draw=(p.gols_a!=null&&p.gols_b!=null&&p.gols_a===p.gols_b);
+  if(!draw)return '';
+  const fa=c.flag_a?flagImg(c.flag_a):'', fb=c.flag_b?flagImg(c.flag_b):'';
+  return `<div class="mm-qp-in"><span class="mm-qp-lbl">passa:</span>
+    <button class="mm-qpb sm${p.quem_passa==='A'?' on':''}" onclick="mmSetQuemPassa('${c.id}','${pid}','A')">${fa} ${esc(c.team_a||'A')}</button>
+    <button class="mm-qpb sm${p.quem_passa==='B'?' on':''}" onclick="mmSetQuemPassa('${c.id}','${pid}','B')">${fb} ${esc(c.team_b||'B')}</button>
+  </div>`;
+}
+function mmRenderQuemPassa(cid,pid){
+  const el=document.querySelector(`#tab-mata [data-cid="${cid}"] .mm-qp[data-pid="${pid}"]`);
+  if(el){const c=MM_CONFRONTOS.find(x=>x.id===cid);if(c)el.innerHTML=mmQuemPassaHTML(c,pid);}
+}
+function mmRefreshPts(cid){
+  const card=document.querySelector(`#tab-mata [data-cid="${cid}"]`); if(!card)return;
+  const c=MM_CONFRONTOS.find(x=>x.id===cid); if(!c)return;
+  const hasScore=c.real_a!=null&&c.real_b!=null;
+  MM_HUMANS.forEach(pid=>{
+    const badge=card.querySelector(`.mm-pts[data-pid="${pid}"]`); if(!badge)return;
+    const pts=hasScore?calcMataPts((MM_PALPITES[cid]||{})[pid],c):null;
+    badge.className='pts-badge on-av mm-pts'+(pts!=null?' '+(c.finished?ptsClass(pts):'preview'):'');
+    badge.textContent=pts!=null?pts:'';
+  });
+  const lbl=card.querySelector('.rr-label');
+  if(lbl)lbl.innerHTML='PLACAR 90 MIN'+((!c.finished&&hasScore)?' <span class="prev-tag">prévia</span>':'');
+}
+function mmCard(c){
+  const test=mmIsTest(c), editing=mmEditing[c.id];
+  const hasScore=c.real_a!=null&&c.real_b!=null, hasReal=c.finished&&hasScore;
+  const cls=['card','mm-card']; if(c.finished)cls.push('is-finished'); if(test)cls.push('mm-test');
+  const head=`<div class="card-head">
+    <span class="grp-tag">${esc(c.phase||'—')}${test?' <span class="bl-tag nao">TESTE</span>':''}</span>
+    <span class="mm-actions">
+      <button class="mm-iconbtn" title="Editar confronto" onclick="mmToggleEdit('${c.id}')">${editing?'✕':'✏️'}</button>
+      <button class="mm-iconbtn${mmRemoveConfirm[c.id]?' danger':''}" title="Remover confronto" onclick="mmRemoveConfronto('${c.id}')">${mmRemoveConfirm[c.id]?'Confirmar?':'🗑️'}</button>
+    </span>
+  </div>`;
+  let mid;
+  if(editing){
+    mid=`<div class="mm-edit">
+      <input id="mm-e-phase-${c.id}" value="${esc(c.phase||'')}" placeholder="Fase (ex: 32 avos)">
+      <div class="mm-nf-team"><input id="mm-e-fa-${c.id}" class="mm-flag" value="${esc(c.flag_a||'')}" placeholder="🏳️"><input id="mm-e-ta-${c.id}" value="${esc(c.team_a||'')}" placeholder="Time A"></div>
+      <div class="mm-nf-team"><input id="mm-e-fb-${c.id}" class="mm-flag" value="${esc(c.flag_b||'')}" placeholder="🏳️"><input id="mm-e-tb-${c.id}" value="${esc(c.team_b||'')}" placeholder="Time B"></div>
+      <button class="mm-add" onclick="mmSaveEdit('${c.id}')">Salvar</button>
+    </div>`;
+  }else{
+    const win=side=>{ if(!hasReal||c.real_a===c.real_b)return 'team'; const aw=c.real_a>c.real_b; return side==='A'?(aw?'team win':'team lose'):(aw?'team lose':'team win'); };
+    mid=`<div class="matchup">
+      <div class="${win('A')}"><span class="team-flag">${c.flag_a?flagImg(c.flag_a):''}</span><span class="team-name">${esc(c.team_a||'?')}</span></div>
+      <div class="mid">${hasReal?`<div class="score-final">${c.real_a}<small>×</small>${c.real_b}</div>`:`<div class="vs-badge">×</div>`}<div class="venue">90 min</div></div>
+      <div class="${win('B')}"><span class="team-flag">${c.flag_b?flagImg(c.flag_b):''}</span><span class="team-name">${esc(c.team_b||'?')}</span></div>
+    </div>`;
+  }
+  let preds=`<div class="preds-grid mm-preds">`;
+  MM_HUMANS.forEach(pid=>{
+    const p=PARTICIPANTS.find(x=>x.id===pid);
+    const pal=(MM_PALPITES[c.id]||{})[pid]||{};
+    const hasPred=pal.gols_a!=null;
+    const pts=hasScore&&hasPred?calcMataPts(pal,c):null;
+    const inp=side=>`<input type="number" min="0" max="99" inputmode="numeric" value="${pal['gols_'+side]!=null?pal['gols_'+side]:''}" placeholder="–" oninput="mmUpdPalpite('${c.id}','${pid}','gols_${side}',this.value)">`;
+    preds+=`<div class="pred-cell human mm-cell" data-pid="${pid}">
+      <div class="mm-cell-top">
+        <div class="hum-avwrap"><div class="hum-av" style="background:${p.color}">${avInner(p)}</div><span class="pts-badge on-av mm-pts${pts!=null?' '+(c.finished?ptsClass(pts):'preview'):''}" data-pid="${pid}">${pts!=null?pts:''}</span></div>
+        <span class="hum-name">${p.name}</span>
+        <div class="pc-inputs">${inp('a')}<span class="sep">×</span>${inp('b')}</div>
+      </div>
+      <div class="mm-qp" data-pid="${pid}">${mmQuemPassaHTML(c,pid)}</div>
+    </div>`;
+  });
+  preds+=`</div>`;
+  const cbtn=(side,fl,tm)=>`<button class="mm-qpb${c.classificado===side?' on':''}" data-side="${side}" onclick="mmSetClassificado('${c.id}','${side}')">${fl?flagImg(fl):''} ${esc(tm||side)}</button>`;
+  const classRow=`<div class="mm-class"><span class="mm-class-lbl">Quem passou (decide em empate nos 90min):</span><div class="mm-class-btns">${cbtn('A',c.flag_a,c.team_a)}${cbtn('B',c.flag_b,c.team_b)}</div></div>`;
+  const realInp=side=>`<input type="number" min="0" max="99" inputmode="numeric" value="${c['real_'+side]!=null?c['real_'+side]:''}" placeholder="–" oninput="mmSetReal('${c.id}','${side}',this.value)">`;
+  const resultRow=`<div class="real-row${c.finished?'':' pending'}">
+      <div class="rr-line"><span class="rr-label">PLACAR 90 MIN${(!c.finished&&hasScore)?' <span class="prev-tag">prévia</span>':''}</span>${realInp('a')}<span class="sep">×</span>${realInp('b')}</div>
+      <button class="rr-finish${c.finished?' done':''}" onclick="mmSetFinished('${c.id}')">${c.finished?'Finalizado ✅':'Finalizar <span class="chk-off">✓</span>'}</button>
+    </div>`;
+  return `<div class="${cls.join(' ')}" data-cid="${c.id}">${head}${mid}${preds}${editing?'':classRow}${editing?'':resultRow}</div>`;
+}
+function renderMata(){
+  let html=`<div class="mm-intro">⚔️ <b>Fase Mata-Mata</b> — cada um palpita o placar dos <b>90 min</b>. Empatou no palpite? Escolha quem passa. Pontos: 5 resultado · +1 gol A · +1 gol B · +3 placar exato · <b>+4</b> se cravar quem passa num palpite de empate.</div>`;
+  html+=`<div class="mm-newform">
+    <div class="mm-nf-title">➕ Novo confronto</div>
+    <input id="mm-new-phase" placeholder="Fase (ex: 32 avos)" value="32 avos">
+    <div class="mm-nf-team"><input id="mm-new-fa" class="mm-flag" placeholder="🏳️"><input id="mm-new-ta" placeholder="Time A (mandante)"></div>
+    <div class="mm-nf-team"><input id="mm-new-fb" class="mm-flag" placeholder="🏳️"><input id="mm-new-tb" placeholder="Time B (visitante)"></div>
+    <button class="mm-add" onclick="mmAddConfronto()">Adicionar confronto</button>
+  </div>`;
+  if(!MM_CONFRONTOS.length){
+    html+=`<div class="empty-state">Nenhum confronto ainda.<br>Crie acima, ou rode o seed de teste (veja CLAUDE.md → "Fase Mata-Mata"). Se nada aparecer, talvez falte rodar o SQL <code>supabase_mata_mata.sql</code> no Supabase.</div>`;
+  }else{
+    const phases=[...new Set(MM_CONFRONTOS.map(c=>c.phase||'—'))];
+    phases.forEach(ph=>{
+      html+=`<div class="section-hdr"><span class="section-badge">${esc(ph)}</span><div class="section-line"></div></div>`;
+      html+=`<div class="games-grid">`;
+      MM_CONFRONTOS.filter(c=>(c.phase||'—')===ph).forEach(c=>{html+=mmCard(c);});
+      html+=`</div>`;
+    });
+  }
+  document.getElementById('tab-mata').innerHTML=html;
+}
+
 // ─── TAB NAV ──────────────────────────────────────────────────────────────────
 function showTab(name){
   activeTab=name;
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
-  ['palpites','ranking'].forEach((n,i)=>{
+  ['palpites','mata','ranking'].forEach((n,i)=>{
     if(n===name)document.querySelectorAll('nav button')[i].classList.add('active');
   });
   renderAll();

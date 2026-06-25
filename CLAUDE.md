@@ -226,3 +226,44 @@ Placar real e finalizar seguem o mesmo caminho: `updReal` (979) → coluna `real
 
 > Palpite de **IA** não usa banco: entra como campo `g/c/d/e` no objeto do jogo dentro do `GT`,
 > casando por **nome do time + rodada** (os rótulos de grupo de fontes externas podem divergir do `grp`).
+
+## 10. Fase Mata-Mata (eliminatórias)
+
+Adição **separada** da fase de grupos — não toca em `GT`, `bolao_games`, `getStats` nem na lógica
+de grupos. Só os **4 humanos** palpitam no mata-mata (as IAs não entram aqui).
+
+**Tabelas novas (Supabase)** — schema em `supabase_mata_mata.sql` (rodar manualmente no SQL Editor;
+RLS público + realtime, mesmo padrão da fase de grupos):
+- `mata_confrontos`: `id` (text, gerado no app como `mm_<rnd>`), `phase` ("32 avos"…), `team_a/flag_a`,
+  `team_b/flag_b`, `real_a/real_b` (gols nos 90 min), `classificado` (`'A'`/`'B'` = quem avançou; só
+  importa em empate nos 90min), `finished` (só conta no ranking quando true), `created_at` (ordem).
+- `mata_palpites`: PK (`confronto_id`, `pid`), `gols_a`, `gols_b`, `quem_passa` (`'A'`/`'B'`, usado
+  só quando o palpite é empate). `pid` ∈ {jessica, tonius, leo, vinicius}.
+
+**Onde no código (`index.html`)** — seção `// ─── MATA-MATA ───` (antes de TAB NAV):
+- Estado: `MM_CONFRONTOS`, `MM_PALPITES` (map `cid→pid→palpite`), `MM_HUMANS`.
+- Dados: `loadMata` (select; ignora silenciosamente se as tabelas não existirem), `subscribeMata`/
+  `mmReload` (realtime → recarrega; não re-renderiza enquanto edita). Chamados no `loadData`.
+- Escritas: `mmUpsertConfronto`/`mmUpsertPalpite`, `mmAddConfronto`, `mmRemoveConfronto` (confirma no
+  2º clique, cascade apaga palpites), `mmToggleEdit`/`mmSaveEdit`, `mmSetReal`/`mmSetClassificado`/
+  `mmSetFinished`, `mmUpdPalpite`/`mmSetQuemPassa` (debounce ~700ms).
+- Pontuação: **`calcMataPts(pal,c)`** — 90 min igual à fase de grupos (**5** resultado + **1** gol A +
+  **1** gol B + **3** placar exato) **+ 4 SÓ se o palpite foi empate E acertou o `classificado`**
+  (quem só palpitou vencedor não ganha o bônus). `mataStats(pid)` agrega para o ranking
+  (ignora confrontos `[TESTE]` e não finalizados).
+- Render: `renderMata` (aba `#tab-mata`), `mmCard` (mesma pegada visual do card de grupos, reusa
+  `.card/.matchup/.pred-cell/.real-row`), `mmQuemPassaHTML` (seletor "quem passa" que **só aparece
+  quando o palpite é empate**), `mmRefreshPts`/`mmRenderQuemPassa` (atualização cirúrgica).
+- Integração: `rankingNew` (1276) soma `mataStats` ao `total/eHits/rHits/played/cravadas` de cada um
+  (recalcula `avg`); nav ganhou a aba "⚔️ Mata-Mata"; `showTab`/`renderAll` tratam `'mata'`.
+  **O gráfico de evolução, os deltas e a barra rolante continuam só da fase de grupos** (não foram
+  estendidos pro mata-mata).
+
+**Dados de teste** (confrontos marcados com `[TESTE]` no nome; **não contam no ranking**):
+- `npm run seed:teste` → cria 2 confrontos `[TESTE]` (um decidido nos 90 min, um empate decidido nos
+  pênaltis) pra validar o cálculo ponta a ponta. Requer as tabelas já criadas.
+- **`npm run clean:teste`** → apaga **só** os confrontos `[TESTE]` (e os palpites deles por cascade).
+  Rodar antes de inserir os 16 confrontos reais.
+
+> ⚠️ As tabelas do mata-mata ficam no **mesmo Supabase da produção** (dev e main compartilham banco).
+> Confrontos reais inseridos na `dev` já valem pra todos. Os `[TESTE]` são isolados só pela marca no nome.
