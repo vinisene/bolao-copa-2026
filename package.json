@@ -1,0 +1,11 @@
+{
+  "name": "bolao-copa-2026",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Bolão Copa 2026 — app estático (index.html). Este package.json existe só para scripts utilitários (backup); o app não tem build.",
+  "type": "module",
+  "scripts": {
+    "backup": "node scripts/backup-supabase.mjs",
+    "dev": "npx serve -p 3333 ."
+  }
+}

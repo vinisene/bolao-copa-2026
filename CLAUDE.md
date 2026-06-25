@@ -42,6 +42,26 @@ placar real, o app calcula pontos e monta ranking/estatísticas/gráficos.
 - **Dev local:** `npx serve` na porta 3333 (`.claude/launch.json`). Verificar no preview: console
   sem erros + viewport **mobile 375px** (uso principal).
 
+## 2.5 Ambientes e Backup (rede de segurança)
+
+- **Safepoint (tag Git):** `v0-fim-fase-grupos` aponta pro estado de **fim da fase de grupos**
+  (antes do mata-mata). Para voltar a esse ponto: `git checkout v0-fim-fase-grupos` (inspeção)
+  ou, para reverter a produção, `git revert`/`git reset` até a tag e dar push na `main`.
+  Listar tags: `git tag -n1`.
+- **Backups dos dados (Supabase):** ficam em `backups/bolao_games_AAAA-MM-DD.json` (export
+  completo: jogos, palpites dos humanos, placares e flags). Gerar um novo: **`npm run backup`**
+  (script em `scripts/backup-supabase.mjs`, Node 18+, sem dependências; usa a anon key pública).
+  Não sobrescreve um backup do mesmo dia — acrescenta a hora no nome.
+- **Branches / URLs:**
+  - **`main` = produção** → `bolao-copa-sene-piovan.pages.dev` (o que os participantes acessam).
+  - **`dev` = testes** → preview do Cloudflare Pages em `dev.bolao-copa-sene-piovan.pages.dev`
+    (precisa de "Preview deployments" habilitado no projeto do Cloudflare Pages).
+  - ⚠️ **A `dev` compartilha o MESMO banco Supabase da produção** (a URL/anon key estão fixas no
+    `index.html`). Ou seja, o ambiente de código/URL é isolado, mas **escrever palpites/placar na
+    `dev` altera os dados reais**. Para isolar também os dados, é preciso um **projeto Supabase
+    separado** e apontar a config da `dev` pra ele (mudança manual, fora do escopo desta rede de
+    segurança).
+
 ## 3. Mapa do arquivo `index.html`
 
 ### CSS (`<style>`, ~9–343) — uma regra por linha, cores em CSS vars no `:root` (~10)
