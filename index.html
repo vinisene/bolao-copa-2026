@@ -291,8 +291,8 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .rm-head{font-size:10px;font-weight:800;letter-spacing:1.1px;color:var(--gold);margin:0 13px 8px;display:flex;align-items:center;gap:6px;}
 .rm-hint{font-weight:600;letter-spacing:0;color:rgba(255,255,255,.45);font-size:8.5px;}
 .rm-track-wrap{overflow:hidden;width:100%;}
-.rm-track{display:flex;width:max-content;animation:rmscroll 38s linear infinite;}
-.rm-track:hover{animation-play-state:paused;}
+.rm-track{display:flex;width:max-content;animation:rmscroll 38s linear infinite;cursor:pointer;}
+.rm-track:hover,.rm-track.paused{animation-play-state:paused;}
 @keyframes rmscroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}
 .rm-item{display:flex;align-items:center;gap:6px;padding:3px 14px;border-right:1px solid rgba(255,255,255,.12);white-space:nowrap;}
 .rm-pos{font-size:14px;font-weight:800;color:var(--gold);min-width:20px;text-align:center;font-variant-numeric:tabular-nums;}
@@ -1269,7 +1269,7 @@ function rankMarquee(){
   const seq=order.map(item).join('');
   return `<div class="rank-marquee">
     <div class="rm-head">🏆 CLASSIFICAÇÃO GERAL <span class="rm-hint">· variação dos últimos 3 jogos</span></div>
-    <div class="rm-track-wrap"><div class="rm-track">${seq}${seq}</div></div>
+    <div class="rm-track-wrap"><div class="rm-track" onclick="this.classList.toggle('paused')">${seq}${seq}</div></div>
   </div>`;
 }
 
