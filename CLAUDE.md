@@ -15,6 +15,37 @@ que são âncoras estáveis. Os números aqui são referência aproximada (estad
 
 ---
 
+## 0. Estado atual e roadmap (atualizado jun/2026)
+
+**Onde estamos:**
+- **Fase de grupos:** em produção (`main`), funcionando, é o que os participantes usam hoje.
+- **Fase mata-mata:** **construída e validada no `dev`** — pontuação testada de ponta a ponta na
+  tela, incluindo **empate com pênaltis e o bônus +4**, para **humanos E IAs**. Aba "⚔️ Mata-Mata",
+  tabelas próprias, integração no ranking. Detalhes técnicos: §10.
+- **Ambiente de dev isolado:** funcionando (tabelas `dev_*`, detecção por hostname, botão
+  "🪞 Espelhar prod→dev"). Detalhes: §11.
+- **Nada subiu pra produção ainda.** **PR #3** (`dev → main`) está **aberto, aguardando** ordem
+  explícita do Vini (ver regra de ouro no topo).
+
+**Regra de pontuação do mata-mata (resumo):** base **5 (resultado) + 1 (gol A) + 1 (gol B) +
+3 (placar exato)** sobre o **PLACAR FINAL** (inclui prorrogação). **+4** só para quem palpitou
+**empate** e acertou **quem passa nos pênaltis**. As **4 duplas (humanos e IAs) competem**. Fórmula
+implementada em `calcMataPts` (§10).
+
+**Regra de ouro do fluxo:** nada vai pra produção (merge/push na `main`) sem o Vini pedir
+**explicitamente**. Todo trabalho acontece no `dev` (ver banner no topo do arquivo).
+
+**Roadmap (nesta ordem):**
+1. **Chaveamento visual interativo** do mata-mata (bracket).
+2. **Abas separando** Fase de Grupos e Mata-Mata.
+3. **Filtros no ranking** (Total · Grupos · Mata-Mata) + espaço pra disputa **Vini × Jeca**.
+4. **Dinâmica anti-desengajamento:** multiplicador por rodada, pontos crescentes por fase,
+   bônus de zebra.
+5. **Identidade visual da Copa** (por último).
+
+**Meta:** concentrar o **máximo de alterações no `dev` até sábado à noite** e **subir tudo de uma
+vez** (com a ordem explícita do Vini).
+
 ## 1. O que é
 
 **Bolão Copa 2026** — app de palpites da Copa 2026 ("Bolão Sene Piovan"). Cada participante
