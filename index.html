@@ -383,9 +383,11 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .mm-cn-svg{position:absolute;left:0;top:0;pointer-events:none;}
 .mm-cn{fill:none;stroke:var(--gd);stroke-width:2.3;stroke-linejoin:round;opacity:.85;}
 .mm-cn.c3{stroke:var(--mu);stroke-dasharray:4 4;stroke-width:1.6;opacity:.45;}
-.mm-coltitle{position:absolute;top:0;text-align:center;font-size:10px;font-weight:800;color:var(--gold);letter-spacing:.5px;text-transform:uppercase;background:linear-gradient(135deg,var(--gd),var(--g));padding:5px 0;border-radius:7px;box-shadow:0 2px 5px rgba(15,68,36,.25);}
+.mm-coltitle{position:absolute;top:0;text-align:center;font-size:10px;font-weight:800;color:var(--gold);letter-spacing:.5px;text-transform:uppercase;background:linear-gradient(135deg,var(--gd),var(--g));padding:5px 0;border-radius:7px;box-shadow:0 2px 5px rgba(15,68,36,.25);cursor:pointer;user-select:none;}
+.mm-coltitle:hover{filter:brightness(1.08);}
+.mm-coltitle.col-collapsed{display:flex;align-items:center;justify-content:center;writing-mode:vertical-rl;text-orientation:mixed;font-size:9px;padding:6px 0;opacity:.9;}
 .mm-bxpos{position:absolute;}
-.mm-bx{height:100%;box-sizing:border-box;background:var(--card);border:1px solid var(--brd);border-radius:9px;padding:5px 9px;cursor:pointer;display:flex;flex-direction:column;justify-content:center;gap:4px;transition:box-shadow .15s,transform .12s;overflow:hidden;box-shadow:0 1px 4px rgba(15,68,36,.06);}
+.mm-bx{height:100%;box-sizing:border-box;background:var(--card);border:1.6px solid var(--gd);border-radius:9px;padding:5px 9px;cursor:pointer;display:flex;flex-direction:column;justify-content:center;gap:4px;transition:box-shadow .15s,transform .12s;overflow:hidden;box-shadow:0 1px 4px rgba(15,68,36,.1);}
 .mm-bx:hover{box-shadow:0 0 0 2px var(--gl);}
 .mm-bx:active{transform:scale(.99);}
 .mm-bx.nolink{cursor:default;background:#eef2ee;box-shadow:none;}
@@ -411,9 +413,15 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .mm-class.hidden{display:none;}
 .mm-qp:empty{display:none;}
 /* Filtro de fases (3.1) */
-.mm-filters{display:flex;gap:6px;overflow-x:auto;padding:2px 1px 11px;-webkit-overflow-scrolling:touch;}
-.mm-fbtn{flex:0 0 auto;background:var(--card);border:1.5px solid var(--brd);border-radius:20px;padding:7px 13px;font-size:12px;font-weight:700;color:var(--mu);cursor:pointer;white-space:nowrap;}
+/* Filtro: cabe numa linha só, sem rolagem (tabs de largura igual) */
+.mm-filters{display:flex;gap:4px;padding:2px 1px 11px;}
+.mm-fbtn{flex:1 1 0;min-width:0;background:var(--card);border:1.5px solid var(--brd);border-radius:18px;padding:7px 4px;font-size:11px;font-weight:700;color:var(--mu);cursor:pointer;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;}
+.mm-fbtn sup{font-size:.72em;}
 .mm-fbtn.active{background:var(--gd);border-color:var(--gd);color:var(--gold);}
+/* Cabeçalho da seção do chaveamento (A1) — faixa colorida estilo card */
+.mm-sec-head{display:flex;align-items:center;justify-content:space-between;gap:8px;background:linear-gradient(135deg,var(--gd),var(--g));padding:11px 14px;border-radius:12px;cursor:pointer;margin-bottom:10px;box-shadow:0 2px 8px rgba(15,68,36,.18);}
+.mm-sec-title{font-size:13px;font-weight:800;color:var(--gold);letter-spacing:.3px;}
+.mm-sec-arrow{color:#fff;font-size:12px;font-weight:800;}
 /* Card da lista: cabeçalho no TOPO e de FORA A FORA; rodapé de fora a fora */
 .mm-litem{border:1px solid var(--brd);border-radius:14px;overflow:hidden;margin-bottom:11px;background:var(--card);box-shadow:0 2px 8px rgba(15,68,36,.06);}
 .mm-litem-toggle{cursor:pointer;}
@@ -1735,15 +1743,36 @@ const MM_BRACKET=(()=>{
 })();
 // Colunas da esquerda → direita (3º lugar é coluna própria, logo ANTES da final)
 const MM_COLS=[
-  {key:'32avos', label:'16 avos',     ids:Array.from({length:16},(_,i)=>'r32_'+(i+1))},
-  {key:'oitavas',label:'Oitavas',     ids:Array.from({length:8}, (_,i)=>'r16_'+(i+1))},
-  {key:'quartas',label:'Quartas',     ids:Array.from({length:4}, (_,i)=>'qf_'+(i+1))},
-  {key:'semis',  label:'Semis',       ids:['sf_1','sf_2']},
-  {key:'3lugar', label:'🥉 3º lugar', ids:['tp_1']},
-  {key:'final',  label:'Final',       ids:['fin_1']},
+  {key:'32avos', label:'16 avos', short:'16<sup>av</sup>', ids:Array.from({length:16},(_,i)=>'r32_'+(i+1))},
+  {key:'oitavas',label:'Oitavas', short:'8<sup>as</sup>',  ids:Array.from({length:8}, (_,i)=>'r16_'+(i+1))},
+  {key:'quartas',label:'Quartas', short:'4<sup>as</sup>',  ids:Array.from({length:4}, (_,i)=>'qf_'+(i+1))},
+  {key:'semis',  label:'Semis',   short:'Semis',           ids:['sf_1','sf_2']},
+  {key:'3lugar', label:'3º lugar', short:'3º lugar',       ids:['tp_1']},
+  {key:'final',  label:'Final',   short:'Final 🏆',        ids:['fin_1']},
 ];
 const mmOpen=new Set();   // confrontos expandidos na lista (preserva estado entre re-renders)
 let mmPhaseFilter='32avos';   // filtro de fase da lista (3.1) — padrão 16 avos (key interna '32avos')
+let mmBracketOpen=true;            // A1: seção do chaveamento expandida/recolhida
+const mmCollapsedCols=new Set();   // A2: fases (colunas) recolhidas na chave
+// AGENDA dos 16 avos (data/hora/local) por VAGA (slot). Fica no código (a anon key não cria coluna
+// nova no banco). O app lê isto OU os campos dt/tm/venue do confronto, se existirem no banco.
+const MM_AGENDA={
+  r32_1:{dt:'28/06',tm:'',    ven:'Los Angeles'},
+  r32_2:{dt:'29/06',tm:'',    ven:'Houston'},
+  r32_3:{dt:'29/06',tm:'17h30',ven:'Boston'},
+  r32_4:{dt:'30/06',tm:'14h', ven:'Dallas'},
+  r32_5:{dt:'30/06',tm:'18h', ven:'Nova York/Nova Jérsei'},
+  r32_6:{dt:'30/06',tm:'22h', ven:'Monterrey (México)'},
+  r32_7:{dt:'01/07',tm:'13h', ven:'Atlanta'},
+  r32_8:{dt:'01/07',tm:'17h', ven:'Seattle'},
+  r32_9:{dt:'01/07',tm:'22h', ven:'Cidade do México'},
+  r32_10:{dt:'02/07',tm:'21h',ven:'San Francisco'},
+};
+// data/hora/local de um confronto: prioriza o banco (dt/tm/venue) e cai pra agenda em código.
+function mmInfo(c){const a=MM_AGENDA[c.id]||{};return {dt:c.dt||a.dt||'',tm:c.tm||a.tm||'',ven:c.venue||a.ven||''};}
+function mmWeekday(dt){if(!dt)return '';const [dd,mm]=dt.split('/').map(Number);return WD[new Date(2026,mm-1,dd).getDay()];}
+// chave cronológica pra ordenar a lista (sem data → fim)
+function mmSchedKey(c){const i=mmInfo(c);if(!i.dt)return Number.MAX_SAFE_INTEGER;const [dd,mm]=i.dt.split('/').map(Number);const h=i.tm?parseInt(i.tm)||0:0;const mi=(i.tm&&i.tm.split('h')[1])?parseInt(i.tm.split('h')[1]):0;return (mm*100+dd)*10000+h*100+mi;}
 function mmConf(id){return MM_CONFRONTOS.find(c=>c.id===id);}
 // Quem AVANÇOU de verdade — pelo PLACAR REAL (empate → pênaltis via classificado). NUNCA por palpite.
 function mmRealWinner(c){
@@ -1773,7 +1802,8 @@ function mmMatchupHTML(c){
   const win=side=>{ if(!hasReal||c.real_a===c.real_b)return 'team'; const aw=c.real_a>c.real_b; return side==='A'?(aw?'team win':'team lose'):(aw?'team lose':'team win'); };
   const sd=(s,t)=>`<div class="${win(s)}"><span class="team-flag">${mmFlag(t&&t.flag)}</span><span class="team-name">${esc((t&&t.name)||'A definir')}</span></div>`;
   // Centro: bolinha "×" (ou placar) e, logo abaixo, o local (📍) — omitido quando não há (sem inventar).
-  const venue=c.venue?`<div class="venue">📍 ${esc(c.venue)}</div>`:'';
+  const ven=mmInfo(c).ven;
+  const venue=ven?`<div class="venue">📍 ${esc(ven)}</div>`:'';
   return `<div class="matchup mm-matchup">${sd('A',tm.a)}
       <div class="mid">${hasReal?`<div class="score-final">${c.real_a}<small>×</small>${c.real_b}</div>`:`<div class="vs-badge">×</div>`}${venue}</div>
       ${sd('B',tm.b)}</div>`;
@@ -1842,37 +1872,58 @@ function mmFlag(em){return em?`<span class="flagbx">${flagImg(em)}</span>`:'';}
 // Cabeçalho do card no estilo da fase de grupos: fase + status à esquerda; data/hora à direita (omitida se não houver).
 function mmHeadHTML(c){
   const status=c.finished?'<span class="bl-tag fec">FECHADO</span>':'<span class="bl-tag abe">ABERTO</span>';
-  return `<div class="card-head"><span class="grp-tag">${esc((mmColLabel(c.id)||'MATA-MATA').toUpperCase())} ${status}</span></div>`;
+  const i=mmInfo(c);
+  // canto direito: dia da semana + data · hora — igual à fase de grupos; omite se não houver data.
+  const dt=i.dt?`<span class="dt-tag">${mmWeekday(i.dt)}, ${esc(i.dt)}${i.tm?' · '+esc(i.tm):''}</span>`:'';
+  return `<div class="card-head"><span class="grp-tag">${esc((mmColLabel(c.id)||'MATA-MATA').toUpperCase())} ${status}</span>${dt}</div>`;
 }
-// Chave clássica: caixas posicionadas + conectores SVG em colchete ligando cada PAR à caixa seguinte.
+// Seção do chaveamento com cabeçalho colapsável (A1).
+function mmBracketSectionHTML(){
+  let h=`<div class="mm-sec-head" onclick="mmToggleBracket()"><span class="mm-sec-title">⚔️ Chaveamento do mata-mata</span><span class="mm-sec-arrow">${mmBracketOpen?'▲':'▼'}</span></div>`;
+  if(mmBracketOpen)h+=mmBracketHTML();
+  return h;
+}
+function mmRerenderBracket(){const s=document.getElementById('mm-bracket-section');if(s){s.innerHTML=mmBracketSectionHTML();mmFitBracket();}}
+function mmToggleBracket(){mmBracketOpen=!mmBracketOpen;mmRerenderBracket();}
+function mmToggleCol(key){if(mmCollapsedCols.has(key))mmCollapsedCols.delete(key);else mmCollapsedCols.add(key);mmRerenderBracket();}
+// Chave clássica: caixas posicionadas + conectores SVG em colchete. Fases podem ser recolhidas (A2):
+// a coluna expandida mais à esquerda é distribuída uniformemente e as seguintes centralizam entre os
+// feeders, então recolher fases antigas reduz altura E largura, deslocando o foco pra esquerda.
 function mmBracketHTML(){
-  const bw=120, bh=46, gapX=38, gapY=12, titleH=24, padX=6, padR=8, padB=12, padY=titleH+12;
-  const colStep=bw+gapX;
-  const colIdx={}; MM_COLS.forEach((col,k)=>col.ids.forEach(id=>{colIdx[id]=k;}));
-  const pos={};
-  MM_COLS[0].ids.forEach((id,i)=>{pos[id]={x:padX,y:padY+i*(bh+gapY)};});
-  const yMid=id=>{const f=MM_BRACKET[id].feeders;return (pos[f.A.g].y+pos[f.B.g].y)/2;};
-  ['oitavas','quartas','semis'].forEach(k=>{MM_COLS.find(c=>c.key===k).ids.forEach(id=>{pos[id]={x:padX+colIdx[id]*colStep,y:yMid(id)};});});
-  pos['fin_1']={x:padX+colIdx['fin_1']*colStep,y:yMid('fin_1')};
-  pos['tp_1'] ={x:padX+colIdx['tp_1']*colStep, y:pos['sf_2'].y+(bh+gapY)*1.4};   // 3º lugar: na coluna própria, abaixo da semi de baixo
-  const totalW=padX+(MM_COLS.length-1)*colStep+bw+padR;
-  const totalH=padY+16*(bh+gapY)-gapY+padB;
-  // conectores (M = feeder direita-meio → H meio → V até a caixa → H entra na caixa)
-  let paths='';
-  Object.keys(MM_BRACKET).forEach(id=>{
-    const slot=MM_BRACKET[id]; if(!slot.feeders)return;
-    const bx=pos[id].x, bym=pos[id].y+bh/2, is3=(id==='tp_1');
-    ['A','B'].forEach(s=>{
-      const f=slot.feeders[s], fp=pos[f.g], fxr=fp.x+bw, fym=fp.y+bh/2, mx=is3?(fxr+bx)/2:(fp.x+bw+(bx-(fp.x+bw))/2);
-      paths+=`<path d="M${fxr} ${fym} H${mx} V${bym} H${bx}" class="mm-cn${is3?' c3':''}"/>`;
+  const bw=120, bh=46, gapX=38, gapY=12, titleH=24, colW0=32, padX=6, padR=8, padB=12, padY=titleH+12;
+  const colX={}, colWid={}; let x=padX;
+  MM_COLS.forEach(col=>{const w=mmCollapsedCols.has(col.key)?colW0:bw;colX[col.key]=x;colWid[col.key]=w;x+=w+gapX;});
+  const pos={}; let maxBottom=padY;
+  MM_COLS.forEach((col,ci)=>{
+    if(mmCollapsedCols.has(col.key))return;
+    const prev=ci>0?MM_COLS[ci-1]:null, base=!prev||mmCollapsedCols.has(prev.key);
+    col.ids.forEach((id,i)=>{
+      let y; if(base){y=padY+i*(bh+gapY);} else {const f=MM_BRACKET[id].feeders;y=(pos[f.A.g].y+pos[f.B.g].y)/2;}
+      pos[id]={x:colX[col.key],y};
     });
   });
+  if(pos['tp_1']&&pos['sf_2'])pos['tp_1'].y=pos['sf_2'].y+(bh+gapY)*1.4;   // 3º lugar: abaixo da semi de baixo
+  Object.keys(pos).forEach(id=>{maxBottom=Math.max(maxBottom,pos[id].y+bh);});
+  const totalW=(x-gapX)+padR, totalH=maxBottom+padB;
+  // conectores: só quando a caixa E a coluna dos feeders estão expandidas
+  let paths='';
+  Object.keys(MM_BRACKET).forEach(id=>{
+    const slot=MM_BRACKET[id]; if(!slot.feeders||!pos[id])return;
+    const feederCol=MM_COLS.find(c=>c.ids.includes(slot.feeders.A.g)).key;
+    if(mmCollapsedCols.has(feederCol))return;
+    const bx=pos[id].x, bym=pos[id].y+bh/2, is3=(id==='tp_1');
+    ['A','B'].forEach(s=>{const f=slot.feeders[s],fp=pos[f.g];if(!fp)return;const fxr=fp.x+bw,fym=fp.y+bh/2,mx=(fxr+bx)/2;paths+=`<path d="M${fxr} ${fym} H${mx} V${bym} H${bx}" class="mm-cn${is3?' c3':''}"/>`;});
+  });
+  // títulos clicáveis (recolhe/expande a fase); colapsada vira faixa estreita vertical
   let titles='';
-  MM_COLS.forEach((col,k)=>{titles+=`<div class="mm-coltitle" style="left:${padX+k*colStep}px;width:${bw}px">${col.label}</div>`;});
+  MM_COLS.forEach(col=>{
+    const cl=mmCollapsedCols.has(col.key);
+    titles+=`<div class="mm-coltitle${cl?' col-collapsed':''}" style="left:${colX[col.key]}px;width:${colWid[col.key]}px${cl?`;height:${totalH-padB}px`:''}" onclick="mmToggleCol('${col.key}')" title="${cl?'Expandir':'Recolher'} esta fase">${col.label}</div>`;
+  });
   let boxes='';
   Object.keys(pos).forEach(id=>{boxes+=`<div class="mm-bxpos" style="left:${pos[id].x}px;top:${pos[id].y}px;width:${bw}px;height:${bh}px">${mmBracketBox(id)}</div>`;});
   return `<div class="mm-bracket-wrap">
-    <div class="mm-bracket-hint">Chave da Copa · toque num confronto já definido pra abrir os palpites abaixo</div>
+    <div class="mm-bracket-hint">Toque num confronto definido pra abrir os palpites · toque no título de uma fase pra recolhê-la</div>
     <div class="mm-bracket-scroll"><div class="mm-bracket" data-w="${totalW}" data-h="${totalH}" style="width:${totalW}px;height:${totalH}px">
       <svg class="mm-cn-svg" width="${totalW}" height="${totalH}" viewBox="0 0 ${totalW} ${totalH}" preserveAspectRatio="xMinYMin meet">${paths}</svg>
       ${titles}${boxes}
@@ -1919,7 +1970,8 @@ function mmGotoConfronto(cid){
 // Lista de UMA fase (a do filtro). Só confrontos com os dois times definidos; senão, estado vazio.
 function mmListHTML(){
   const col=MM_COLS.find(c=>c.key===mmPhaseFilter)||MM_COLS[0];
-  const items=col.ids.map(id=>mmConf(id)).filter(c=>c&&mmResolveSide(c.id,'A')&&mmResolveSide(c.id,'B'));
+  const items=col.ids.map(id=>mmConf(id)).filter(c=>c&&mmResolveSide(c.id,'A')&&mmResolveSide(c.id,'B'))
+    .sort((a,b)=>mmSchedKey(a)-mmSchedKey(b));   // C3: cronológico; sem data vai pro fim
   if(!items.length)return `<div class="empty-state">Confrontos ainda não definidos.</div>`;
   return items.map(mmListItem).join('');
 }
@@ -1930,9 +1982,9 @@ function mmSetPhase(key){
 }
 function renderMata(){
   let html=`<div class="mm-intro">⚔️ <b>Fase Mata-Mata</b> — palpite o <b>placar final</b> (inclui prorrogação). Empatou no palpite? Escolha quem passa nos pênaltis. Pontos: 5 resultado · +1 gol A · +1 gol B · +3 exato · <b>+4</b> se cravar quem passa num empate.</div>`;
-  html+=mmBracketHTML();   // a chave mostra SEMPRE o mapeamento inteiro (não é afetada pelo filtro)
-  // Filtro de fases (3.1) — na mesma ordem da chave; padrão 16 avos.
-  html+=`<div class="mm-filters">${MM_COLS.map(col=>`<button class="mm-fbtn${col.key===mmPhaseFilter?' active':''}" data-key="${col.key}" onclick="mmSetPhase('${col.key}')">${col.label}</button>`).join('')}</div>`;
+  html+=`<div id="mm-bracket-section">${mmBracketSectionHTML()}</div>`;   // chave mostra SEMPRE o mapa inteiro (não afetada pelo filtro)
+  // Filtro de fases (3.1) — rótulos curtos, cabe numa linha só (B); padrão 16 avos.
+  html+=`<div class="mm-filters">${MM_COLS.map(col=>`<button class="mm-fbtn${col.key===mmPhaseFilter?' active':''}" data-key="${col.key}" onclick="mmSetPhase('${col.key}')">${col.short}</button>`).join('')}</div>`;
   html+=`<div id="mm-list">${mmListHTML()}</div>`;
   document.getElementById('tab-mata').innerHTML=html;
   mmFitBracket();
