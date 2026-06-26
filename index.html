@@ -375,29 +375,41 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .mm-qp-static{display:flex;align-items:center;gap:5px;padding-top:4px;border-top:1px dashed var(--brd);font-size:11px;color:var(--mu);font-weight:700;}
 .mm-qp-static .flag-img{height:12px;width:auto;border-radius:2px;}
 .pred-cell.ia.mm-cell{background:var(--bg);}
-/* Chave (bracket) do mata-mata */
+/* Chave (bracket) do mata-mata — caixas posicionadas + conectores SVG em colchete */
 .mm-bracket-wrap{margin-bottom:14px;}
 .mm-bracket-hint{font-size:10px;color:var(--mu);margin-bottom:6px;}
-.mm-bracket-scroll{overflow:auto;max-height:56vh;border:1px solid var(--brd);border-radius:12px;background:var(--bg);padding:8px;-webkit-overflow-scrolling:touch;}
-.mm-bracket{display:flex;gap:14px;align-items:stretch;width:max-content;min-height:100%;}
-.mm-col{display:flex;flex-direction:column;width:124px;flex-shrink:0;}
-.mm-col-title{font-size:10px;font-weight:800;color:var(--gd);text-align:center;margin-bottom:6px;letter-spacing:.5px;position:sticky;top:-8px;background:var(--bg);padding:3px 0;z-index:1;}
-.mm-col-body{display:flex;flex-direction:column;justify-content:space-around;flex:1;gap:6px;}
-.mm-bx{background:var(--card);border:1px solid var(--brd);border-radius:8px;padding:4px 6px;cursor:pointer;min-height:38px;display:flex;flex-direction:column;justify-content:center;gap:2px;transition:box-shadow .15s;}
+.mm-bracket-scroll{overflow-x:auto;overflow-y:hidden;border:1px solid var(--brd);border-radius:12px;background:var(--bg);padding:8px;-webkit-overflow-scrolling:touch;}
+.mm-bracket{position:relative;transform-origin:top left;}
+.mm-cn-svg{position:absolute;left:0;top:0;pointer-events:none;}
+.mm-cn{fill:none;stroke:var(--brd);stroke-width:1.4;}
+.mm-cn.c3{stroke-dasharray:3 3;opacity:.5;}
+.mm-coltitle{position:absolute;top:0;text-align:center;font-size:11px;font-weight:800;color:var(--gd);letter-spacing:.3px;}
+.mm-bxpos{position:absolute;}
+.mm-bx{height:100%;box-sizing:border-box;background:var(--card);border:1px solid var(--brd);border-radius:8px;padding:4px 8px;cursor:pointer;display:flex;flex-direction:column;justify-content:center;gap:3px;transition:box-shadow .15s;overflow:hidden;}
 .mm-bx:active{box-shadow:0 0 0 2px var(--gl);}
-.mm-bx.empty{cursor:default;align-items:center;justify-content:center;border-style:dashed;background:transparent;}
-.mm-bx-tbd{font-size:9.5px;color:var(--mu);font-style:italic;}
-.mm-bx-side{display:flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;color:var(--txt);min-width:0;}
+.mm-bx.nolink{cursor:default;background:#f4f7f4;}
+.mm-bx.nolink:active{box-shadow:none;}
+.mm-bx-side{display:flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;color:var(--txt);min-width:0;line-height:1.15;}
 .mm-bx-side.win{color:var(--g);}
-.mm-bx-side .flag-img{height:11px;width:auto;border-radius:2px;flex-shrink:0;}
+.mm-bx-side .flag-img{height:13px;width:auto;border-radius:2px;flex-shrink:0;}
 .mm-bx-nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .mm-bx-nm.tbd{color:var(--mu);font-style:italic;font-weight:600;}
-.mm-bx.nolink{cursor:default;}
-.mm-bx.nolink:active{box-shadow:none;}
-.mm-bx-sc{font-weight:800;font-variant-numeric:tabular-nums;}
+.mm-bx-sc{font-weight:800;font-variant-numeric:tabular-nums;flex-shrink:0;}
 .mm-bx-sc small{font-weight:600;color:var(--mu);}
-.mm-bracket-3rd{display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 10px;border:1px dashed var(--brd);border-radius:10px;}
-.mm-bracket-3rd .mm-bx{flex:1;max-width:200px;}
+/* Cabeçalho do card (estilo fase de grupos) + status */
+.mm-bodyhead{margin:0 0 11px;}
+.mm-status{font-size:8.5px;font-weight:800;padding:1px 5px;border-radius:4px;margin-left:5px;letter-spacing:.3px;}
+.mm-status.abe{background:rgba(255,255,255,.18);color:#fff;}
+.mm-status.fec{background:#e8c44a;color:#5c4708;}
+.mm-dt-tbd{opacity:.85;font-weight:700;}
+/* Condicionais: badge sem número e "quem passou" sem empate real ficam escondidos */
+.mm-pts.empty{display:none;}
+.mm-class.hidden{display:none;}
+/* Desktop: cards de palpite mais compactos (2 colunas), parecido com a fase de grupos */
+@media(min-width:680px){
+  .mm-preds{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px;}
+  .mm-litem-body{padding:11px 14px 4px;}
+}
 /* Lista expansível */
 .mm-litem{border:1px solid var(--brd);border-radius:14px;overflow:hidden;margin-bottom:10px;background:var(--card);box-shadow:0 2px 8px rgba(15,68,36,.05);}
 .mm-litem.mm-test{border-color:#e8c44a;}
@@ -1624,9 +1636,11 @@ function mmRefreshPts(cid){
   PARTICIPANTS.forEach(p=>{
     const badge=card.querySelector(`.mm-pts[data-pid="${p.id}"]`); if(!badge)return;
     const pts=hasScore?calcMataPts((MM_PALPITES[cid]||{})[p.id],c):null;
-    badge.className='pts-badge on-av mm-pts'+(pts!=null?' '+(c.finished?ptsClass(pts):'preview'):'');
+    badge.className='pts-badge on-av mm-pts'+(pts!=null?' '+(c.finished?ptsClass(pts):'preview'):' empty');   // sem número → display:none
     badge.textContent=pts!=null?pts:'';
   });
+  const cr=card.querySelector('.mm-class');   // "quem passou" só com placar real empatado (2.2)
+  if(cr)cr.classList.toggle('hidden',!(hasScore&&c.real_a===c.real_b));
   const lbl=card.querySelector('.rr-label');
   if(lbl)lbl.innerHTML='PLACAR FINAL'+((!c.finished&&hasScore)?' <span class="prev-tag">prévia</span>':'');
 }
@@ -1699,7 +1713,7 @@ const MM_BRACKET=(()=>{
 })();
 // Colunas da esquerda → direita (3º lugar é coluna própria, logo ANTES da final)
 const MM_COLS=[
-  {key:'32avos', label:'32 avos',     ids:Array.from({length:16},(_,i)=>'r32_'+(i+1))},
+  {key:'32avos', label:'16 avos',     ids:Array.from({length:16},(_,i)=>'r32_'+(i+1))},
   {key:'oitavas',label:'Oitavas',     ids:Array.from({length:8}, (_,i)=>'r16_'+(i+1))},
   {key:'quartas',label:'Quartas',     ids:Array.from({length:4}, (_,i)=>'qf_'+(i+1))},
   {key:'semis',  label:'Semis',       ids:['sf_1','sf_2']},
@@ -1742,6 +1756,13 @@ function mmMatchupHTML(c){
 // Corpo do confronto (palpites dos 8 + quem passa + linha de resultado) — reusa pred-cell/real-row e calcMataPts.
 function mmCardBody(c){
   const hasScore=c.real_a!=null&&c.real_b!=null;
+  const realDraw=hasScore&&c.real_a===c.real_b;
+  // Cabeçalho no estilo da fase de grupos (faixa verde): fase · status · data · local.
+  // Dados placeholder não têm data/local reais → "a definir" (estrutura pronta pros dados reais).
+  const head=`<div class="card-head mm-bodyhead">
+    <span class="grp-tag">${esc(mmColLabel(c.id)||'MATA-MATA')} <span class="mm-status ${c.finished?'fec':'abe'}">${c.finished?'FECHADO':'ABERTO'}</span></span>
+    <span class="dt-tag mm-dt-tbd">🗓️ a definir · 📍 a definir</span>
+  </div>`;
   let preds=`<div class="preds-grid mm-preds">`;
   PARTICIPANTS.forEach(p=>{
     const pid=p.id, isHuman=p.type==='human';
@@ -1752,9 +1773,11 @@ function mmCardBody(c){
     const palpiteUI=isHuman
       ? `<div class="pc-inputs">${inp('a')}<span class="sep">×</span>${inp('b')}</div>`
       : `<div class="mm-iascore${hasPred?'':' empty'}">${hasPred?`${pal.gols_a} × ${pal.gols_b}`:'– × –'}</div>`;
+    // Badge só aparece quando há número (2.3): sem dados → classe "empty" (display:none).
+    const badge=`<span class="pts-badge on-av mm-pts${pts!=null?' '+(c.finished?ptsClass(pts):'preview'):' empty'}" data-pid="${pid}">${pts!=null?pts:''}</span>`;
     preds+=`<div class="pred-cell ${isHuman?'human':'ia'} mm-cell" data-pid="${pid}">
       <div class="mm-cell-top">
-        <div class="hum-avwrap"><div class="hum-av" style="background:${p.color}">${avInner(p)}</div><span class="pts-badge on-av mm-pts${pts!=null?' '+(c.finished?ptsClass(pts):'preview'):''}" data-pid="${pid}">${pts!=null?pts:''}</span></div>
+        <div class="hum-avwrap"><div class="hum-av" style="background:${p.color}">${avInner(p)}</div>${badge}</div>
         <span class="hum-name">${p.name}</span>
         ${palpiteUI}
       </div>
@@ -1764,13 +1787,14 @@ function mmCardBody(c){
   preds+=`</div>`;
   const tmc=mmTeams(c);
   const cbtn=side=>{const t=side==='A'?tmc.a:tmc.b;return `<button class="mm-qpb${c.classificado===side?' on':''}" data-side="${side}" onclick="mmSetClassificado('${c.id}','${side}')">${t&&t.flag?flagImg(t.flag):''} ${esc((t&&t.name)||side)}</button>`;};
-  const classRow=`<div class="mm-class"><span class="mm-class-lbl">Quem passou nos pênaltis (se empatar após a prorrogação):</span><div class="mm-class-btns">${cbtn('A')}${cbtn('B')}</div></div>`;
+  // "Quem passou nos pênaltis" (classificado REAL) só aparece quando o PLACAR REAL é empate (2.2).
+  const classRow=`<div class="mm-class${realDraw?'':' hidden'}"><span class="mm-class-lbl">Quem passou nos pênaltis (empate no tempo normal):</span><div class="mm-class-btns">${cbtn('A')}${cbtn('B')}</div></div>`;
   const realInp=side=>`<input type="number" min="0" max="99" inputmode="numeric" value="${c['real_'+side]!=null?c['real_'+side]:''}" placeholder="–" oninput="mmSetReal('${c.id}','${side}',this.value)">`;
   const resultRow=`<div class="real-row${c.finished?'':' pending'}">
       <div class="rr-line"><span class="rr-label">PLACAR FINAL${(!c.finished&&hasScore)?' <span class="prev-tag">prévia</span>':''}</span>${realInp('a')}<span class="sep">×</span>${realInp('b')}</div>
       <button class="rr-finish${c.finished?' done':''}" onclick="mmSetFinished('${c.id}')">${c.finished?'Finalizado ✅':'Finalizar <span class="chk-off">✓</span>'}</button>
     </div>`;
-  return preds+classRow+resultRow;
+  return head+preds+classRow+resultRow;
 }
 
 // ── CHAVE (bracket): esqueleto FIXO de todas as fases; vaga sem time resolvido = "A definir" ──
@@ -1785,16 +1809,55 @@ function mmBracketBox(slotId){
   const playable=!!(c&&tm.a&&tm.b);   // tem confronto e os dois times conhecidos → clicável (abre na lista)
   return `<div class="mm-bx${playable?'':' nolink'}"${playable?` onclick="mmGotoConfronto('${slotId}')"`:''} title="${esc(((tm.a&&tm.a.name)||'A definir')+' x '+((tm.b&&tm.b.name)||'A definir'))}">${side('A',tm.a)}${side('B',tm.b)}</div>`;
 }
+function mmColLabel(id){const col=MM_COLS.find(c=>c.ids.includes(id));return col?col.label:'';}
+// Chave clássica: caixas posicionadas + conectores SVG em colchete ligando cada PAR à caixa seguinte.
 function mmBracketHTML(){
-  const cols=MM_COLS.map(col=>{
-    const boxes=col.ids.map(id=>mmBracketBox(id)).join('');
-    return `<div class="mm-col"><div class="mm-col-title">${col.label}</div><div class="mm-col-body">${boxes}</div></div>`;
-  }).join('');
+  const bw=118, bh=46, gapX=30, gapY=9, titleH=20, padX=4, padR=6, padB=10, padY=titleH+8;
+  const colStep=bw+gapX;
+  const colIdx={}; MM_COLS.forEach((col,k)=>col.ids.forEach(id=>{colIdx[id]=k;}));
+  const pos={};
+  MM_COLS[0].ids.forEach((id,i)=>{pos[id]={x:padX,y:padY+i*(bh+gapY)};});
+  const yMid=id=>{const f=MM_BRACKET[id].feeders;return (pos[f.A.g].y+pos[f.B.g].y)/2;};
+  ['oitavas','quartas','semis'].forEach(k=>{MM_COLS.find(c=>c.key===k).ids.forEach(id=>{pos[id]={x:padX+colIdx[id]*colStep,y:yMid(id)};});});
+  pos['fin_1']={x:padX+colIdx['fin_1']*colStep,y:yMid('fin_1')};
+  pos['tp_1'] ={x:padX+colIdx['tp_1']*colStep, y:pos['sf_2'].y+(bh+gapY)*1.4};   // 3º lugar: na coluna própria, abaixo da semi de baixo
+  const totalW=padX+(MM_COLS.length-1)*colStep+bw+padR;
+  const totalH=padY+16*(bh+gapY)-gapY+padB;
+  // conectores (M = feeder direita-meio → H meio → V até a caixa → H entra na caixa)
+  let paths='';
+  Object.keys(MM_BRACKET).forEach(id=>{
+    const slot=MM_BRACKET[id]; if(!slot.feeders)return;
+    const bx=pos[id].x, bym=pos[id].y+bh/2, is3=(id==='tp_1');
+    ['A','B'].forEach(s=>{
+      const f=slot.feeders[s], fp=pos[f.g], fxr=fp.x+bw, fym=fp.y+bh/2, mx=is3?(fxr+bx)/2:(fp.x+bw+(bx-(fp.x+bw))/2);
+      paths+=`<path d="M${fxr} ${fym} H${mx} V${bym} H${bx}" class="mm-cn${is3?' c3':''}"/>`;
+    });
+  });
+  let titles='';
+  MM_COLS.forEach((col,k)=>{titles+=`<div class="mm-coltitle" style="left:${padX+k*colStep}px;width:${bw}px">${col.label}</div>`;});
+  let boxes='';
+  Object.keys(pos).forEach(id=>{boxes+=`<div class="mm-bxpos" style="left:${pos[id].x}px;top:${pos[id].y}px;width:${bw}px;height:${bh}px">${mmBracketBox(id)}</div>`;});
   return `<div class="mm-bracket-wrap">
-    <div class="mm-bracket-hint">Chave completa da Copa · role pro lado → · toque num confronto já definido pra abrir os palpites abaixo</div>
-    <div class="mm-bracket-scroll"><div class="mm-bracket">${cols}</div></div>
+    <div class="mm-bracket-hint">Chave da Copa · toque num confronto já definido pra abrir os palpites abaixo</div>
+    <div class="mm-bracket-scroll"><div class="mm-bracket" data-w="${totalW}" data-h="${totalH}" style="width:${totalW}px;height:${totalH}px">
+      <svg class="mm-cn-svg" width="${totalW}" height="${totalH}" viewBox="0 0 ${totalW} ${totalH}" preserveAspectRatio="xMinYMin meet">${paths}</svg>
+      ${titles}${boxes}
+    </div></div>
   </div>`;
 }
+// Desktop (≥760px): escala a chave pra caber na largura SEM rolagem horizontal. Celular: rola.
+function mmFitBracket(){
+  const el=document.querySelector('#tab-mata .mm-bracket'); if(!el)return;
+  const wrap=el.parentElement, W=+el.dataset.w, H=+el.dataset.h;
+  if(window.innerWidth>=760){
+    const avail=Math.max(320,wrap.clientWidth-16), s=Math.min(1.3,avail/W);
+    el.style.transform='scale('+s+')';
+    wrap.style.height=(H*s+4)+'px'; wrap.style.overflowX='hidden';
+  }else{
+    el.style.transform='none'; wrap.style.height=''; wrap.style.overflowX='auto';
+  }
+}
+let _mmResizeBound=false;
 
 // ── LISTA: só fases que já existem; cada confronto é clicável e expande inline ──
 function mmListItem(c){
@@ -1832,6 +1895,8 @@ function renderMata(){
   });
   html+=temAlgum?lista:`<div class="empty-state">Nenhum confronto definido ainda — a chave acima mostra o esqueleto com “A definir”.</div>`;
   document.getElementById('tab-mata').innerHTML=html;
+  mmFitBracket();
+  if(!_mmResizeBound){_mmResizeBound=true;window.addEventListener('resize',()=>{if(activeTab==='mata')mmFitBracket();});}
 }
 
 // ─── ESPELHO PROD→DEV (só no ambiente de dev) ─────────────────────────────────
