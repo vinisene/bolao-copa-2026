@@ -1,5 +1,13 @@
 # CLAUDE.md
 
+> ## ⛔ REGRA PERMANENTE — NÃO subir pra produção sem ordem explícita
+> **Nunca** faça `merge` de Pull Request nem `push` para a branch **`main`** (produção), em
+> hipótese alguma, até o usuário pedir **explicitamente**. Frases que liberam: **"pode subir
+> para produção"** ou **"pode fazer o merge"**. Sem isso, não suba.
+> - Todo desenvolvimento acontece na branch **`dev`**.
+> - Se você achar que algo está pronto pra subir, **apenas avise e aguarde** a confirmação explícita.
+> - O **PR #3** deve permanecer **aberto e sem merge** até ordem em contrário.
+
 Guia de navegação do projeto. O objetivo é que, ao ler este arquivo, você saiba **onde mexer
 sem explorar o código**. Os números de linha **andam** a cada edição — confie nos **nomes de
 função** e nos **comentários de seção** (`// ─── NOME ───` no JS e `/* ── nome ── */` no CSS),
@@ -38,7 +46,8 @@ placar real, o app calcula pontos e monta ranking/estatísticas/gráficos.
 - **Bandeiras:** flagcdn.com (emoji não renderiza em Windows). `flagImg`/`flagUrl` derivam o
   código do país a partir do emoji.
 - **Deploy:** push na `main` → Cloudflare Pages publica sozinho (`bolao-copa-sene-piovan.pages.dev`,
-  repo `vinisene/bolao-copa-2026`). `netlify.toml` é legado.
+  repo `vinisene/bolao-copa-2026`). `netlify.toml` é legado. **⚠️ subir pra `main` só com ordem
+  explícita do usuário — ver regra no topo do arquivo.** Trabalho do dia a dia fica na `dev`.
 - **Dev local:** `npx serve` na porta 3333 (`.claude/launch.json`). Verificar no preview: console
   sem erros + viewport **mobile 375px** (uso principal).
 
@@ -210,7 +219,8 @@ Placar real e finalizar seguem o mesmo caminho: `updReal` (979) → coluna `real
 - **Pontos/ranking:** derive de `getStats`/`ptsOf`/`geralHistory`; não recalcule à mão.
 - **Mobile-first (375px).** Verificar no preview (porta 3333), console limpo, e olhar no mobile.
   No gráfico/SVG, lembrar que desktop preenche a largura e mobile rola pro lado.
-- **Deploy:** commit + push na `main` (mensagem em português, descritiva). Cloudflare publica.
+- **Deploy:** commitar na `dev` (mensagem em português, descritiva). **NÃO** dar push/merge na
+  `main` sem ordem explícita do usuário (ver regra no topo do arquivo). Cloudflare publica a `main`.
 
 ## 9. Adicionar um participante humano (checklist)
 
