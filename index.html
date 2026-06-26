@@ -391,6 +391,9 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .mm-bx-side.win{color:var(--g);}
 .mm-bx-side .flag-img{height:11px;width:auto;border-radius:2px;flex-shrink:0;}
 .mm-bx-nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mm-bx-nm.tbd{color:var(--mu);font-style:italic;font-weight:600;}
+.mm-bx.nolink{cursor:default;}
+.mm-bx.nolink:active{box-shadow:none;}
 .mm-bx-sc{font-weight:800;font-variant-numeric:tabular-nums;}
 .mm-bx-sc small{font-weight:600;color:var(--mu);}
 .mm-bracket-3rd{display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 10px;border:1px dashed var(--brd);border-radius:10px;}
@@ -1599,14 +1602,15 @@ function mmQuemPassaHTML(c,pid,editable){
   const p=(MM_PALPITES[c.id]||{})[pid]||{};
   const draw=(p.gols_a!=null&&p.gols_b!=null&&p.gols_a===p.gols_b);
   if(!draw)return '';
-  const fa=c.flag_a?flagImg(c.flag_a):'', fb=c.flag_b?flagImg(c.flag_b):'';
+  const tm=mmTeams(c);
+  const lbl=s=>{const t=s==='A'?tm.a:tm.b;return `${t&&t.flag?flagImg(t.flag):''} ${esc((t&&t.name)||s)}`;};
   if(!editable){   // IA: só mostra a escolha (leitura)
-    const t=p.quem_passa==='A'?`${fa} ${esc(c.team_a||'A')}`:p.quem_passa==='B'?`${fb} ${esc(c.team_b||'B')}`:'<i>(sem escolha)</i>';
+    const t=p.quem_passa==='A'?lbl('A'):p.quem_passa==='B'?lbl('B'):'<i>(sem escolha)</i>';
     return `<div class="mm-qp-static">passa nos pênaltis: ${t}</div>`;
   }
   return `<div class="mm-qp-in"><span class="mm-qp-lbl">passa nos pênaltis:</span>
-    <button class="mm-qpb sm${p.quem_passa==='A'?' on':''}" onclick="mmSetQuemPassa('${c.id}','${pid}','A')">${fa} ${esc(c.team_a||'A')}</button>
-    <button class="mm-qpb sm${p.quem_passa==='B'?' on':''}" onclick="mmSetQuemPassa('${c.id}','${pid}','B')">${fb} ${esc(c.team_b||'B')}</button>
+    <button class="mm-qpb sm${p.quem_passa==='A'?' on':''}" onclick="mmSetQuemPassa('${c.id}','${pid}','A')">${lbl('A')}</button>
+    <button class="mm-qpb sm${p.quem_passa==='B'?' on':''}" onclick="mmSetQuemPassa('${c.id}','${pid}','B')">${lbl('B')}</button>
   </div>`;
 }
 function mmRenderQuemPassa(cid,pid){
@@ -1670,8 +1674,9 @@ function mmCard(c){
     </div>`;
   });
   preds+=`</div>`;
-  const cbtn=(side,fl,tm)=>`<button class="mm-qpb${c.classificado===side?' on':''}" data-side="${side}" onclick="mmSetClassificado('${c.id}','${side}')">${fl?flagImg(fl):''} ${esc(tm||side)}</button>`;
-  const classRow=`<div class="mm-class"><span class="mm-class-lbl">Quem passou nos pênaltis (se empatar após a prorrogação):</span><div class="mm-class-btns">${cbtn('A',c.flag_a,c.team_a)}${cbtn('B',c.flag_b,c.team_b)}</div></div>`;
+  const tmc=mmTeams(c);
+  const cbtn=side=>{const t=side==='A'?tmc.a:tmc.b;return `<button class="mm-qpb${c.classificado===side?' on':''}" data-side="${side}" onclick="mmSetClassificado('${c.id}','${side}')">${t&&t.flag?flagImg(t.flag):''} ${esc((t&&t.name)||side)}</button>`;};
+  const classRow=`<div class="mm-class"><span class="mm-class-lbl">Quem passou nos pênaltis (se empatar após a prorrogação):</span><div class="mm-class-btns">${cbtn('A')}${cbtn('B')}</div></div>`;
   const realInp=side=>`<input type="number" min="0" max="99" inputmode="numeric" value="${c['real_'+side]!=null?c['real_'+side]:''}" placeholder="–" oninput="mmSetReal('${c.id}','${side}',this.value)">`;
   const resultRow=`<div class="real-row${c.finished?'':' pending'}">
       <div class="rr-line"><span class="rr-label">PLACAR FINAL${(!c.finished&&hasScore)?' <span class="prev-tag">prévia</span>':''}</span>${realInp('a')}<span class="sep">×</span>${realInp('b')}</div>
@@ -1679,35 +1684,60 @@ function mmCard(c){
     </div>`;
   return `<div class="${cls.join(' ')}" data-cid="${c.id}">${head}${mid}${preds}${editing?'':classRow}${editing?'':resultRow}</div>`;
 }
-// ── Esqueleto das fases (chave) ──
-const MM_PHASES=[
-  {key:'32avos', label:'32 avos', slots:16},
-  {key:'oitavas',label:'Oitavas', slots:8},
-  {key:'quartas',label:'Quartas', slots:4},
-  {key:'semis',  label:'Semis',   slots:2},
-  {key:'final',  label:'Final',   slots:1},
+// ── ESTRUTURA FIXA DA CHAVE (ligações entre as fases, em código, uma vez só) ──
+// Cada vaga referencia o "vencedor/perdedor do jogo X" da fase anterior. O sistema sabe
+// sozinho quem enfrenta quem — não precisa reinformar a cada rodada.
+const MM_BRACKET=(()=>{
+  const b={};
+  for(let i=1;i<=16;i++) b['r32_'+i]={phase:'32 avos'};
+  for(let i=1;i<=8;i++)  b['r16_'+i]={phase:'Oitavas', feeders:{A:{g:'r32_'+(2*i-1),take:'win'},B:{g:'r32_'+(2*i),take:'win'}}};
+  for(let i=1;i<=4;i++)  b['qf_'+i] ={phase:'Quartas', feeders:{A:{g:'r16_'+(2*i-1),take:'win'},B:{g:'r16_'+(2*i),take:'win'}}};
+  for(let i=1;i<=2;i++)  b['sf_'+i] ={phase:'Semis',   feeders:{A:{g:'qf_'+(2*i-1),take:'win'},B:{g:'qf_'+(2*i),take:'win'}}};
+  b['tp_1'] ={phase:'3º lugar', feeders:{A:{g:'sf_1',take:'lose'},B:{g:'sf_2',take:'lose'}}};   // 3º = perdedores das semis
+  b['fin_1']={phase:'Final',    feeders:{A:{g:'sf_1',take:'win'}, B:{g:'sf_2',take:'win'}}};
+  return b;
+})();
+// Colunas da esquerda → direita (3º lugar é coluna própria, logo ANTES da final)
+const MM_COLS=[
+  {key:'32avos', label:'32 avos',     ids:Array.from({length:16},(_,i)=>'r32_'+(i+1))},
+  {key:'oitavas',label:'Oitavas',     ids:Array.from({length:8}, (_,i)=>'r16_'+(i+1))},
+  {key:'quartas',label:'Quartas',     ids:Array.from({length:4}, (_,i)=>'qf_'+(i+1))},
+  {key:'semis',  label:'Semis',       ids:['sf_1','sf_2']},
+  {key:'3lugar', label:'🥉 3º lugar', ids:['tp_1']},
+  {key:'final',  label:'Final',       ids:['fin_1']},
 ];
 const mmOpen=new Set();   // confrontos expandidos na lista (preserva estado entre re-renders)
-function mmPhaseKey(phase){
-  const s=(phase||'').toLowerCase();
-  if(/3\s*[ºo]?\s*lugar|terceiro/.test(s))return '3lugar';
-  if(/oitav/.test(s))return 'oitavas';
-  if(/quart/.test(s))return 'quartas';
-  if(/semi/.test(s))return 'semis';
-  if(/\bfinal\b/.test(s))return 'final';
-  return '32avos';   // 32 avos / fallback
+function mmConf(id){return MM_CONFRONTOS.find(c=>c.id===id);}
+// Quem AVANÇOU de verdade — pelo PLACAR REAL (empate → pênaltis via classificado). NUNCA por palpite.
+function mmRealWinner(c){
+  if(!c||c.real_a==null||c.real_b==null)return null;
+  if(c.real_a>c.real_b)return 'A';
+  if(c.real_b>c.real_a)return 'B';
+  return (c.classificado==='A'||c.classificado==='B')?c.classificado:null;
 }
-function mmConfrontosDaFase(key){return MM_CONFRONTOS.filter(c=>mmPhaseKey(c.phase)===key);}
+// Time resolvido de um lado de uma vaga: {name,flag} ou null ("A definir"). Recursivo pela estrutura.
+function mmResolveSide(slotId,side){
+  const slot=MM_BRACKET[slotId];
+  if(slot&&slot.feeders){const f=slot.feeders[side];return mmOutcome(f.g,f.take);}
+  const c=mmConf(slotId); if(!c)return null;
+  const nm=side==='A'?c.team_a:c.team_b, fl=side==='A'?c.flag_a:c.flag_b;
+  return nm?{name:nm,flag:fl}:null;
+}
+function mmOutcome(gameId,take){
+  const w=mmRealWinner(mmConf(gameId)); if(w==null)return null;   // sem resultado real → vaga indefinida
+  const side=take==='win'?w:(w==='A'?'B':'A');
+  return mmResolveSide(gameId,side);
+}
+function mmTeams(c){return {a:mmResolveSide(c.id,'A'),b:mmResolveSide(c.id,'B')};}
 
-// Bloco do confronto (matchup) — mesmo visual da fase de grupos. Usado na chave e no cabeçalho da lista.
+// Bloco do confronto (matchup) — mesmo visual da fase de grupos; usa times RESOLVIDOS pela estrutura.
 function mmMatchupHTML(c){
-  const hasReal=c.finished&&c.real_a!=null&&c.real_b!=null;
+  const hasReal=c.finished&&c.real_a!=null&&c.real_b!=null, tm=mmTeams(c);
   const win=side=>{ if(!hasReal||c.real_a===c.real_b)return 'team'; const aw=c.real_a>c.real_b; return side==='A'?(aw?'team win':'team lose'):(aw?'team lose':'team win'); };
-  return `<div class="matchup">
-      <div class="${win('A')}"><span class="team-flag">${c.flag_a?flagImg(c.flag_a):''}</span><span class="team-name">${esc(c.team_a||'?')}</span></div>
+  const sd=(s,t)=>`<div class="${win(s)}"><span class="team-flag">${t&&t.flag?flagImg(t.flag):''}</span><span class="team-name">${esc((t&&t.name)||'A definir')}</span></div>`;
+  return `<div class="matchup">${sd('A',tm.a)}
       <div class="mid">${hasReal?`<div class="score-final">${c.real_a}<small>×</small>${c.real_b}</div>`:`<div class="vs-badge">×</div>`}<div class="venue">placar final</div></div>
-      <div class="${win('B')}"><span class="team-flag">${c.flag_b?flagImg(c.flag_b):''}</span><span class="team-name">${esc(c.team_b||'?')}</span></div>
-    </div>`;
+      ${sd('B',tm.b)}</div>`;
 }
 // Corpo do confronto (palpites dos 8 + quem passa + linha de resultado) — reusa pred-cell/real-row e calcMataPts.
 function mmCardBody(c){
@@ -1732,8 +1762,9 @@ function mmCardBody(c){
     </div>`;
   });
   preds+=`</div>`;
-  const cbtn=(side,fl,tm)=>`<button class="mm-qpb${c.classificado===side?' on':''}" data-side="${side}" onclick="mmSetClassificado('${c.id}','${side}')">${fl?flagImg(fl):''} ${esc(tm||side)}</button>`;
-  const classRow=`<div class="mm-class"><span class="mm-class-lbl">Quem passou nos pênaltis (se empatar após a prorrogação):</span><div class="mm-class-btns">${cbtn('A',c.flag_a,c.team_a)}${cbtn('B',c.flag_b,c.team_b)}</div></div>`;
+  const tmc=mmTeams(c);
+  const cbtn=side=>{const t=side==='A'?tmc.a:tmc.b;return `<button class="mm-qpb${c.classificado===side?' on':''}" data-side="${side}" onclick="mmSetClassificado('${c.id}','${side}')">${t&&t.flag?flagImg(t.flag):''} ${esc((t&&t.name)||side)}</button>`;};
+  const classRow=`<div class="mm-class"><span class="mm-class-lbl">Quem passou nos pênaltis (se empatar após a prorrogação):</span><div class="mm-class-btns">${cbtn('A')}${cbtn('B')}</div></div>`;
   const realInp=side=>`<input type="number" min="0" max="99" inputmode="numeric" value="${c['real_'+side]!=null?c['real_'+side]:''}" placeholder="–" oninput="mmSetReal('${c.id}','${side}',this.value)">`;
   const resultRow=`<div class="real-row${c.finished?'':' pending'}">
       <div class="rr-line"><span class="rr-label">PLACAR FINAL${(!c.finished&&hasScore)?' <span class="prev-tag">prévia</span>':''}</span>${realInp('a')}<span class="sep">×</span>${realInp('b')}</div>
@@ -1742,30 +1773,26 @@ function mmCardBody(c){
   return preds+classRow+resultRow;
 }
 
-// ── CHAVE (bracket): esqueleto completo de todas as fases; confronto sem dado = "A definir" ──
-function mmBracketBox(c){
-  if(!c)return `<div class="mm-bx empty"><span class="mm-bx-tbd">A definir</span></div>`;
-  const fin=c.finished&&c.real_a!=null&&c.real_b!=null;
-  const side=s=>{
-    const t=s==='A'?c.team_a:c.team_b, f=s==='A'?c.flag_a:c.flag_b, g=s==='A'?c.real_a:c.real_b;
-    const win=fin&&c.real_a!==c.real_b&&((s==='A')===(c.real_a>c.real_b));
-    const adv=fin&&c.real_a===c.real_b&&c.classificado===s;   // passou nos pênaltis
-    return `<div class="mm-bx-side${win||adv?' win':''}">${f?flagImg(f):''}<span class="mm-bx-nm">${esc(t||'?')}</span><span class="mm-bx-sc">${fin?g:''}${adv?' <small>(p)</small>':''}</span></div>`;
+// ── CHAVE (bracket): esqueleto FIXO de todas as fases; vaga sem time resolvido = "A definir" ──
+function mmBracketBox(slotId){
+  const c=mmConf(slotId), tm={a:mmResolveSide(slotId,'A'),b:mmResolveSide(slotId,'B')};
+  const fin=c&&c.finished&&c.real_a!=null&&c.real_b!=null, w=mmRealWinner(c);
+  const side=(s,t)=>{
+    const sc=c?(s==='A'?c.real_a:c.real_b):null;
+    const adv=c&&c.real_a===c.real_b&&c.classificado===s;   // passou nos pênaltis
+    return `<div class="mm-bx-side${w===s?' win':''}">${t&&t.flag?flagImg(t.flag):''}<span class="mm-bx-nm${t?'':' tbd'}">${t?esc(t.name):'A definir'}</span><span class="mm-bx-sc">${fin&&sc!=null?sc:''}${adv?' <small>(p)</small>':''}</span></div>`;
   };
-  return `<div class="mm-bx" onclick="mmGotoConfronto('${c.id}')" title="${esc((c.team_a||'?')+' x '+(c.team_b||'?'))}">${side('A')}${side('B')}</div>`;
+  const playable=!!(c&&tm.a&&tm.b);   // tem confronto e os dois times conhecidos → clicável (abre na lista)
+  return `<div class="mm-bx${playable?'':' nolink'}"${playable?` onclick="mmGotoConfronto('${slotId}')"`:''} title="${esc(((tm.a&&tm.a.name)||'A definir')+' x '+((tm.b&&tm.b.name)||'A definir'))}">${side('A',tm.a)}${side('B',tm.b)}</div>`;
 }
 function mmBracketHTML(){
-  const cols=MM_PHASES.map(ph=>{
-    const list=mmConfrontosDaFase(ph.key);
-    let boxes='';
-    for(let i=0;i<ph.slots;i++)boxes+=mmBracketBox(list[i]);
-    return `<div class="mm-col"><div class="mm-col-title">${ph.label}</div><div class="mm-col-body">${boxes}</div></div>`;
+  const cols=MM_COLS.map(col=>{
+    const boxes=col.ids.map(id=>mmBracketBox(id)).join('');
+    return `<div class="mm-col"><div class="mm-col-title">${col.label}</div><div class="mm-col-body">${boxes}</div></div>`;
   }).join('');
-  const tBox=mmBracketBox(mmConfrontosDaFase('3lugar')[0]);
   return `<div class="mm-bracket-wrap">
-    <div class="mm-bracket-hint">Chave completa · role pro lado → · toque num confronto pra abrir os palpites abaixo</div>
+    <div class="mm-bracket-hint">Chave completa da Copa · role pro lado → · toque num confronto já definido pra abrir os palpites abaixo</div>
     <div class="mm-bracket-scroll"><div class="mm-bracket">${cols}</div></div>
-    <div class="mm-bracket-3rd"><span class="mm-col-title">🥉 3º lugar</span>${tBox}</div>
   </div>`;
 }
 
@@ -1794,16 +1821,16 @@ function mmGotoConfronto(cid){
 function renderMata(){
   let html=`<div class="mm-intro">⚔️ <b>Fase Mata-Mata</b> — palpite o <b>placar final</b> (inclui prorrogação). Empatou no palpite? Escolha quem passa nos pênaltis. Pontos: 5 resultado · +1 gol A · +1 gol B · +3 exato · <b>+4</b> se cravar quem passa num empate.</div>`;
   html+=mmBracketHTML();
-  const order=MM_PHASES.concat([{key:'3lugar',label:'🥉 3º lugar'}]);
+  // Lista: por coluna, só os confrontos que JÁ EXISTEM e com os DOIS times definidos (jogáveis).
   let temAlgum=false, lista='';
-  order.forEach(ph=>{
-    const list=mmConfrontosDaFase(ph.key);
-    if(!list.length)return;
+  MM_COLS.forEach(col=>{
+    const items=col.ids.map(id=>mmConf(id)).filter(c=>c&&mmResolveSide(c.id,'A')&&mmResolveSide(c.id,'B'));
+    if(!items.length)return;
     temAlgum=true;
-    lista+=`<div class="section-hdr"><span class="section-badge">${ph.label}</span><div class="section-line"></div></div>`;
-    list.forEach(c=>{lista+=mmListItem(c);});
+    lista+=`<div class="section-hdr"><span class="section-badge">${col.label}</span><div class="section-line"></div></div>`;
+    items.forEach(c=>{lista+=mmListItem(c);});
   });
-  html+=temAlgum?lista:`<div class="empty-state">Nenhum confronto cadastrado ainda — a chave acima mostra o esqueleto com “A definir”.</div>`;
+  html+=temAlgum?lista:`<div class="empty-state">Nenhum confronto definido ainda — a chave acima mostra o esqueleto com “A definir”.</div>`;
   document.getElementById('tab-mata').innerHTML=html;
 }
 

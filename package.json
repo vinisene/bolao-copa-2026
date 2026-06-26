@@ -8,6 +8,8 @@
     "backup": "node scripts/backup-supabase.mjs",
     "seed:teste": "node scripts/mata-teste.mjs seed",
     "clean:teste": "node scripts/mata-teste.mjs clean",
+    "seed:chave": "node scripts/seed-bracket.mjs seed",
+    "clean:chave": "node scripts/seed-bracket.mjs clean",
     "dev": "npx serve -p 3333 ."
   }
 }
