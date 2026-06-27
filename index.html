@@ -445,46 +445,69 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .mm-humans{display:grid;grid-template-columns:1fr;gap:7px;margin-bottom:9px;}
 .mm-ias{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;}
 @media(min-width:680px){.mm-humans{grid-template-columns:repeat(2,minmax(0,1fr));}}
-/* Célula do humano: id à esquerda · placar centralizado · seletor à direita (4.1/4.2) */
-.mm-hcell{display:flex;flex-direction:row;align-items:center;gap:6px;}
-.mm-hc-id{display:flex;align-items:center;gap:6px;flex:0 0 auto;min-width:0;max-width:44%;}
-.mm-hc-id .hum-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.mm-hc-score{flex:1;display:flex;justify-content:center;}
-.mm-hc-passa{flex:0 0 auto;}
-/* 5.1: no DESKTOP o seletor desce pra baixo do placar (no celular fica à direita, como hoje) */
-@media(min-width:680px){
-  .mm-hcell{flex-wrap:wrap;}
-  .mm-hc-passa{flex:1 1 100%;display:flex;justify-content:center;margin-top:5px;}
-}
-/* Célula da IA: nome em cima; placar + seletor na 2ª linha (5.1) */
-.mm-iacell{display:flex;flex-direction:column;gap:5px;padding:7px 8px;}
+/* Célula do humano (1): 1/3 = foto (em cima) + nome (embaixo) centralizados; 2/3 = placar + "quem passa" centralizados */
+.mm-hcell{display:flex;flex-direction:row;align-items:stretch;gap:6px;}
+.mm-hc-id{flex:0 0 33%;max-width:33%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;text-align:center;min-width:0;}
+.mm-hc-id .hum-name{font-size:12.5px;font-weight:800;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mm-hc-main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-width:0;}
+.mm-hc-passa{display:flex;justify-content:center;}
+/* Célula da IA (2): nome em cima; placar (1 linha) + seletor na 2ª linha — bem compacta */
+.mm-iacell{display:flex;flex-direction:column;gap:3px;padding:6px 8px;}
 .mm-iacell-head{display:flex;align-items:center;gap:6px;min-width:0;}
-.mm-iacell .hum-name{font-size:12.5px;font-weight:800;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mm-iacell .hum-name{font-size:12px;font-weight:800;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .mm-iacell-row{display:flex;align-items:center;gap:8px;}
+.mm-iacell-row .mm-iascore{flex:0 0 auto;white-space:nowrap;padding:3px 8px;font-size:14px;min-width:auto;}
 .mm-iacell-row .mm-hc-passa{margin-left:auto;}
-/* Seletor "Quem passa / Pênaltis" em 2 linhas (4.2) */
+/* Seletor "Quem passa / Pênaltis" em 2 linhas */
 .mm-passa{display:flex;flex-direction:column;align-items:center;gap:2px;}
 .mm-passa-lbl{font-size:8px;font-weight:800;color:var(--mu);text-transform:uppercase;letter-spacing:.2px;white-space:nowrap;}
 .mm-passa.pen .mm-passa-lbl{color:#c0392b;}
+.mm-passa.idle{opacity:.6;}
 .mm-passa-opts{display:flex;gap:3px;}
-.mm-po{background:var(--bg);border:1.5px solid var(--brd);border-radius:6px;padding:3px 5px;cursor:pointer;display:inline-flex;align-items:center;line-height:1;}
+.mm-po{background:var(--card);border:1.5px solid var(--brd);border-radius:6px;padding:3px 5px;cursor:pointer;display:inline-flex;align-items:center;line-height:1;}
 .mm-po .flagbx{width:20px;height:13px;}
 .mm-po.ro{cursor:default;}
 .mm-po.on{border-color:var(--g);background:#e7f3ea;box-shadow:inset 0 0 0 1px var(--g);}
 .mm-passa.pen .mm-po.on{border-color:#c0392b;background:#fdeae8;box-shadow:inset 0 0 0 1px #c0392b;}
-/* TURBO (1.1): laranja só no CABEÇALHO e no RODAPÉ "placar final" (miolo normal) + borda laranja */
+/* Rodapé com "Quem passou" DENTRO da faixa verde (Parte 3) */
+.real-row.mm-footer{flex-direction:column;align-items:stretch;gap:8px;}
+.mm-fqp{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.mm-fqp-lbl{font-size:9.5px;font-weight:800;color:rgba(255,255,255,.78);text-transform:uppercase;letter-spacing:.3px;}
+.mm-fqp-btns{display:flex;gap:6px;}
+.mm-fqp-btn{background:rgba(255,255,255,.14);border:1.5px solid rgba(255,255,255,.4);border-radius:7px;padding:3px 8px;font-size:11px;font-weight:700;color:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:4px;}
+.mm-fqp-btn .flag-img{height:12px;border-radius:2px;}
+.mm-fqp-btn.on{background:var(--gold);border-color:var(--gold);color:#5c4708;}
+.mm-footrow{display:flex;align-items:center;gap:9px;}
+.mm-footrow .rr-line{flex:3;}
+/* TURBO (1.1): laranja no cabeçalho e rodapé; texto ESCURO pra contraste (4.1) */
 .mm-litem.is-turbo{border-color:#ff7a00;box-shadow:0 0 0 2px rgba(255,122,0,.35),0 4px 14px rgba(255,122,0,.18);}
-.mm-litem.is-turbo .card-head{background:linear-gradient(135deg,#ff7a00,#ff5a1f);}
-.mm-litem.is-turbo .real-row,.mm-litem.is-turbo .real-row.pending{background:repeating-linear-gradient(135deg,#ff7a00,#ff7a00 10px,#e85d00 10px,#e85d00 20px);}
-/* PALPITE FALTANDO (7): borda amarela no card + célula amarela de quem não palpitou */
+.mm-litem.is-turbo .card-head{background:linear-gradient(135deg,#ff8c1a,#ff6a00);}
+.mm-litem.is-turbo .card-head .grp-tag,.mm-litem.is-turbo .card-head .dt-tag{color:#0f4424;}
+.mm-litem.is-turbo .card-head .bl-tag.abe{background:rgba(0,0,0,.16);color:#0f4424;}
+.mm-litem.is-turbo .real-row,.mm-litem.is-turbo .real-row.pending{background:repeating-linear-gradient(135deg,#ff8c1a,#ff8c1a 10px,#f06f00 10px,#f06f00 20px);}
+.mm-litem.is-turbo .real-row .rr-label,.mm-litem.is-turbo .mm-fqp-lbl{color:#5c2e00;}
+.mm-litem.is-turbo .mm-fqp-btn{border-color:rgba(0,0,0,.3);color:#3a1c00;background:rgba(255,255,255,.4);}
+/* PALPITE FALTANDO (7): borda amarela + célula amarela de quem não palpitou */
 .mm-litem.mm-miss{border-color:#e8c44a;box-shadow:0 0 0 2px rgba(232,196,74,.45);}
 .mm-litem.is-turbo.mm-miss{border-color:#e8c44a;box-shadow:0 0 0 2px rgba(232,196,74,.6),0 4px 14px rgba(255,122,0,.18);}
 .mm-hcell.mm-miss-cell{background:#fff8e1;border-color:#e8c44a;}
-/* Card-fantasma (3.1): time vazio = caixa tracejada, sem texto */
+/* Card FINALIZADO esmaecido (10.1) */
+.mm-litem.mm-fin{filter:saturate(.55);opacity:.82;}
+/* Card-fantasma + "?" do time indefinido (Parte 5) */
 .mm-ghost{opacity:.95;}
-.mm-tbd .team-flag::before{content:'';display:block;width:46px;height:31px;border:1.6px dashed var(--brd);border-radius:5px;}
+.mm-q{display:inline-flex;align-items:center;justify-content:center;width:46px;height:31px;border:1.6px dashed var(--brd);border-radius:5px;color:var(--mu);font-weight:800;font-size:18px;}
 .mm-tbd .team-name{min-height:13px;}
-.mm-passa.idle{opacity:.65;}   /* seletor carregado mas sem palpite ainda */
+/* Cabeçalho do card: fonte um pouco maior (6) — igual no celular e no desktop */
+.mm-litem .card-head .grp-tag,.mm-ghost .card-head .grp-tag{font-size:11px;}
+.mm-litem .card-head .dt-tag,.mm-ghost .card-head .dt-tag{font-size:12px;}
+/* Quebra de dia colapsável (10.2) */
+.mm-datehdr{cursor:pointer;user-select:none;}
+.mm-day-arrow{font-size:11px;color:var(--mu);font-weight:800;flex-shrink:0;}
+/* Chave: perdedor em cinza + tag "pên" sem desalinhar placar (Parte 9) */
+.mm-bx-side.lost{opacity:.4;}
+.mm-bx-side.lost .mm-bx-nm{text-decoration:line-through;}
+.mm-bx-pen{font-size:7px;font-weight:800;color:var(--g);background:#e7f3ea;border-radius:3px;padding:0 3px;margin-left:4px;vertical-align:1px;}
+.mm-bx-sc{min-width:12px;text-align:right;}
 /* Blocos do topo do mata-mata (próximos / ranking / como funciona) */
 .mm-block{background:var(--card);border:1px solid var(--brd);border-radius:14px;padding:12px 14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(15,68,36,.05);}
 .mm-block-h{font-size:13px;font-weight:800;color:var(--gd);}
@@ -883,7 +906,7 @@ function tickCountdown(){
   if(!els.length){if(_cdInterval){clearInterval(_cdInterval);_cdInterval=null;}return;}
   let expired=false;
   els.forEach(el=>{const rem=+el.dataset.t-Date.now(); if(rem<=0)expired=true; else el.textContent=fmtCountdown(rem);});
-  if(expired&&!isTyping())renderPalpites();   // algum jogo começou: atualiza a lista do dia
+  if(expired&&!isTyping())renderAll();   // algum jogo começou: atualiza a aba ativa (palpites ou mata)
 }
 // Jogos do dia: do agora até as 6h da próxima manhã (madrugada conta como o mesmo "dia")
 function todaySlate(){
@@ -1572,7 +1595,11 @@ function mmIsTurbo(c){return MM_TURBO.has(c.id);}
 const MM_PHASE_MULT={'32avos':1,'oitavas':1.25,'quartas':1.5,'semis':1.75,'3lugar':1.75,'final':4};
 function mmPhaseKeyOf(id){const col=MM_COLS.find(c=>c.ids.includes(id));return col?col.key:'32avos';}
 function mmMult(c){return (MM_PHASE_MULT[mmPhaseKeyOf(c.id)]||1)*(mmIsTurbo(c)?2:1);}
-function mmMissingHuman(c){return PARTICIPANTS.some(p=>p.type==='human'&&(MM_PALPITES[c.id]||{})[p.id]?.gols_a==null);}
+// Palpite só conta como DADO com os DOIS gols preenchidos (e, se empate, também o "quem passa") — Parte 7.
+function mmHasFullPred(pal){return !!(pal&&pal.gols_a!=null&&pal.gols_b!=null&&(pal.gols_a!==pal.gols_b||pal.quem_passa));}
+function mmMissingHuman(c){return PARTICIPANTS.some(p=>p.type==='human'&&!mmHasFullPred((MM_PALPITES[c.id]||{})[p.id]));}
+const mmCollapsedDays=new Set();   // 10: dias recolhidos na lista
+let mmDaysInit=false;
 
 async function loadMata(){
   try{
@@ -1744,7 +1771,7 @@ function mmRefreshPts(cid){
   card.classList.toggle('mm-miss',mmMissingHuman(c));
   PARTICIPANTS.filter(p=>p.type==='human').forEach(p=>{
     const cell=card.querySelector(`.mm-hcell[data-pid="${p.id}"]`);
-    if(cell)cell.classList.toggle('mm-miss-cell',(MM_PALPITES[cid]||{})[p.id]?.gols_a==null);
+    if(cell)cell.classList.toggle('mm-miss-cell',!mmHasFullPred((MM_PALPITES[cid]||{})[p.id]));
   });
 }
 function mmCard(c){
@@ -1895,7 +1922,7 @@ function mmTeams(c){return {a:mmResolveSide(c.id,'A'),b:mmResolveSide(c.id,'B')}
 function mmMatchupHTML(c){
   const hasReal=c.finished&&c.real_a!=null&&c.real_b!=null, tm=mmTeams(c);
   const win=side=>{ if(!hasReal||c.real_a===c.real_b)return 'team'; const aw=c.real_a>c.real_b; return side==='A'?(aw?'team win':'team lose'):(aw?'team lose':'team win'); };
-  const sd=(s,t)=>`<div class="${win(s)}${t?'':' mm-tbd'}"><span class="team-flag">${mmFlag(t&&t.flag)}</span><span class="team-name">${esc((t&&t.name)||'')}</span></div>`;
+  const sd=(s,t)=>`<div class="${win(s)}${t?'':' mm-tbd'}"><span class="team-flag">${t?mmFlag(t.flag):'<span class="mm-q">?</span>'}</span><span class="team-name">${esc((t&&t.name)||'')}</span></div>`;
   // Centro: bolinha "×" (ou placar) e, logo abaixo, o local (📍) — omitido quando não há (sem inventar).
   const ven=mmInfo(c).ven;
   const venue=ven?`<div class="venue">📍 ${esc(ven)}</div>`:'';
@@ -1916,16 +1943,15 @@ function mmCardBody(c){
     const passa=`<div class="mm-qp mm-hc-passa" data-pid="${pid}">${mmQuemPassaHTML(c,pid,isHuman)}</div>`;
     if(isHuman){
       const inp=side=>`<input type="number" min="0" max="99" inputmode="numeric" value="${pal['gols_'+side]!=null?pal['gols_'+side]:''}" placeholder="–" oninput="mmUpdPalpite('${c.id}','${pid}','gols_${side}',this.value)">`;
-      // 4.1: id à esquerda, placar CENTRALIZADO no meio, seletor à direita. 7.2: célula amarela se faltar.
-      return `<div class="pred-cell human mm-cell mm-hcell${hasPred?'':' mm-miss-cell'}" data-pid="${pid}">
+      // 1.1/1.2/1.3: foto+nome em 1/3 (foto em cima, nome embaixo); placar + "quem passa" centralizados nos 2/3.
+      return `<div class="pred-cell human mm-cell mm-hcell${mmHasFullPred(pal)?'':' mm-miss-cell'}" data-pid="${pid}">
         <div class="mm-hc-id">${av}<span class="hum-name">${p.name}</span></div>
-        <div class="mm-hc-score"><div class="pc-inputs">${inp('a')}<span class="sep">×</span>${inp('b')}</div></div>
-        ${passa}
+        <div class="mm-hc-main"><div class="pc-inputs">${inp('a')}<span class="sep">×</span>${inp('b')}</div>${passa}</div>
       </div>`;
     }
     return `<div class="pred-cell ia mm-cell mm-iacell" data-pid="${pid}">
       <div class="mm-iacell-head">${av}<span class="hum-name">${p.name}</span></div>
-      <div class="mm-iacell-row"><div class="mm-iascore${hasPred?'':' empty'}">${hasPred?`${pal.gols_a} × ${pal.gols_b}`:'– × –'}</div>${passa}</div>
+      <div class="mm-iacell-row"><div class="mm-iascore${hasPred?'':' empty'}">${hasPred?`${pal.gols_a}&nbsp;×&nbsp;${pal.gols_b}`:'–&nbsp;×&nbsp;–'}</div>${passa}</div>
     </div>`;
   };
   const humans=PARTICIPANTS.filter(p=>p.type==='human');
@@ -1933,16 +1959,16 @@ function mmCardBody(c){
   return `<div class="mm-preds-wrap"><div class="mm-humans">${humans.map(cell).join('')}</div><div class="mm-ias">${ias.map(cell).join('')}</div></div>`;
 }
 // Rodapé sempre visível: "quem passou" REAL (só em empate real) + linha PLACAR FINAL.
+// Rodapé (faixa verde/laranja): "Quem passou" + linha PLACAR FINAL, tudo DENTRO do rodapé (Parte 3).
 function mmResultHTML(c){
-  const hasScore=c.real_a!=null&&c.real_b!=null, realDraw=hasScore&&c.real_a===c.real_b, tmc=mmTeams(c);
-  const cbtn=side=>{const t=side==='A'?tmc.a:tmc.b;return `<button class="mm-qpb${c.classificado===side?' on':''}" data-side="${side}" onclick="mmSetClassificado('${c.id}','${side}')">${t&&t.flag?flagImg(t.flag):''} ${esc((t&&t.name)||side)}</button>`;};
-  const classRow=`<div class="mm-class"><span class="mm-class-lbl">Quem passou (pênaltis, se empatar):</span><div class="mm-class-btns">${cbtn('A')}${cbtn('B')}</div></div>`;
+  const hasScore=c.real_a!=null&&c.real_b!=null, tmc=mmTeams(c);
+  const cbtn=side=>{const t=side==='A'?tmc.a:tmc.b;return `<button class="mm-fqp-btn${c.classificado===side?' on':''}" data-side="${side}" onclick="mmSetClassificado('${c.id}','${side}')">${t&&t.flag?flagImg(t.flag):''} ${esc((t&&t.name)||side)}</button>`;};
   const realInp=side=>`<input type="number" min="0" max="99" inputmode="numeric" value="${c['real_'+side]!=null?c['real_'+side]:''}" placeholder="–" oninput="mmSetReal('${c.id}','${side}',this.value)">`;
-  const resultRow=`<div class="real-row${c.finished?'':' pending'}">
-      <div class="rr-line"><span class="rr-label">PLACAR FINAL${(!c.finished&&hasScore)?' <span class="prev-tag">prévia</span>':''}</span>${realInp('a')}<span class="sep">×</span>${realInp('b')}</div>
-      <button class="rr-finish${c.finished?' done':''}" onclick="mmSetFinished('${c.id}')">${c.finished?'Finalizado ✅':'Finalizar <span class="chk-off">✓</span>'}</button>
+  return `<div class="real-row mm-footer${c.finished?'':' pending'}">
+      <div class="mm-fqp"><span class="mm-fqp-lbl">Quem passou (pênaltis):</span><div class="mm-fqp-btns">${cbtn('A')}${cbtn('B')}</div></div>
+      <div class="mm-footrow"><div class="rr-line"><span class="rr-label">PLACAR FINAL${(!c.finished&&hasScore)?' <span class="prev-tag">prévia</span>':''}</span>${realInp('a')}<span class="sep">×</span>${realInp('b')}</div>
+      <button class="rr-finish${c.finished?' done':''}" onclick="mmSetFinished('${c.id}')">${c.finished?'Finalizado ✅':'Finalizar <span class="chk-off">✓</span>'}</button></div>
     </div>`;
-  return classRow+resultRow;
 }
 
 // ── CHAVE (bracket): esqueleto FIXO de todas as fases; vaga sem time resolvido = "A definir" ──
@@ -1952,8 +1978,10 @@ function mmBracketBox(slotId){
   const side=(s,t)=>{
     if(!t)return `<div class="mm-bx-side empty"></div>`;   // vaga futura → caixa VAZIA (sem texto)
     const sc=c?(s==='A'?c.real_a:c.real_b):null;
-    const adv=c&&c.real_a===c.real_b&&c.classificado===s;   // passou nos pênaltis
-    return `<div class="mm-bx-side${w===s?' win':''}">${mmFlag(t.flag)}<span class="mm-bx-nm">${esc(t.name)}</span><span class="mm-bx-sc">${fin&&sc!=null?sc:''}${adv?' <small>(p)</small>':''}</span></div>`;
+    const adv=fin&&c.real_a===c.real_b&&c.classificado===s;   // passou nos pênaltis
+    const won=fin&&w===s, lost=fin&&w&&w!==s;
+    // (p) vira tag ao lado do NOME (não no placar) pra não desalinhar a coluna dos números.
+    return `<div class="mm-bx-side${won?' win':''}${lost?' lost':''}">${mmFlag(t.flag)}<span class="mm-bx-nm">${esc(t.name)}${adv?'<span class="mm-bx-pen">pên</span>':''}</span><span class="mm-bx-sc">${fin&&sc!=null?sc:''}</span></div>`;
   };
   const playable=!!(c&&tm.a&&tm.b);   // tem confronto e os dois times conhecidos → clicável (abre na lista)
   return `<div class="mm-bx${playable?'':' nolink'}"${playable?` onclick="mmGotoConfronto('${slotId}')"`:''} title="${esc(((tm.a&&tm.a.name)||'A definir')+' x '+((tm.b&&tm.b.name)||'A definir'))}">${side('A',tm.a)}${side('B',tm.b)}</div>`;
@@ -1984,9 +2012,10 @@ function mmToggleCol(key){if(mmCollapsedCols.has(key))mmCollapsedCols.delete(key
 // a coluna expandida mais à esquerda é distribuída uniformemente e as seguintes centralizam entre os
 // feeders, então recolher fases antigas reduz altura E largura, deslocando o foco pra esquerda.
 function mmBracketHTML(){
-  const bw=120, bh=46, gapX=38, gapY=12, titleH=24, colW0=32, padX=6, padR=8, padB=12, padY=titleH+12;
+  const bw=120, bh=46, gapX=38, gapXc=12, gapY=12, titleH=24, colW0=18, padX=6, padR=8, padB=12, padY=titleH+12;
   const colX={}, colWid={}; let x=padX;
-  MM_COLS.forEach(col=>{const w=mmCollapsedCols.has(col.key)?colW0:bw;colX[col.key]=x;colWid[col.key]=w;x+=w+gapX;});
+  // Colapsada: faixa mais fina (colW0) e gap menor (gapXc) → sobra espaço pra ver as fases à direita (8.1).
+  MM_COLS.forEach(col=>{const cl=mmCollapsedCols.has(col.key);const w=cl?colW0:bw;colX[col.key]=x;colWid[col.key]=w;x+=w+(cl?gapXc:gapX);});
   const pos={}; let maxBottom=padY;
   MM_COLS.forEach((col,ci)=>{
     if(mmCollapsedCols.has(col.key))return;
@@ -2041,7 +2070,7 @@ let _mmResizeBound=false;
 // ── LISTA: só fases que já existem; cada confronto é clicável e expande inline ──
 function mmListItem(c){
   const open=mmOpen.has(c.id);
-  const cls=['mm-litem']; if(open)cls.push('open'); if(mmIsTurbo(c))cls.push('is-turbo'); if(mmMissingHuman(c))cls.push('mm-miss');
+  const cls=['mm-litem']; if(open)cls.push('open'); if(mmIsTurbo(c))cls.push('is-turbo'); if(mmMissingHuman(c))cls.push('mm-miss'); if(c.finished)cls.push('mm-fin');
   // Cabeçalho + bandeiras/local + rodapé SEMPRE visíveis; só os palpites colapsam (3.1).
   return `<div class="${cls.join(' ')}" data-cid="${c.id}">
     ${mmHeadHTML(c)}
@@ -2064,20 +2093,29 @@ function mmGotoConfronto(cid){
 }
 // Card-fantasma (3.1): fase ainda sem confronto definido → mostra data/hora/local, sem bandeiras/times.
 function mmGhostCard(c){
-  return `<div class="mm-litem mm-ghost" data-cid="${c.id}">${mmHeadHTML(c)}<div class="mm-litem-summary mm-ghost-sum">${mmMatchupHTML(c)}</div></div>`;
+  return `<div class="mm-litem mm-ghost${mmIsTurbo(c)?' is-turbo':''}" data-cid="${c.id}">${mmHeadHTML(c)}<div class="mm-litem-summary mm-ghost-sum">${mmMatchupHTML(c)}</div></div>`;
 }
-// Lista da fase do filtro: TODOS os jogos (fantasmas pras vagas não definidas), separados por DATA (7.1).
+// Na 1ª vez, recolhe os dias que JÁ PASSARAM (10.3); dias futuros começam abertos.
+function mmEnsureDaysInit(){
+  if(mmDaysInit)return; mmDaysInit=true;
+  const now=new Date(), hoje=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  MM_CONFRONTOS.forEach(c=>{const d=mmGameDate(c);if(d&&new Date(d.getFullYear(),d.getMonth(),d.getDate())<hoje)mmCollapsedDays.add(mmInfo(c).dt);});
+}
+function mmToggleDay(dt){if(mmCollapsedDays.has(dt))mmCollapsedDays.delete(dt);else mmCollapsedDays.add(dt);const l=document.getElementById('mm-list');if(l)l.innerHTML=mmListHTML();}
+// Lista da fase do filtro: TODOS os jogos (fantasmas pras vagas não definidas), por DATA, dia colapsável (7.1/10).
 function mmListHTML(){
+  mmEnsureDaysInit();
   const col=MM_COLS.find(c=>c.key===mmPhaseFilter)||MM_COLS[0];
   const cards=col.ids.map(id=>mmConf(id)).filter(Boolean).sort((a,b)=>mmSchedKey(a)-mmSchedKey(b));
   if(!cards.length)return `<div class="empty-state">Confrontos ainda não definidos.</div>`;
-  let html='', lastDate='__';
-  cards.forEach(c=>{
-    const dt=mmInfo(c).dt;
-    if(dt!==lastDate){lastDate=dt;html+=`<div class="section-hdr mm-datehdr"><span class="section-badge">${dt?mmWeekday(dt)+', '+esc(dt):'Sem data'}</span><div class="section-line"></div></div>`;}
-    const def=mmResolveSide(c.id,'A')&&mmResolveSide(c.id,'B');
-    html+=def?mmListItem(c):mmGhostCard(c);
-  });
+  let html='', i=0;
+  while(i<cards.length){
+    const dt=mmInfo(cards[i]).dt, group=[];
+    while(i<cards.length&&mmInfo(cards[i]).dt===dt){group.push(cards[i]);i++;}
+    const col2=mmCollapsedDays.has(dt);
+    html+=`<div class="section-hdr mm-datehdr${col2?' col':''}" onclick="mmToggleDay('${dt||''}')"><span class="section-badge">${dt?mmWeekday(dt)+', '+esc(dt):'Sem data'} (${group.length})</span><div class="section-line"></div><span class="mm-day-arrow">${col2?'▼':'▲'}</span></div>`;
+    if(!col2)group.forEach(c=>{html+=(mmResolveSide(c.id,'A')&&mmResolveSide(c.id,'B'))?mmListItem(c):mmGhostCard(c);});
+  }
   return html;
 }
 function mmSetPhase(key){
@@ -2087,25 +2125,29 @@ function mmSetPhase(key){
 }
 // Data/hora de um jogo (pra calcular "próximos" e ordenar).
 function mmGameDate(c){const i=mmInfo(c);if(!i.dt)return null;const [dd,mm]=i.dt.split('/').map(Number);const h=i.tm?parseInt(i.tm)||0:0;const mi=(i.tm&&i.tm.split('h')[1])?parseInt(i.tm.split('h')[1]):0;return new Date(2026,mm-1,dd,h,mi);}
-// (1) Próximos 3 jogos do mata-mata (agenda vs. hoje).
+// (1) Próximos 3 jogos do mata-mata — MESMO visual do hero "jogos de hoje" da fase de grupos (com contagem).
+function mmGotoFromHero(cid){mmSetPhase(mmPhaseKeyOf(cid));mmGotoConfronto(cid);}
 function mmNextGamesHTML(){
-  const now=new Date(), hoje=new Date(now.getFullYear(),now.getMonth(),now.getDate());
-  const up=MM_CONFRONTOS.map(c=>({c,d:mmGameDate(c)})).filter(x=>x.d&&x.d>=hoje).sort((a,b)=>a.d-b.d).slice(0,3);
+  const now=Date.now();
+  const up=MM_CONFRONTOS.map(c=>({c,d:mmGameDate(c)})).filter(x=>x.d&&x.d.getTime()>now).sort((a,b)=>a.d-b.d).slice(0,3);
   if(!up.length)return '';
-  const row=({c})=>{const i=mmInfo(c),tm=mmTeams(c);const sd=t=>t?`${mmFlag(t.flag)} ${esc(t.name)}`:'<i class="mm-next-tbd">A definir</i>';
-    return `<div class="mm-next-row" onclick="mmSetPhase('${mmPhaseKeyOf(c.id)}');document.getElementById('mm-list').scrollIntoView({behavior:'smooth',block:'start'})">
-      <div class="mm-next-when">${mmWeekday(i.dt)}, ${esc(i.dt)}${i.tm?' · '+esc(i.tm):''}</div>
-      <div class="mm-next-teams">${sd(tm.a)} <span class="mm-next-x">×</span> ${sd(tm.b)}</div>
-      <div class="mm-next-ven">${esc(mmColLabel(c.id))}${i.ven?' · 📍 '+esc(i.ven):''}</div>
+  const tnm=t=>t?`${t.flag?flagImg(t.flag):''} <b>${esc(t.name)}</b>`:'<b>?</b>';
+  const row=({c,d})=>{const i=mmInfo(c),tm=mmTeams(c),t=d.getTime(),miss=mmMissingHuman(c);
+    return `<div class="dh-row${mmIsTurbo(c)?' dh-turbo':''}" onclick="mmGotoFromHero('${c.id}')">
+      <span class="dh-time">${esc(i.tm||'')}</span>
+      ${mmIsTurbo(c)?'<span class="dh-turbobadge">⚡2×</span>':''}
+      <span class="dh-teams"><span class="dh-scroll">${tnm(tm.a)} <i>×</i> ${tnm(tm.b)}${miss?' <span class="dh-miss">• falta palpite</span>':''}</span></span>
+      <span class="dh-cd" data-t="${t}">${fmtCountdown(t-now)}</span>
     </div>`;};
-  return `<div class="mm-block mm-next"><div class="mm-block-h">⏭️ Próximos jogos</div>${up.map(row).join('')}</div>`;
+  return `<div class="day-hero"><div class="dh-head"><span class="nh-live"></span>PRÓXIMOS JOGOS · MATA-MATA</div><div class="dh-list">${up.map(row).join('')}</div></div>`;
 }
-// (2) Classificação SÓ do mata-mata (não a geral).
+// (2) Classificação do mata-mata — MESMA barra rolante da classificação geral, filtrando só o mata-mata.
 function mmMataRankingHTML(){
   const rows=PARTICIPANTS.map(p=>({p,...mataStats(p.id)})).sort((a,b)=>b.total-a.total||b.eHits-a.eHits||b.rHits-a.rHits);
-  const fin=MM_CONFRONTOS.filter(c=>!mmIsTest(c)&&c.finished&&c.real_a!=null).length, medals=['🥇','🥈','🥉'];
-  const r=(o,i)=>`<div class="mm-rk-row"><span class="mm-rk-pos">${medals[i]||(i+1)+'º'}</span><div class="mm-rk-av" style="background:${o.p.color}">${avInner(o.p)}</div><span class="mm-rk-nm">${o.p.name}</span><span class="mm-rk-pts"><b>${o.total}</b> pts</span></div>`;
-  return `<div class="mm-block"><div class="mm-block-h">🏆 Classificação do Mata-Mata</div><div class="mm-block-sub">${fin} jogo(s) finalizado(s) no mata-mata</div>${rows.map(r).join('')}</div>`;
+  const medals=['🥇','🥈','🥉'];
+  const item=(o,i)=>`<span class="rm-item"><span class="rm-pos">${medals[i]||(i+1)+'º'}</span><span class="rm-av" style="background:${o.p.color}">${avInner(o.p)}</span><span class="rm-nm">${o.p.name}</span><span class="rm-pts">${o.total} pts</span></span>`;
+  const seq=rows.map(item).join('');
+  return `<div class="rank-marquee"><div class="rm-head">🏆 CLASSIFICAÇÃO DO MATA-MATA</div><div class="rm-track-wrap"><div class="rm-track" onclick="this.classList.toggle('paused')">${seq}${seq}</div></div></div>`;
 }
 // (3) Como funciona a pontuação.
 function mmHowItWorksHTML(){
@@ -2123,6 +2165,9 @@ function renderMata(){
   html+=`<div id="mm-list">${mmListHTML()}</div>`;
   document.getElementById('tab-mata').innerHTML=html;
   mmFitBracket();
+  setupMarquees();   // faz o texto dos jogos do hero rolar quando não cabe (igual à fase de grupos)
+  if(_cdInterval){clearInterval(_cdInterval);_cdInterval=null;}
+  if(document.querySelector('#tab-mata .dh-cd'))_cdInterval=setInterval(tickCountdown,1000);   // contagem regressiva
   if(!_mmResizeBound){_mmResizeBound=true;window.addEventListener('resize',()=>{if(activeTab==='mata')mmFitBracket();});}
 }
 
