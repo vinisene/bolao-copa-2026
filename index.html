@@ -445,12 +445,33 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .mm-humans{display:grid;grid-template-columns:1fr;gap:7px;margin-bottom:9px;}
 .mm-ias{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;}
 @media(min-width:680px){.mm-humans{grid-template-columns:repeat(2,minmax(0,1fr));}}
-/* Célula do humano (1): 1/3 = foto (em cima) + nome (embaixo) centralizados; 2/3 = placar + "quem passa" centralizados */
-.mm-hcell{display:flex;flex-direction:row;align-items:stretch;gap:6px;}
-.mm-hc-id{flex:0 0 33%;max-width:33%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;text-align:center;min-width:0;}
-.mm-hc-id .hum-name{font-size:12.5px;font-weight:800;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.mm-hc-main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-width:0;}
-.mm-hc-passa{display:flex;justify-content:center;}
+/* Célula do humano — CELULAR (2.1/2.2): tudo numa LINHA só (foto MAIOR + nome ~1/3 · placar+bandeiras ~2/3) */
+.mm-hcell{display:flex;flex-direction:row;align-items:center;gap:8px;}
+.mm-hc-id{flex:0 0 33%;max-width:33%;display:flex;flex-direction:row;align-items:center;gap:7px;min-width:0;}
+.mm-hcell .hum-av{width:42px;height:42px;font-size:15px;}
+.mm-hc-id .hum-name{font-size:13px;font-weight:800;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;}
+/* grade do palpite: celular = [placarA × placarB] [bandeiraA bandeiraB] na mesma linha */
+.mm-hc-pred{flex:1;display:grid;align-items:center;gap:3px 5px;justify-content:center;grid-template-columns:auto auto auto auto auto;grid-template-areas:"na x nb fa fb";}
+.mm-hc-pred .mm-na{grid-area:na;}.mm-hc-pred .mm-nb{grid-area:nb;}.mm-hc-pred .mm-x{grid-area:x;font-weight:700;opacity:.7;}
+.mm-hc-pred .fa{grid-area:fa;margin-left:7px;}.mm-hc-pred .fb{grid-area:fb;}
+.mm-hc-pred input{width:40px;height:38px;text-align:center;border:1.5px solid var(--brd);border-radius:9px;font-size:18px;font-weight:700;background:var(--bg);color:var(--txt);-moz-appearance:textfield;}
+.mm-hc-pred input::-webkit-outer-spin-button,.mm-hc-pred input::-webkit-inner-spin-button{-webkit-appearance:none;}
+.mm-hc-pred input:focus{outline:none;border-color:var(--gl);background:#fff;box-shadow:0 0 0 3px rgba(45,150,83,.13);}
+/* bandeira do "quem passa" colada no placar */
+.mm-qpf{background:var(--card);border:1.5px solid var(--brd);border-radius:6px;padding:2px 4px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;line-height:1;}
+.mm-qpf .flagbx{width:24px;height:16px;}
+.mm-qpf.ro{cursor:default;}
+.mm-qpf.idle{opacity:.45;}
+.mm-qpf.on{border-color:var(--g);background:#e7f3ea;box-shadow:inset 0 0 0 1px var(--g);}
+.mm-qpf.pen.on{border-color:#c0392b;background:#fdeae8;box-shadow:inset 0 0 0 1px #c0392b;}
+/* DESKTOP (card de 2 colunas, estreito) — foto MAIOR empilhada (1.1) + bandeira EM CIMA de cada placar (1.2) */
+@media(min-width:680px){
+  .mm-hc-id{flex-direction:column;gap:4px;justify-content:center;text-align:center;}
+  .mm-hc-id .hum-name{text-align:center;}
+  .mm-hcell .hum-av{width:50px;height:50px;font-size:17px;}
+  .mm-hc-pred{grid-template-columns:auto auto auto;grid-template-areas:"fa . fb" "na x nb";gap:3px 6px;}
+  .mm-hc-pred .fa{margin-left:0;justify-self:center;}.mm-hc-pred .fb{justify-self:center;}
+}
 /* Célula da IA (2): nome em cima; placar (1 linha) + seletor na 2ª linha — bem compacta */
 .mm-iacell{display:flex;flex-direction:column;gap:3px;padding:6px 8px;}
 .mm-iacell-head{display:flex;align-items:center;gap:6px;min-width:0;}
@@ -469,24 +490,28 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .mm-po.ro{cursor:default;}
 .mm-po.on{border-color:var(--g);background:#e7f3ea;box-shadow:inset 0 0 0 1px var(--g);}
 .mm-passa.pen .mm-po.on{border-color:#c0392b;background:#fdeae8;box-shadow:inset 0 0 0 1px #c0392b;}
-/* Rodapé com "Quem passou" DENTRO da faixa verde (Parte 3) */
-.real-row.mm-footer{flex-direction:column;align-items:stretch;gap:8px;}
-.mm-fqp{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
-.mm-fqp-lbl{font-size:9.5px;font-weight:800;color:rgba(255,255,255,.78);text-transform:uppercase;letter-spacing:.3px;}
-.mm-fqp-btns{display:flex;gap:6px;}
-.mm-fqp-btn{background:rgba(255,255,255,.14);border:1.5px solid rgba(255,255,255,.4);border-radius:7px;padding:3px 8px;font-size:11px;font-weight:700;color:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:4px;}
-.mm-fqp-btn .flag-img{height:12px;border-radius:2px;}
-.mm-fqp-btn.on{background:var(--gold);border-color:var(--gold);color:#5c4708;}
-.mm-footrow{display:flex;align-items:center;gap:9px;}
-.mm-footrow .rr-line{flex:3;}
+/* Rodapé "PLACAR FINAL": bandeira do "quem passou" (SÓ bandeira) embaixo de cada número; Finalizar à direita centralizado (Parte 3) */
+.real-row.mm-footer{display:flex;flex-direction:row;align-items:center;gap:10px;}
+.mm-foot-main{flex:1;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.mm-foot-main .rr-label{font-size:10px;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:.3px;}
+.mm-foot-scores{display:flex;align-items:flex-start;gap:8px;}
+.mm-foot-col{display:flex;flex-direction:column;align-items:center;gap:4px;}
+.mm-foot-col input{width:42px;height:38px;text-align:center;border:1.5px solid var(--brd);border-radius:8px;font-size:17px;font-weight:700;background:var(--bg);color:var(--txt);-moz-appearance:textfield;}
+.mm-foot-col input::-webkit-outer-spin-button,.mm-foot-col input::-webkit-inner-spin-button{-webkit-appearance:none;}
+.mm-foot-col input:focus{outline:none;border-color:var(--gl);background:#fff;box-shadow:0 0 0 3px rgba(45,150,83,.13);}
+.mm-foot-x{align-self:flex-start;height:38px;display:flex;align-items:center;font-weight:800;color:#fff;opacity:.85;}
+.mm-cqp{background:rgba(255,255,255,.16);border:1.5px solid rgba(255,255,255,.45);border-radius:6px;padding:2px 7px;cursor:pointer;display:inline-flex;align-items:center;line-height:1;}
+.mm-cqp .flag-img{height:14px;border-radius:2px;}
+.mm-cqp.on{background:var(--gold);border-color:var(--gold);box-shadow:0 0 0 1px var(--gold);}
 /* TURBO (1.1): laranja no cabeçalho e rodapé; texto ESCURO pra contraste (4.1) */
 .mm-litem.is-turbo{border-color:#ff7a00;box-shadow:0 0 0 2px rgba(255,122,0,.35),0 4px 14px rgba(255,122,0,.18);}
 .mm-litem.is-turbo .card-head{background:linear-gradient(135deg,#ff8c1a,#ff6a00);}
 .mm-litem.is-turbo .card-head .grp-tag,.mm-litem.is-turbo .card-head .dt-tag{color:#0f4424;}
 .mm-litem.is-turbo .card-head .bl-tag.abe{background:rgba(0,0,0,.16);color:#0f4424;}
 .mm-litem.is-turbo .real-row,.mm-litem.is-turbo .real-row.pending{background:repeating-linear-gradient(135deg,#ff8c1a,#ff8c1a 10px,#f06f00 10px,#f06f00 20px);}
-.mm-litem.is-turbo .real-row .rr-label,.mm-litem.is-turbo .mm-fqp-lbl{color:#5c2e00;}
-.mm-litem.is-turbo .mm-fqp-btn{border-color:rgba(0,0,0,.3);color:#3a1c00;background:rgba(255,255,255,.4);}
+.mm-litem.is-turbo .real-row .rr-label,.mm-litem.is-turbo .mm-foot-x{color:#5c2e00;}
+.mm-litem.is-turbo .mm-cqp{border-color:rgba(0,0,0,.3);background:rgba(255,255,255,.45);}
+.mm-litem.is-turbo .mm-cqp.on{background:var(--gold);border-color:var(--gold);}
 /* PALPITE FALTANDO (7): borda amarela + célula amarela de quem não palpitou */
 .mm-litem.mm-miss{border-color:#e8c44a;box-shadow:0 0 0 2px rgba(232,196,74,.45);}
 .mm-litem.is-turbo.mm-miss{border-color:#e8c44a;box-shadow:0 0 0 2px rgba(232,196,74,.6),0 4px 14px rgba(255,122,0,.18);}
@@ -1751,9 +1776,37 @@ function mmQuemPassaHTML(c,pid,editable){
   };
   return `<div class="mm-passa${draw?' pen':''}${complete?'':' idle'}"><span class="mm-passa-lbl">${draw?'Pênaltis':'Quem passa'}</span><div class="mm-passa-opts">${opt('A')}${opt('B')}</div></div>`;
 }
+// Estado do "quem passa": completo? empate? lado selecionado (empate=escolha, vencedor=auto).
+function mmQpState(c,pid){
+  const p=(MM_PALPITES[c.id]||{})[pid]||{};
+  const complete=p.gols_a!=null&&p.gols_b!=null, draw=complete&&p.gols_a===p.gols_b;
+  return {complete,draw,sel:!complete?null:(draw?p.quem_passa:(p.gols_a>p.gols_b?'A':'B'))};
+}
+// Bandeira do "quem passa" do HUMANO, posicionada JUNTO ao campo de placar (Partes 1.2/2.1).
+// Empate → clicável (escolhe pênaltis); vencedor → auto-marcada (leitura); sem palpite → apagada.
+function mmHumQpFlag(c,pid,side,editable){
+  const {complete,draw,sel}=mmQpState(c,pid), tm=mmTeams(c), t=side==='A'?tm.a:tm.b;
+  const clickable=draw&&editable, on=sel===side;
+  const cls=['mm-qpf',side==='A'?'fa':'fb']; if(on)cls.push('on'); if(!clickable)cls.push('ro'); if(draw)cls.push('pen'); if(!complete)cls.push('idle');
+  const click=clickable?` onclick="mmSetQuemPassa('${c.id}','${pid}','${side}')"`:'';
+  return `<button class="${cls.join(' ')}" data-side="${side}"${click} title="${esc((t&&t.name)||side)}">${mmFlag(t&&t.flag)||('<b>'+side+'</b>')}</button>`;
+}
+// Grade do palpite do humano: [bandeiraA] [placarA] × [placarB] [bandeiraB] (CSS posiciona por fase).
+function mmHumPredHTML(c,pid,pal){
+  const inp=side=>`<input class="mm-n${side}" type="number" min="0" max="99" inputmode="numeric" value="${pal['gols_'+side]!=null?pal['gols_'+side]:''}" placeholder="–" oninput="mmUpdPalpite('${c.id}','${pid}','gols_${side}',this.value)">`;
+  return `${mmHumQpFlag(c,pid,'A',true)}${inp('a')}<span class="mm-x">×</span>${inp('b')}${mmHumQpFlag(c,pid,'B',true)}`;
+}
+// Atualiza só as bandeiras (sem mexer nos inputs → não perde o foco ao digitar).
+function mmUpdHumFlags(grid,c,pid,editable){
+  ['A','B'].forEach(side=>{const b=grid.querySelector('.mm-qpf.'+(side==='A'?'fa':'fb'));if(b)b.outerHTML=mmHumQpFlag(c,pid,side,editable);});
+}
 function mmRenderQuemPassa(cid,pid){
+  const c=MM_CONFRONTOS.find(x=>x.id===cid),p=PARTICIPANTS.find(x=>x.id===pid); if(!c||!p)return;
+  const editable=p.type==='human';
+  const grid=document.querySelector(`#tab-mata [data-cid="${cid}"] .mm-hc-pred[data-pid="${pid}"]`);
+  if(grid){mmUpdHumFlags(grid,c,pid,editable);return;}   // humano: bandeiras na grade do placar
   const el=document.querySelector(`#tab-mata [data-cid="${cid}"] .mm-qp[data-pid="${pid}"]`);
-  if(el){const c=MM_CONFRONTOS.find(x=>x.id===cid);const p=PARTICIPANTS.find(x=>x.id===pid);if(c&&p)el.innerHTML=mmQuemPassaHTML(c,pid,p.type==='human');}
+  if(el)el.innerHTML=mmQuemPassaHTML(c,pid,editable);    // IA: bloco compacto (inalterado)
 }
 function mmRefreshPts(cid){
   const card=document.querySelector(`#tab-mata [data-cid="${cid}"]`); if(!card)return;
@@ -1942,11 +1995,11 @@ function mmCardBody(c){
     const av=`<div class="hum-avwrap"><div class="hum-av" style="background:${p.color}">${avInner(p)}</div>${badge}</div>`;
     const passa=`<div class="mm-qp mm-hc-passa" data-pid="${pid}">${mmQuemPassaHTML(c,pid,isHuman)}</div>`;
     if(isHuman){
-      const inp=side=>`<input type="number" min="0" max="99" inputmode="numeric" value="${pal['gols_'+side]!=null?pal['gols_'+side]:''}" placeholder="–" oninput="mmUpdPalpite('${c.id}','${pid}','gols_${side}',this.value)">`;
-      // 1.1/1.2/1.3: foto+nome em 1/3 (foto em cima, nome embaixo); placar + "quem passa" centralizados nos 2/3.
+      // Foto+nome em 1/3 (celular: lado a lado · desktop: empilhado); 2/3 = grade com a bandeira do
+      // "quem passa" JUNTO de cada campo de placar (desktop: em cima · celular: à direita).
       return `<div class="pred-cell human mm-cell mm-hcell${mmHasFullPred(pal)?'':' mm-miss-cell'}" data-pid="${pid}">
         <div class="mm-hc-id">${av}<span class="hum-name">${p.name}</span></div>
-        <div class="mm-hc-main"><div class="pc-inputs">${inp('a')}<span class="sep">×</span>${inp('b')}</div>${passa}</div>
+        <div class="mm-hc-pred mm-qp" data-pid="${pid}">${mmHumPredHTML(c,pid,pal)}</div>
       </div>`;
     }
     return `<div class="pred-cell ia mm-cell mm-iacell" data-pid="${pid}">
@@ -1962,12 +2015,14 @@ function mmCardBody(c){
 // Rodapé (faixa verde/laranja): "Quem passou" + linha PLACAR FINAL, tudo DENTRO do rodapé (Parte 3).
 function mmResultHTML(c){
   const hasScore=c.real_a!=null&&c.real_b!=null, tmc=mmTeams(c);
-  const cbtn=side=>{const t=side==='A'?tmc.a:tmc.b;return `<button class="mm-fqp-btn${c.classificado===side?' on':''}" data-side="${side}" onclick="mmSetClassificado('${c.id}','${side}')">${t&&t.flag?flagImg(t.flag):''} ${esc((t&&t.name)||side)}</button>`;};
+  // "Quem passou": SÓ a bandeira (sem nome), embaixo do respectivo campo de placar (3.1/3.2).
+  const cflag=side=>{const t=side==='A'?tmc.a:tmc.b;return `<button class="mm-cqp${c.classificado===side?' on':''}" data-side="${side}" onclick="mmSetClassificado('${c.id}','${side}')" title="Passou: ${esc((t&&t.name)||side)}">${t&&t.flag?flagImg(t.flag):'<b>'+side+'</b>'}</button>`;};
   const realInp=side=>`<input type="number" min="0" max="99" inputmode="numeric" value="${c['real_'+side]!=null?c['real_'+side]:''}" placeholder="–" oninput="mmSetReal('${c.id}','${side}',this.value)">`;
+  const col=S=>`<div class="mm-foot-col">${realInp(S.toLowerCase())}${cflag(S)}</div>`;   // S = 'A'/'B' (lado), realInp usa 'a'/'b'
   return `<div class="real-row mm-footer${c.finished?'':' pending'}">
-      <div class="mm-fqp"><span class="mm-fqp-lbl">Quem passou (pênaltis):</span><div class="mm-fqp-btns">${cbtn('A')}${cbtn('B')}</div></div>
-      <div class="mm-footrow"><div class="rr-line"><span class="rr-label">PLACAR FINAL${(!c.finished&&hasScore)?' <span class="prev-tag">prévia</span>':''}</span>${realInp('a')}<span class="sep">×</span>${realInp('b')}</div>
-      <button class="rr-finish${c.finished?' done':''}" onclick="mmSetFinished('${c.id}')">${c.finished?'Finalizado ✅':'Finalizar <span class="chk-off">✓</span>'}</button></div>
+      <div class="mm-foot-main"><span class="rr-label">PLACAR FINAL${(!c.finished&&hasScore)?' <span class="prev-tag">prévia</span>':''}</span>
+        <div class="mm-foot-scores">${col('A')}<span class="mm-foot-x">×</span>${col('B')}</div></div>
+      <button class="rr-finish${c.finished?' done':''}" onclick="mmSetFinished('${c.id}')">${c.finished?'Finalizado ✅':'Finalizar <span class="chk-off">✓</span>'}</button>
     </div>`;
 }
 

@@ -28,9 +28,23 @@ que são âncoras estáveis. Os números aqui são referência aproximada (estad
   explícita do Vini (ver regra de ouro no topo).
 
 **Regra de pontuação do mata-mata (resumo):** base **5 (resultado) + 1 (gol A) + 1 (gol B) +
-3 (placar exato)** sobre o **PLACAR FINAL** (inclui prorrogação). **+4** só para quem palpitou
-**empate** e acertou **quem passa nos pênaltis**. As **4 duplas (humanos e IAs) competem**. Fórmula
-implementada em `calcMataPts` (§10).
+3 (placar exato)** sobre o **PLACAR FINAL** (inclui prorrogação), **multiplicada por fase**
+(16 avos ×1 · oitavas ×1,25 · quartas ×1,5 · semis ×1,75 · 3º ×1,75 · **final ×4**) e por
+**turbo ×2** (em cima da fase). **+4** (à parte, não multiplicado) só para quem palpitou **empate**
+e acertou **quem passa nos pênaltis**. `Math.round` no fim. As **4 duplas (humanos e IAs) competem**.
+Fórmula em `calcMataPts`; multiplicadores em `MM_PHASE_MULT`/`mmMult`; turbos em `MM_TURBO` (§10).
+
+**Estado visual do mata-mata (jun/2026, só no `dev`):** a aba já abre por padrão no dev, na ordem
+**Próximos jogos** (hero+contagem, igual à fase de grupos) → **Classificação do Mata-Mata** (barra
+rolante, só pontos do mata) → **Como funciona** → **chave** (colapsável) → **lista por dia** (dias
+passados recolhidos). Cards copiam a fase de grupos; **turbo** pinta cabeçalho+rodapé de laranja
+(texto escuro); **cards-fantasma** das fases futuras com data/local e times "?"; palpite faltando =
+amarelo (só conta com os dois gols, e quem-passa no empate). **Célula do humano:** foto+nome em ~1/3
+(celular: lado a lado numa linha; desktop: empilhado), placar nos ~2/3 com a **bandeira do "quem
+passa" junto de cada campo** (desktop em cima, celular à direita) — funções `mmHumPredHTML`/
+`mmHumQpFlag`/`mmUpdHumFlags`. **Rodapé "placar final":** "quem passou" é **só a bandeira**, embaixo
+de cada número, com Finalizar à direita (`mmResultHTML`, classes `.mm-foot-*`/`.mm-cqp`). **Agenda**
+(data/hora Brasília/local) das 6 fases mora no código (`MM_AGENDA`) — a anon key não cria colunas.
 
 **Regra de ouro do fluxo:** nada vai pra produção (merge/push na `main`) sem o Vini pedir
 **explicitamente**. Todo trabalho acontece no `dev` (ver banner no topo do arquivo).
