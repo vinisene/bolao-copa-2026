@@ -424,9 +424,10 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .mm-sec-head{display:flex;align-items:center;justify-content:space-between;gap:8px;background:linear-gradient(135deg,var(--gd),var(--g));padding:11px 14px;cursor:pointer;}
 .mm-sec-title{font-size:13px;font-weight:800;color:var(--gold);letter-spacing:.3px;}
 .mm-sec-arrow{color:#fff;font-size:13px;font-weight:800;}
-/* Lista de confrontos: 2 colunas no desktop, 1 no celular (2.1) */
-#mm-list{display:grid;grid-template-columns:1fr;gap:11px;}
+/* Lista de confrontos: 2 colunas no desktop, 1 no celular (2.1); align-items:start = expandir não empurra o vizinho (5.3) */
+#mm-list{display:grid;grid-template-columns:1fr;gap:11px;align-items:start;}
 @media(min-width:680px){#mm-list{grid-template-columns:repeat(2,minmax(0,1fr));}}
+#mm-list .mm-datehdr{grid-column:1/-1;margin:5px 0 1px;}   /* quebra de data ocupa a linha toda (7.1) */
 /* Card do confronto: cabeçalho/bandeiras/rodapé sempre visíveis; só os palpites colapsam (3.1) */
 .mm-litem{border:1px solid var(--brd);border-radius:14px;overflow:hidden;background:var(--card);box-shadow:0 2px 8px rgba(15,68,36,.06);display:flex;flex-direction:column;}
 .mm-litem .card-head{border-radius:0;}
@@ -450,6 +451,11 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .mm-hc-id .hum-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .mm-hc-score{flex:1;display:flex;justify-content:center;}
 .mm-hc-passa{flex:0 0 auto;}
+/* 5.1: no DESKTOP o seletor desce pra baixo do placar (no celular fica à direita, como hoje) */
+@media(min-width:680px){
+  .mm-hcell{flex-wrap:wrap;}
+  .mm-hc-passa{flex:1 1 100%;display:flex;justify-content:center;margin-top:5px;}
+}
 /* Célula da IA: nome em cima; placar + seletor na 2ª linha (5.1) */
 .mm-iacell{display:flex;flex-direction:column;gap:5px;padding:7px 8px;}
 .mm-iacell-head{display:flex;align-items:center;gap:6px;min-width:0;}
@@ -466,13 +472,43 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .mm-po.ro{cursor:default;}
 .mm-po.on{border-color:var(--g);background:#e7f3ea;box-shadow:inset 0 0 0 1px var(--g);}
 .mm-passa.pen .mm-po.on{border-color:#c0392b;background:#fdeae8;box-shadow:inset 0 0 0 1px #c0392b;}
-/* TURBO (6): fundo laranja listrado no card (não nas células) + borda laranja */
+/* TURBO (1.1): laranja só no CABEÇALHO e no RODAPÉ "placar final" (miolo normal) + borda laranja */
 .mm-litem.is-turbo{border-color:#ff7a00;box-shadow:0 0 0 2px rgba(255,122,0,.35),0 4px 14px rgba(255,122,0,.18);}
-.mm-litem.is-turbo .mm-litem-summary,.mm-litem.is-turbo .mm-preds-wrap,.mm-litem.is-turbo .mm-class{background:repeating-linear-gradient(135deg,#ffd9a8,#ffd9a8 11px,#ffc987 11px,#ffc987 22px);}
+.mm-litem.is-turbo .card-head{background:linear-gradient(135deg,#ff7a00,#ff5a1f);}
+.mm-litem.is-turbo .real-row,.mm-litem.is-turbo .real-row.pending{background:repeating-linear-gradient(135deg,#ff7a00,#ff7a00 10px,#e85d00 10px,#e85d00 20px);}
 /* PALPITE FALTANDO (7): borda amarela no card + célula amarela de quem não palpitou */
 .mm-litem.mm-miss{border-color:#e8c44a;box-shadow:0 0 0 2px rgba(232,196,74,.45);}
 .mm-litem.is-turbo.mm-miss{border-color:#e8c44a;box-shadow:0 0 0 2px rgba(232,196,74,.6),0 4px 14px rgba(255,122,0,.18);}
 .mm-hcell.mm-miss-cell{background:#fff8e1;border-color:#e8c44a;}
+/* Card-fantasma (3.1): time vazio = caixa tracejada, sem texto */
+.mm-ghost{opacity:.95;}
+.mm-tbd .team-flag::before{content:'';display:block;width:46px;height:31px;border:1.6px dashed var(--brd);border-radius:5px;}
+.mm-tbd .team-name{min-height:13px;}
+.mm-passa.idle{opacity:.65;}   /* seletor carregado mas sem palpite ainda */
+/* Blocos do topo do mata-mata (próximos / ranking / como funciona) */
+.mm-block{background:var(--card);border:1px solid var(--brd);border-radius:14px;padding:12px 14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(15,68,36,.05);}
+.mm-block-h{font-size:13px;font-weight:800;color:var(--gd);}
+.mm-block-sub{font-size:10.5px;color:var(--mu);margin:3px 0 6px;}
+.mm-next-row{display:flex;flex-direction:column;gap:2px;padding:8px 0;border-top:1px solid var(--brd);cursor:pointer;}
+.mm-next .mm-block-h{margin-bottom:4px;}
+.mm-next-row:first-of-type{border-top:none;}
+.mm-next-when{font-size:11px;font-weight:800;color:var(--g);}
+.mm-next-teams{font-size:14px;font-weight:800;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.mm-next-teams .flagbx{width:22px;height:15px;}
+.mm-next-x{color:var(--mu);}
+.mm-next-tbd{color:var(--mu);font-weight:600;font-style:italic;}
+.mm-next-ven{font-size:10.5px;color:var(--mu);}
+.mm-rk-row{display:flex;align-items:center;gap:9px;padding:6px 0;border-top:1px solid var(--brd);}
+.mm-rk-row:first-of-type{border-top:none;}
+.mm-rk-pos{font-size:13px;font-weight:800;color:var(--mu);min-width:26px;text-align:center;}
+.mm-rk-av{width:30px;height:30px;border-radius:50%;overflow:hidden;position:relative;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:12px;}
+.mm-rk-nm{flex:1;font-size:13px;font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mm-rk-pts{font-size:12px;color:var(--mu);}
+.mm-rk-pts b{color:var(--g);font-size:14px;}
+.mm-how summary{cursor:pointer;list-style:none;}
+.mm-how summary::-webkit-details-marker{display:none;}
+.mm-how-body{font-size:12px;line-height:1.5;color:var(--txt);margin-top:7px;}
+.mm-how-body p{margin:0 0 6px;}
 /* Ambiente DEV: flag + botão de espelho (canto superior) */
 #dev-flag{position:fixed;top:8px;left:8px;z-index:300;background:#ff7a00;color:#fff;font-size:10px;font-weight:800;letter-spacing:1.5px;padding:3px 8px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,.3);}
 #mirror-btn{position:fixed;top:6px;right:8px;z-index:300;background:#b3261e;color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:800;cursor:pointer;box-shadow:0 2px 7px rgba(0,0,0,.35);}
@@ -1528,8 +1564,14 @@ const mmDeb={}, mmRemoveConfirm={}, mmEditing={};
 
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function mmIsTest(c){return /\[TESTE\]/i.test((c.team_a||'')+' '+(c.team_b||'')+' '+(c.phase||''));}
-const MM_TURBO=new Set(['r32_1']);   // 6.1: confrontos TURBO (×2) — exemplo: Suíça × Gana
+// Turbos (×2) marcados por fase (flag no código): 16avos=6, oitavas=3, quartas=2, semis=1, 3º=0, final=0.
+const MM_TURBO=new Set(['r32_1','r32_4','r32_7','r32_10','r32_13','r32_16','r16_2','r16_5','r16_8','qf_1','qf_3','sf_2']);
 function mmIsTurbo(c){return MM_TURBO.has(c.id);}
+// Multiplicador por FASE sobre a base (5+1+1+3). Turbo dobra em cima. Teto: Final (×4) é o maior — o
+// maior turbo possível é a semi (×1,75 × 2 = ×3,5 < ×4).
+const MM_PHASE_MULT={'32avos':1,'oitavas':1.25,'quartas':1.5,'semis':1.75,'3lugar':1.75,'final':4};
+function mmPhaseKeyOf(id){const col=MM_COLS.find(c=>c.ids.includes(id));return col?col.key:'32avos';}
+function mmMult(c){return (MM_PHASE_MULT[mmPhaseKeyOf(c.id)]||1)*(mmIsTurbo(c)?2:1);}
 function mmMissingHuman(c){return PARTICIPANTS.some(p=>p.type==='human'&&(MM_PALPITES[c.id]||{})[p.id]?.gols_a==null);}
 
 async function loadMata(){
@@ -1641,13 +1683,13 @@ function calcMataPts(pal,c){
   if(!pal||pal.gols_a==null||pal.gols_b==null)return null;
   if(c.real_a==null||c.real_b==null)return null;
   const pa=+pal.gols_a,pb=+pal.gols_b,ra=+c.real_a,rb=+c.real_b;
-  let p=0;
-  if((pa>pb?'A':pa<pb?'B':'E')===(ra>rb?'A':ra<rb?'B':'E'))p+=5;
-  if(pa===ra)p+=1;
-  if(pb===rb)p+=1;
-  if(pa===ra&&pb===rb)p+=3;
-  if(pa===pb&&pal.quem_passa&&c.classificado&&pal.quem_passa===c.classificado)p+=4;   // bônus do "quem passa"
-  return p;
+  let base=0;   // base 5+1+1+3 (multiplicada por fase × turbo)
+  if((pa>pb?'A':pa<pb?'B':'E')===(ra>rb?'A':ra<rb?'B':'E'))base+=5;
+  if(pa===ra)base+=1;
+  if(pb===rb)base+=1;
+  if(pa===ra&&pb===rb)base+=3;
+  const bonus=(pa===pb&&pal.quem_passa&&c.classificado&&pal.quem_passa===c.classificado)?4:0;   // +4 à parte
+  return Math.round(base*mmMult(c))+bonus;
 }
 // Estatísticas do mata-mata para o ranking (ignora confrontos de TESTE e não finalizados)
 function mataStats(pid){
@@ -1670,17 +1712,17 @@ function mataStats(pid){
 // Empate no palpite → "Pênaltis", clicável (humano escolhe; IA mostra a escolha do Vini, leitura).
 function mmQuemPassaHTML(c,pid,editable){
   const p=(MM_PALPITES[c.id]||{})[pid]||{};
-  if(p.gols_a==null||p.gols_b==null)return '';   // sem palpite completo → seletor some
-  const draw=p.gols_a===p.gols_b;
   const tm=mmTeams(c);
-  const sel=draw?p.quem_passa:(p.gols_a>p.gols_b?'A':'B');   // empate: escolha; senão: vencedor (auto)
+  const complete=p.gols_a!=null&&p.gols_b!=null;   // 5.1: sempre carregado (estado neutro sem palpite)
+  const draw=complete&&p.gols_a===p.gols_b;
+  const sel=!complete?null:(draw?p.quem_passa:(p.gols_a>p.gols_b?'A':'B'));   // empate: escolha; vencedor: auto
   const clickable=draw&&editable;
   const opt=s=>{
     const t=s==='A'?tm.a:tm.b, on=sel===s;
     const click=clickable?` onclick="mmSetQuemPassa('${c.id}','${pid}','${s}')"`:'';
     return `<button class="mm-po${on?' on':''}${clickable?'':' ro'}"${click} title="${esc((t&&t.name)||s)}">${mmFlag(t&&t.flag)||('<b>'+s+'</b>')}</button>`;
   };
-  return `<div class="mm-passa${draw?' pen':''}"><span class="mm-passa-lbl">${draw?'Pênaltis':'Quem passa'}</span><div class="mm-passa-opts">${opt('A')}${opt('B')}</div></div>`;
+  return `<div class="mm-passa${draw?' pen':''}${complete?'':' idle'}"><span class="mm-passa-lbl">${draw?'Pênaltis':'Quem passa'}</span><div class="mm-passa-opts">${opt('A')}${opt('B')}</div></div>`;
 }
 function mmRenderQuemPassa(cid,pid){
   const el=document.querySelector(`#tab-mata [data-cid="${cid}"] .mm-qp[data-pid="${pid}"]`);
@@ -1696,8 +1738,6 @@ function mmRefreshPts(cid){
     badge.className='pts-badge on-av mm-pts'+(pts!=null?' '+(c.finished?ptsClass(pts):'preview'):' empty');   // sem número → display:none
     badge.textContent=pts!=null?pts:'';
   });
-  const cr=card.querySelector('.mm-class');   // "quem passou" só com placar real empatado (2.2)
-  if(cr)cr.classList.toggle('hidden',!(hasScore&&c.real_a===c.real_b));
   const lbl=card.querySelector('.rr-label');
   if(lbl)lbl.innerHTML='PLACAR FINAL'+((!c.finished&&hasScore)?' <span class="prev-tag">prévia</span>':'');
   // estado "palpite faltando" (7): borda amarela no card + célula amarela em quem não palpitou
@@ -1790,16 +1830,38 @@ const mmCollapsedCols=new Set();   // A2: fases (colunas) recolhidas na chave
 // AGENDA dos 16 avos (data/hora/local) por VAGA (slot). Fica no código (a anon key não cria coluna
 // nova no banco). O app lê isto OU os campos dt/tm/venue do confronto, se existirem no banco.
 const MM_AGENDA={
-  r32_1:{dt:'28/06',tm:'',    ven:'Los Angeles'},
-  r32_2:{dt:'29/06',tm:'',    ven:'Houston'},
+  r32_1:{dt:'28/06',tm:'16h',  ven:'Los Angeles'},
+  r32_2:{dt:'29/06',tm:'14h',  ven:'Houston'},
   r32_3:{dt:'29/06',tm:'17h30',ven:'Boston'},
-  r32_4:{dt:'30/06',tm:'14h', ven:'Dallas'},
-  r32_5:{dt:'30/06',tm:'18h', ven:'Nova York/Nova Jérsei'},
-  r32_6:{dt:'30/06',tm:'22h', ven:'Monterrey (México)'},
-  r32_7:{dt:'01/07',tm:'13h', ven:'Atlanta'},
-  r32_8:{dt:'01/07',tm:'17h', ven:'Seattle'},
-  r32_9:{dt:'01/07',tm:'22h', ven:'Cidade do México'},
-  r32_10:{dt:'02/07',tm:'21h',ven:'San Francisco'},
+  r32_4:{dt:'29/06',tm:'22h',  ven:'Monterrey'},
+  r32_5:{dt:'30/06',tm:'14h',  ven:'Dallas'},
+  r32_6:{dt:'30/06',tm:'18h',  ven:'Nova Jérsei'},
+  r32_7:{dt:'30/06',tm:'22h',  ven:'Cidade do México'},
+  r32_8:{dt:'01/07',tm:'13h',  ven:'Atlanta'},
+  r32_9:{dt:'01/07',tm:'17h',  ven:'Seattle'},
+  r32_10:{dt:'01/07',tm:'21h', ven:'San Francisco'},
+  r32_11:{dt:'02/07',tm:'16h', ven:'Los Angeles'},
+  r32_12:{dt:'02/07',tm:'20h', ven:'Toronto'},
+  r32_13:{dt:'03/07',tm:'00h', ven:'Vancouver'},
+  r32_14:{dt:'03/07',tm:'15h', ven:'Dallas'},
+  r32_15:{dt:'03/07',tm:'19h', ven:'Miami'},
+  r32_16:{dt:'03/07',tm:'22h30',ven:'Kansas City'},
+  r16_1:{dt:'04/07',tm:'14h',  ven:'Houston'},
+  r16_2:{dt:'04/07',tm:'18h',  ven:'Philadelphia'},
+  r16_3:{dt:'05/07',tm:'17h',  ven:'Nova Jérsei'},
+  r16_4:{dt:'05/07',tm:'21h',  ven:'Cidade do México'},
+  r16_5:{dt:'06/07',tm:'16h',  ven:'Dallas'},
+  r16_6:{dt:'06/07',tm:'21h',  ven:'Seattle'},
+  r16_7:{dt:'07/07',tm:'13h',  ven:'Atlanta'},
+  r16_8:{dt:'07/07',tm:'17h',  ven:'Vancouver'},
+  qf_1:{dt:'09/07',tm:'17h',   ven:'Boston'},
+  qf_2:{dt:'10/07',tm:'16h',   ven:'Los Angeles'},
+  qf_3:{dt:'11/07',tm:'18h',   ven:'Miami'},
+  qf_4:{dt:'11/07',tm:'22h',   ven:'Kansas City'},
+  sf_1:{dt:'14/07',tm:'16h',   ven:'Dallas'},
+  sf_2:{dt:'15/07',tm:'16h',   ven:'Atlanta'},
+  tp_1:{dt:'18/07',tm:'18h',   ven:'Miami'},
+  fin_1:{dt:'19/07',tm:'16h',  ven:'Nova Jérsei'},
 };
 // data/hora/local de um confronto: prioriza o banco (dt/tm/venue) e cai pra agenda em código.
 function mmInfo(c){const a=MM_AGENDA[c.id]||{};return {dt:c.dt||a.dt||'',tm:c.tm||a.tm||'',ven:c.venue||a.ven||''};}
@@ -1833,7 +1895,7 @@ function mmTeams(c){return {a:mmResolveSide(c.id,'A'),b:mmResolveSide(c.id,'B')}
 function mmMatchupHTML(c){
   const hasReal=c.finished&&c.real_a!=null&&c.real_b!=null, tm=mmTeams(c);
   const win=side=>{ if(!hasReal||c.real_a===c.real_b)return 'team'; const aw=c.real_a>c.real_b; return side==='A'?(aw?'team win':'team lose'):(aw?'team lose':'team win'); };
-  const sd=(s,t)=>`<div class="${win(s)}"><span class="team-flag">${mmFlag(t&&t.flag)}</span><span class="team-name">${esc((t&&t.name)||'A definir')}</span></div>`;
+  const sd=(s,t)=>`<div class="${win(s)}${t?'':' mm-tbd'}"><span class="team-flag">${mmFlag(t&&t.flag)}</span><span class="team-name">${esc((t&&t.name)||'')}</span></div>`;
   // Centro: bolinha "×" (ou placar) e, logo abaixo, o local (📍) — omitido quando não há (sem inventar).
   const ven=mmInfo(c).ven;
   const venue=ven?`<div class="venue">📍 ${esc(ven)}</div>`:'';
@@ -1874,7 +1936,7 @@ function mmCardBody(c){
 function mmResultHTML(c){
   const hasScore=c.real_a!=null&&c.real_b!=null, realDraw=hasScore&&c.real_a===c.real_b, tmc=mmTeams(c);
   const cbtn=side=>{const t=side==='A'?tmc.a:tmc.b;return `<button class="mm-qpb${c.classificado===side?' on':''}" data-side="${side}" onclick="mmSetClassificado('${c.id}','${side}')">${t&&t.flag?flagImg(t.flag):''} ${esc((t&&t.name)||side)}</button>`;};
-  const classRow=`<div class="mm-class${realDraw?'':' hidden'}"><span class="mm-class-lbl">Quem passou nos pênaltis (empate no tempo normal):</span><div class="mm-class-btns">${cbtn('A')}${cbtn('B')}</div></div>`;
+  const classRow=`<div class="mm-class"><span class="mm-class-lbl">Quem passou (pênaltis, se empatar):</span><div class="mm-class-btns">${cbtn('A')}${cbtn('B')}</div></div>`;
   const realInp=side=>`<input type="number" min="0" max="99" inputmode="numeric" value="${c['real_'+side]!=null?c['real_'+side]:''}" placeholder="–" oninput="mmSetReal('${c.id}','${side}',this.value)">`;
   const resultRow=`<div class="real-row${c.finished?'':' pending'}">
       <div class="rr-line"><span class="rr-label">PLACAR FINAL${(!c.finished&&hasScore)?' <span class="prev-tag">prévia</span>':''}</span>${realInp('a')}<span class="sep">×</span>${realInp('b')}</div>
@@ -2000,23 +2062,63 @@ function mmGotoConfronto(cid){
   item.scrollIntoView({behavior:'smooth',block:'center'});
   item.classList.add('flash');setTimeout(()=>item.classList.remove('flash'),1400);
 }
-// Lista de UMA fase (a do filtro). Só confrontos com os dois times definidos; senão, estado vazio.
+// Card-fantasma (3.1): fase ainda sem confronto definido → mostra data/hora/local, sem bandeiras/times.
+function mmGhostCard(c){
+  return `<div class="mm-litem mm-ghost" data-cid="${c.id}">${mmHeadHTML(c)}<div class="mm-litem-summary mm-ghost-sum">${mmMatchupHTML(c)}</div></div>`;
+}
+// Lista da fase do filtro: TODOS os jogos (fantasmas pras vagas não definidas), separados por DATA (7.1).
 function mmListHTML(){
   const col=MM_COLS.find(c=>c.key===mmPhaseFilter)||MM_COLS[0];
-  const items=col.ids.map(id=>mmConf(id)).filter(c=>c&&mmResolveSide(c.id,'A')&&mmResolveSide(c.id,'B'))
-    .sort((a,b)=>mmSchedKey(a)-mmSchedKey(b));   // C3: cronológico; sem data vai pro fim
-  if(!items.length)return `<div class="empty-state">Confrontos ainda não definidos.</div>`;
-  return items.map(mmListItem).join('');
+  const cards=col.ids.map(id=>mmConf(id)).filter(Boolean).sort((a,b)=>mmSchedKey(a)-mmSchedKey(b));
+  if(!cards.length)return `<div class="empty-state">Confrontos ainda não definidos.</div>`;
+  let html='', lastDate='__';
+  cards.forEach(c=>{
+    const dt=mmInfo(c).dt;
+    if(dt!==lastDate){lastDate=dt;html+=`<div class="section-hdr mm-datehdr"><span class="section-badge">${dt?mmWeekday(dt)+', '+esc(dt):'Sem data'}</span><div class="section-line"></div></div>`;}
+    const def=mmResolveSide(c.id,'A')&&mmResolveSide(c.id,'B');
+    html+=def?mmListItem(c):mmGhostCard(c);
+  });
+  return html;
 }
 function mmSetPhase(key){
   mmPhaseFilter=key;
   const l=document.getElementById('mm-list'); if(l)l.innerHTML=mmListHTML();
   document.querySelectorAll('#tab-mata .mm-fbtn').forEach(b=>b.classList.toggle('active',b.dataset.key===key));
 }
+// Data/hora de um jogo (pra calcular "próximos" e ordenar).
+function mmGameDate(c){const i=mmInfo(c);if(!i.dt)return null;const [dd,mm]=i.dt.split('/').map(Number);const h=i.tm?parseInt(i.tm)||0:0;const mi=(i.tm&&i.tm.split('h')[1])?parseInt(i.tm.split('h')[1]):0;return new Date(2026,mm-1,dd,h,mi);}
+// (1) Próximos 3 jogos do mata-mata (agenda vs. hoje).
+function mmNextGamesHTML(){
+  const now=new Date(), hoje=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const up=MM_CONFRONTOS.map(c=>({c,d:mmGameDate(c)})).filter(x=>x.d&&x.d>=hoje).sort((a,b)=>a.d-b.d).slice(0,3);
+  if(!up.length)return '';
+  const row=({c})=>{const i=mmInfo(c),tm=mmTeams(c);const sd=t=>t?`${mmFlag(t.flag)} ${esc(t.name)}`:'<i class="mm-next-tbd">A definir</i>';
+    return `<div class="mm-next-row" onclick="mmSetPhase('${mmPhaseKeyOf(c.id)}');document.getElementById('mm-list').scrollIntoView({behavior:'smooth',block:'start'})">
+      <div class="mm-next-when">${mmWeekday(i.dt)}, ${esc(i.dt)}${i.tm?' · '+esc(i.tm):''}</div>
+      <div class="mm-next-teams">${sd(tm.a)} <span class="mm-next-x">×</span> ${sd(tm.b)}</div>
+      <div class="mm-next-ven">${esc(mmColLabel(c.id))}${i.ven?' · 📍 '+esc(i.ven):''}</div>
+    </div>`;};
+  return `<div class="mm-block mm-next"><div class="mm-block-h">⏭️ Próximos jogos</div>${up.map(row).join('')}</div>`;
+}
+// (2) Classificação SÓ do mata-mata (não a geral).
+function mmMataRankingHTML(){
+  const rows=PARTICIPANTS.map(p=>({p,...mataStats(p.id)})).sort((a,b)=>b.total-a.total||b.eHits-a.eHits||b.rHits-a.rHits);
+  const fin=MM_CONFRONTOS.filter(c=>!mmIsTest(c)&&c.finished&&c.real_a!=null).length, medals=['🥇','🥈','🥉'];
+  const r=(o,i)=>`<div class="mm-rk-row"><span class="mm-rk-pos">${medals[i]||(i+1)+'º'}</span><div class="mm-rk-av" style="background:${o.p.color}">${avInner(o.p)}</div><span class="mm-rk-nm">${o.p.name}</span><span class="mm-rk-pts"><b>${o.total}</b> pts</span></div>`;
+  return `<div class="mm-block"><div class="mm-block-h">🏆 Classificação do Mata-Mata</div><div class="mm-block-sub">${fin} jogo(s) finalizado(s) no mata-mata</div>${rows.map(r).join('')}</div>`;
+}
+// (3) Como funciona a pontuação.
+function mmHowItWorksHTML(){
+  return `<details class="mm-block mm-how"><summary class="mm-block-h">📐 Como funciona a pontuação</summary><div class="mm-how-body">
+    <p><b>Base por jogo</b> (sobre o <b>placar final</b>, com prorrogação): <b>5</b> acertar o resultado · <b>+1</b> gols do A · <b>+1</b> gols do B · <b>+3</b> cravar o placar.</p>
+    <p><b>+4</b> de bônus: palpite empate <b>e</b> acertar quem passou nos pênaltis.</p>
+    <p><b>Multiplicador por fase</b> (sobre a base): 16 avos ×1 · Oitavas ×1,25 · Quartas ×1,5 · Semis ×1,75 · 3º lugar ×1,75 · <b>Final ×4</b>.</p>
+    <p><b>Turbo ⚡</b> = <b>×2</b> em cima do multiplicador da fase (ex.: turbo na semi = ×3,5). Nenhum jogo passa da Final (×4).</p>
+  </div></details>`;
+}
 function renderMata(){
-  let html=`<div class="mm-intro">⚔️ <b>Fase Mata-Mata</b> — palpite o <b>placar final</b> (inclui prorrogação). Empatou no palpite? Escolha quem passa nos pênaltis. Pontos: 5 resultado · +1 gol A · +1 gol B · +3 exato · <b>+4</b> se cravar quem passa num empate.</div>`;
-  html+=`<div id="mm-bracket-section">${mmBracketSectionHTML()}</div>`;   // chave mostra SEMPRE o mapa inteiro (não afetada pelo filtro)
-  // Filtro de fases (3.1) — rótulos curtos, cabe numa linha só (B); padrão 16 avos.
+  let html=mmNextGamesHTML()+mmMataRankingHTML()+mmHowItWorksHTML();
+  html+=`<div id="mm-bracket-section">${mmBracketSectionHTML()}</div>`;   // chave (não afetada pelo filtro)
   html+=`<div class="mm-filters">${MM_COLS.map(col=>`<button class="mm-fbtn${col.key===mmPhaseFilter?' active':''}" data-key="${col.key}" onclick="mmSetPhase('${col.key}')">${col.short}</button>`).join('')}</div>`;
   html+=`<div id="mm-list">${mmListHTML()}</div>`;
   document.getElementById('tab-mata').innerHTML=html;
@@ -2070,6 +2172,11 @@ function showTab(name){
 // ─── BOOT ─────────────────────────────────────────────────────────────────────
 if(IS_DEV){   // marca visual + botão de espelho, só no ambiente de dev (canto superior direito)
   document.body.insertAdjacentHTML('afterbegin','<div id="dev-flag">DEV</div><button id="mirror-btn" onclick="mirrorProdToDev()">🪞 Espelhar prod→dev</button>');
+  // 6.1: no dev, o Mata-Mata abre por padrão
+  activeTab='mata';
+  document.getElementById('tab-palpites').classList.remove('active');
+  document.getElementById('tab-mata').classList.add('active');
+  const nb=document.querySelectorAll('nav button'); nb[0].classList.remove('active'); nb[1].classList.add('active');
 }
 loadData();
 </script>
