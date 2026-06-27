@@ -1,11 +1,64 @@
 # CLAUDE.md
 
+> ## ⛔ REGRA PERMANENTE — NÃO subir pra produção sem ordem explícita
+> **Nunca** faça `merge` de Pull Request nem `push` para a branch **`main`** (produção), em
+> hipótese alguma, até o usuário pedir **explicitamente**. Frases que liberam: **"pode subir
+> para produção"** ou **"pode fazer o merge"**. Sem isso, não suba.
+> - Todo desenvolvimento acontece na branch **`dev`**.
+> - Se você achar que algo está pronto pra subir, **apenas avise e aguarde** a confirmação explícita.
+> - O **PR #3** deve permanecer **aberto e sem merge** até ordem em contrário.
+
 Guia de navegação do projeto. O objetivo é que, ao ler este arquivo, você saiba **onde mexer
 sem explorar o código**. Os números de linha **andam** a cada edição — confie nos **nomes de
 função** e nos **comentários de seção** (`// ─── NOME ───` no JS e `/* ── nome ── */` no CSS),
 que são âncoras estáveis. Os números aqui são referência aproximada (estado em ~1377 linhas).
 
 ---
+
+## 0. Estado atual e roadmap (atualizado jun/2026)
+
+**Onde estamos:**
+- **Fase de grupos:** em produção (`main`), funcionando, é o que os participantes usam hoje.
+- **Fase mata-mata:** **construída e validada no `dev`** — pontuação testada de ponta a ponta na
+  tela, incluindo **empate com pênaltis e o bônus +4**, para **humanos E IAs**. Aba "⚔️ Mata-Mata",
+  tabelas próprias, integração no ranking. Detalhes técnicos: §10.
+- **Ambiente de dev isolado:** funcionando (tabelas `dev_*`, detecção por hostname, botão
+  "🪞 Espelhar prod→dev"). Detalhes: §11.
+- **Nada subiu pra produção ainda.** **PR #3** (`dev → main`) está **aberto, aguardando** ordem
+  explícita do Vini (ver regra de ouro no topo).
+
+**Regra de pontuação do mata-mata (resumo):** base **5 (resultado) + 1 (gol A) + 1 (gol B) +
+3 (placar exato)** sobre o **PLACAR FINAL** (inclui prorrogação), **multiplicada por fase**
+(16 avos ×1 · oitavas ×1,25 · quartas ×1,5 · semis ×1,75 · 3º ×1,75 · **final ×4**) e por
+**turbo ×2** (em cima da fase). **+4** (à parte, não multiplicado) só para quem palpitou **empate**
+e acertou **quem passa nos pênaltis**. `Math.round` no fim. As **4 duplas (humanos e IAs) competem**.
+Fórmula em `calcMataPts`; multiplicadores em `MM_PHASE_MULT`/`mmMult`; turbos em `MM_TURBO` (§10).
+
+**Estado visual do mata-mata (jun/2026, só no `dev`):** a aba já abre por padrão no dev, na ordem
+**Próximos jogos** (hero+contagem, igual à fase de grupos) → **Classificação do Mata-Mata** (barra
+rolante, só pontos do mata) → **Como funciona** → **chave** (colapsável) → **lista por dia** (dias
+passados recolhidos). Cards copiam a fase de grupos; **turbo** pinta cabeçalho+rodapé de laranja
+(texto escuro); **cards-fantasma** das fases futuras com data/local e times "?"; palpite faltando =
+amarelo (só conta com os dois gols, e quem-passa no empate). **Célula do humano:** foto+nome em ~1/3
+(celular: lado a lado numa linha; desktop: empilhado), placar nos ~2/3 com a **bandeira do "quem
+passa" junto de cada campo** (desktop em cima, celular à direita) — funções `mmHumPredHTML`/
+`mmHumQpFlag`/`mmUpdHumFlags`. **Rodapé "placar final":** "quem passou" é **só a bandeira**, embaixo
+de cada número, com Finalizar à direita (`mmResultHTML`, classes `.mm-foot-*`/`.mm-cqp`). **Agenda**
+(data/hora Brasília/local) das 6 fases mora no código (`MM_AGENDA`) — a anon key não cria colunas.
+
+**Regra de ouro do fluxo:** nada vai pra produção (merge/push na `main`) sem o Vini pedir
+**explicitamente**. Todo trabalho acontece no `dev` (ver banner no topo do arquivo).
+
+**Roadmap (nesta ordem):**
+1. **Chaveamento visual interativo** do mata-mata (bracket).
+2. **Abas separando** Fase de Grupos e Mata-Mata.
+3. **Filtros no ranking** (Total · Grupos · Mata-Mata) + espaço pra disputa **Vini × Jeca**.
+4. **Dinâmica anti-desengajamento:** multiplicador por rodada, pontos crescentes por fase,
+   bônus de zebra.
+5. **Identidade visual da Copa** (por último).
+
+**Meta:** concentrar o **máximo de alterações no `dev` até sábado à noite** e **subir tudo de uma
+vez** (com a ordem explícita do Vini).
 
 ## 1. O que é
 
@@ -38,7 +91,8 @@ placar real, o app calcula pontos e monta ranking/estatísticas/gráficos.
 - **Bandeiras:** flagcdn.com (emoji não renderiza em Windows). `flagImg`/`flagUrl` derivam o
   código do país a partir do emoji.
 - **Deploy:** push na `main` → Cloudflare Pages publica sozinho (`bolao-copa-sene-piovan.pages.dev`,
-  repo `vinisene/bolao-copa-2026`). `netlify.toml` é legado.
+  repo `vinisene/bolao-copa-2026`). `netlify.toml` é legado. **⚠️ subir pra `main` só com ordem
+  explícita do usuário — ver regra no topo do arquivo.** Trabalho do dia a dia fica na `dev`.
 - **Dev local:** `npx serve` na porta 3333 (`.claude/launch.json`). Verificar no preview: console
   sem erros + viewport **mobile 375px** (uso principal).
 
@@ -210,7 +264,8 @@ Placar real e finalizar seguem o mesmo caminho: `updReal` (979) → coluna `real
 - **Pontos/ranking:** derive de `getStats`/`ptsOf`/`geralHistory`; não recalcule à mão.
 - **Mobile-first (375px).** Verificar no preview (porta 3333), console limpo, e olhar no mobile.
   No gráfico/SVG, lembrar que desktop preenche a largura e mobile rola pro lado.
-- **Deploy:** commit + push na `main` (mensagem em português, descritiva). Cloudflare publica.
+- **Deploy:** commitar na `dev` (mensagem em português, descritiva). **NÃO** dar push/merge na
+  `main` sem ordem explícita do usuário (ver regra no topo do arquivo). Cloudflare publica a `main`.
 
 ## 9. Adicionar um participante humano (checklist)
 
@@ -226,3 +281,53 @@ Placar real e finalizar seguem o mesmo caminho: `updReal` (979) → coluna `real
 
 > Palpite de **IA** não usa banco: entra como campo `g/c/d/e` no objeto do jogo dentro do `GT`,
 > casando por **nome do time + rodada** (os rótulos de grupo de fontes externas podem divergir do `grp`).
+
+## 10. Fase Mata-Mata (eliminatórias)
+
+Adição **separada** da fase de grupos — não toca em `GT`, `bolao_games`, `getStats` nem na lógica
+de grupos. **Todos os 8 palpitam** (humanos editam na UI; IAs aparecem como leitura, com palpite
+inserido por fora/admin). O **placar que vale é o FINAL (inclui prorrogação)**, não os 90 min:
+empate só é empate se persistir após a prorrogação → pênaltis.
+
+**Tabelas novas (Supabase)** — schema em `supabase_mata_mata.sql` (produção) e `supabase_dev_setup.sql`
+(dev, prefixo `dev_`). Rodar manualmente no SQL Editor; RLS público + realtime:
+- `mata_confrontos`: `id` (text, `mm_<rnd>`), `phase`, `team_a/flag_a`, `team_b/flag_b`,
+  `real_a/real_b` (**placar final, inclui prorrogação**), `classificado` (`'A'`/`'B'` = quem passou;
+  só importa se empatar → pênaltis), `finished` (só conta no ranking quando true), `created_at`.
+- `mata_palpites`: PK (`confronto_id`, `pid`), `gols_a`, `gols_b`, `quem_passa` (`'A'`/`'B'`, usado
+  só quando o palpite é empate). `pid` ∈ os 8 ids de `PARTICIPANTS`.
+
+**Onde no código (`index.html`)** — seção `// ─── MATA-MATA ───` (antes de TAB NAV):
+- Tabelas por ambiente: `MM_TCONF`/`MM_TPAL` (= `mata_*` em produção, `dev_mata_*` no dev — ver §11).
+- Estado: `MM_CONFRONTOS`, `MM_PALPITES` (map `cid→pid→palpite`), `MM_HUMANS` (quem é editável na UI).
+- Dados: `loadMata`, `subscribeMata`/`mmReload` (realtime; não re-renderiza enquanto edita).
+- Escritas: `mmUpsertConfronto`/`mmUpsertPalpite`, `mmSetReal`/`mmSetClassificado`/`mmSetFinished`,
+  `mmUpdPalpite`/`mmSetQuemPassa` (debounce ~700ms). **`mmAddConfronto`/`mmRemoveConfronto`/
+  `mmToggleEdit`/`mmSaveEdit` continuam no código mas NÃO têm botão na UI** — criar/editar/remover
+  confronto é feito por fora (admin/Claude Code, via REST/script apontando pro banco de dev).
+- Pontuação: **`calcMataPts(pal,c)`** — placar final igual à fase de grupos (**5** resultado + **1**
+  gol A + **1** gol B + **3** exato) **+ 4 SÓ se o palpite foi empate E acertou o `classificado`**.
+  `mataStats(pid)` agrega para o ranking (ignora `[TESTE]` e não finalizados); roda pros 8.
+- Render: `renderMata` (aba `#tab-mata`, sem controles de admin), `mmCard` (reusa `.card/.matchup/
+  .pred-cell/.real-row`; humanos com inputs, IAs leitura via `.mm-iascore`), `mmQuemPassaHTML`
+  (seletor/leitura "quem passa", **só quando o palpite é empate**), `mmRefreshPts`/`mmRenderQuemPassa`.
+- Integração: `rankingNew` soma `mataStats` ao `total/eHits/rHits/played/cravadas` (recalcula `avg`);
+  nav tem a aba "⚔️ Mata-Mata"; `showTab`/`renderAll` tratam `'mata'`. **Gráfico de evolução, deltas
+  e barra rolante continuam só da fase de grupos.**
+
+**Dados de teste** (confrontos com `[TESTE]` no nome; **não contam no ranking**) — escrevem no **dev**:
+- `npm run seed:teste` → cria 2 confrontos `[TESTE]` em `dev_mata_confrontos`. Requer `supabase_dev_setup.sql` rodado.
+- **`npm run clean:teste`** → apaga só os `[TESTE]` (cascade nos palpites). Rodar antes dos 16 reais.
+- Os scripts miram o dev por padrão; `MM_TABLE=mata_confrontos npm run …` aponta pra produção (não usar à toa).
+
+## 11. Ambientes prod/dev (banco isolado por hostname)
+
+- **Detecção:** `isDevEnv()` (em `index.html`, junto da config) — `IS_DEV = hostname começa com "dev."`.
+  No dev, `TABLE`/`MM_TCONF`/`MM_TPAL` viram `dev_bolao_games`/`dev_mata_confrontos`/`dev_mata_palpites`.
+  Em produção/localhost ficam as tabelas sem prefixo — **produção não muda de comportamento**.
+- **Mesmo projeto Supabase, mesma anon key.** O isolamento é só pelo **nome das tabelas**. O banco de
+  dev é um sandbox (RLS deixa a anon key apagar/escrever). `supabase_dev_setup.sql` cria as `dev_*`.
+- **Botão "🪞 Espelhar prod→dev"** (`mirrorProdToDev`, canto sup. direito, só com `IS_DEV`): lê a
+  produção (somente leitura) e regrava tudo no dev. Usa só a anon key; nunca a service_role.
+- ⚠️ **localhost = produção** (não começa com `dev.`): ao testar local, o app lê/escreve na PRODUÇÃO.
+  Pra mexer em dados de teste sem risco, use a URL de preview `dev.*` (ou os scripts, que miram o dev).

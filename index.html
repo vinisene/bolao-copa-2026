@@ -340,6 +340,227 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .pod-1 .pod-base{height:76px;background:linear-gradient(180deg,#f0d055,#c9a227);color:#5c4708;font-size:30px;}
 .pod-2 .pod-base{height:58px;background:linear-gradient(180deg,#d8dde2,#a7adb4);color:#3a3f44;font-size:23px;}
 .pod-3 .pod-base{height:44px;background:linear-gradient(180deg,#d99e6a,#b06f3c);color:#4a2c12;font-size:18px;}
+
+/* ── Mata-Mata ── */
+.mm-intro{background:var(--card);border:1px solid var(--brd);border-radius:12px;padding:10px 12px;font-size:11.5px;line-height:1.5;color:var(--txt);margin-bottom:12px;}
+.mm-newform{background:linear-gradient(135deg,var(--gd),var(--g));border-radius:14px;padding:11px 12px;margin-bottom:14px;display:flex;flex-direction:column;gap:7px;box-shadow:0 4px 14px rgba(15,68,36,.18);}
+.mm-nf-title{font-size:11px;font-weight:800;letter-spacing:.8px;color:var(--gold);}
+.mm-newform input,.mm-edit input{border:1.5px solid rgba(255,255,255,.3);border-radius:8px;padding:8px 9px;font-size:13px;font-weight:600;background:rgba(255,255,255,.16);color:#fff;width:100%;}
+.mm-newform input::placeholder,.mm-edit input::placeholder{color:rgba(255,255,255,.55);}
+.mm-newform input:focus,.mm-edit input:focus{outline:none;border-color:var(--gold);background:rgba(255,255,255,.24);}
+.mm-nf-team{display:flex;gap:7px;}
+.mm-flag{flex:0 0 52px;text-align:center;}
+.mm-add{background:var(--gold);color:#5c4708;border:none;border-radius:9px;padding:9px;font-size:13px;font-weight:800;cursor:pointer;}
+.mm-actions{display:flex;gap:5px;}
+.mm-iconbtn{background:rgba(255,255,255,.16);border:none;color:#fff;border-radius:7px;padding:3px 7px;font-size:12px;font-weight:700;cursor:pointer;}
+.mm-iconbtn.danger{background:#e8c44a;color:#5c4708;}
+.mm-edit{display:flex;flex-direction:column;gap:7px;padding:13px 12px;background:linear-gradient(135deg,#163d27,#1c5235);}
+.mm-test{border-color:#e8c44a;box-shadow:0 0 0 2px rgba(232,196,74,.4);}
+.mm-cell{display:flex;flex-direction:column;align-items:stretch;gap:6px;}
+.mm-cell-top{display:flex;align-items:center;gap:5px;}
+.mm-cell-top .hum-name{flex:1;}
+.mm-preds{grid-template-columns:1fr;}
+.mm-qp{}
+.mm-qp-in{display:flex;align-items:center;flex-wrap:wrap;gap:5px;padding-top:3px;border-top:1px dashed var(--brd);}
+.mm-qp-lbl{font-size:10px;font-weight:700;color:var(--mu);}
+.mm-qpb{background:var(--bg);border:1.5px solid var(--brd);border-radius:8px;padding:5px 8px;font-size:11.5px;font-weight:700;color:var(--txt);cursor:pointer;display:inline-flex;align-items:center;gap:4px;}
+.mm-qpb.sm{padding:3px 6px;font-size:10.5px;}
+.mm-qpb .flag-img{height:13px;width:auto;border-radius:2px;}
+.mm-qpb.on{background:var(--g);border-color:var(--g);color:#fff;}
+.mm-class{padding:9px 12px;border-top:1px solid var(--brd);background:#fafdfa;display:flex;flex-direction:column;gap:6px;}
+.mm-class-lbl{font-size:10px;font-weight:700;color:var(--mu);}
+.mm-class-btns{display:flex;gap:7px;flex-wrap:wrap;}
+.mm-iascore{background:var(--bg);border:1.5px solid var(--brd);border-radius:9px;padding:6px 10px;font-size:16px;font-weight:800;color:var(--txt);text-align:center;min-width:60px;}
+.mm-iascore.empty{color:var(--mu);font-weight:600;}
+.mm-qp-static{display:flex;align-items:center;gap:5px;padding-top:4px;border-top:1px dashed var(--brd);font-size:11px;color:var(--mu);font-weight:700;}
+.mm-qp-static .flag-img{height:12px;width:auto;border-radius:2px;}
+.pred-cell.ia.mm-cell{background:var(--bg);}
+/* Chave (bracket) do mata-mata — caixas posicionadas + conectores SVG em colchete */
+/* Seção da chave = card único (cabeçalho grudado no topo + chave no mesmo quadro) — 1.2 */
+.mm-sec{border:1px solid var(--brd);border-radius:14px;overflow:hidden;margin-bottom:12px;background:var(--card);box-shadow:0 2px 8px rgba(15,68,36,.06);}
+.mm-bracket-wrap{margin:0;}
+.mm-bracket-hint{font-size:10px;color:var(--mu);padding:7px 10px 0;}
+.mm-bracket-scroll{overflow-x:auto;overflow-y:hidden;background:var(--bg);padding:8px;-webkit-overflow-scrolling:touch;}
+.mm-bracket{position:relative;transform-origin:top left;}
+.mm-cn-svg{position:absolute;left:0;top:0;pointer-events:none;}
+.mm-cn{fill:none;stroke:#6a766a;stroke-width:1.4;stroke-linejoin:round;opacity:.65;}   /* 1.1: fino, cinza escuro suave */
+.mm-cn.c3{stroke:#9aa59a;stroke-dasharray:4 4;stroke-width:1.1;opacity:.5;}
+.mm-coltitle{position:absolute;top:0;text-align:center;font-size:10px;font-weight:800;color:var(--gold);letter-spacing:.5px;text-transform:uppercase;background:linear-gradient(135deg,var(--gd),var(--g));padding:5px 0;border-radius:7px;box-shadow:0 2px 5px rgba(15,68,36,.25);cursor:pointer;user-select:none;}
+.mm-coltitle:hover{filter:brightness(1.08);}
+.mm-coltitle.col-collapsed{display:flex;align-items:center;justify-content:center;writing-mode:vertical-rl;text-orientation:mixed;font-size:9px;padding:6px 0;opacity:.9;}
+.mm-bxpos{position:absolute;}
+.mm-bx{height:100%;box-sizing:border-box;background:var(--card);border:1px solid #c4cdc4;border-radius:9px;padding:5px 9px;cursor:pointer;display:flex;flex-direction:column;justify-content:center;gap:4px;transition:box-shadow .15s,transform .12s;overflow:hidden;box-shadow:0 1px 3px rgba(15,68,36,.06);}   /* 1.1: contorno cinza fino */
+.mm-bx:hover{box-shadow:0 0 0 2px var(--gl);}
+.mm-bx:active{transform:scale(.99);}
+.mm-bx.nolink{cursor:default;background:#eef2ee;box-shadow:none;}
+.mm-bx.nolink:hover{box-shadow:none;}
+.mm-bx-side{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:var(--txt);min-width:0;line-height:1.2;min-height:16px;}
+.mm-bx-side.win{color:var(--g);}
+.mm-bx-nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mm-bx-sc{font-weight:800;font-variant-numeric:tabular-nums;flex-shrink:0;}
+.mm-bx-sc small{font-weight:600;color:var(--mu);}
+/* Bandeira padronizada: caixa de tamanho fixo, centralizada, sem distorcer */
+.flagbx{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;}
+.flagbx .flag-img{max-width:100%;max-height:100%;width:auto;height:auto;border-radius:2px;display:block;box-shadow:0 1px 2px rgba(0,0,0,.18);}
+.mm-matchup .team-flag .flagbx{width:46px;height:31px;}
+.mm-bx-side .flagbx{width:22px;height:15px;}
+.mm-qpb .flagbx{width:16px;height:11px;}
+.mm-class-btns .flagbx{width:18px;height:12px;}
+.mm-qp-static .flagbx{width:16px;height:11px;}
+/* Tags de status do cabeçalho */
+.bl-tag.abe{background:rgba(255,255,255,.2);color:#fff;font-size:8.5px;}
+.bl-tag.fec{background:#e8c44a;color:#5c4708;font-size:8.5px;}
+/* Condicionais: badge sem número / "quem passou" sem empate real ficam escondidos */
+.mm-pts.empty{display:none;}
+.mm-class.hidden{display:none;}
+.mm-qp:empty{display:none;}
+/* Filtro de fases (3.1) */
+/* Filtro: cabe numa linha só, sem rolagem (tabs de largura igual) */
+.mm-filters{display:flex;gap:4px;padding:2px 1px 11px;}
+.mm-fbtn{flex:1 1 0;min-width:0;background:var(--card);border:1.5px solid var(--brd);border-radius:18px;padding:7px 4px;font-size:11px;font-weight:700;color:var(--mu);cursor:pointer;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;}
+.mm-fbtn sup{font-size:.72em;}
+.mm-fbtn.active{background:var(--gd);border-color:var(--gd);color:var(--gold);}
+/* Cabeçalho da seção do chaveamento (A1) — grudado no topo do card .mm-sec */
+.mm-sec-head{display:flex;align-items:center;justify-content:space-between;gap:8px;background:linear-gradient(135deg,var(--gd),var(--g));padding:11px 14px;cursor:pointer;}
+.mm-sec-title{font-size:13px;font-weight:800;color:var(--gold);letter-spacing:.3px;}
+.mm-sec-arrow{color:#fff;font-size:13px;font-weight:800;}
+/* Lista de confrontos: 2 colunas no desktop, 1 no celular (2.1); align-items:start = expandir não empurra o vizinho (5.3) */
+#mm-list{display:grid;grid-template-columns:1fr;gap:11px;align-items:start;}
+@media(min-width:680px){#mm-list{grid-template-columns:repeat(2,minmax(0,1fr));}}
+#mm-list .mm-datehdr{grid-column:1/-1;margin:5px 0 1px;}   /* quebra de data ocupa a linha toda (7.1) */
+/* Card do confronto: cabeçalho/bandeiras/rodapé sempre visíveis; só os palpites colapsam (3.1) */
+.mm-litem{border:1px solid var(--brd);border-radius:14px;overflow:hidden;background:var(--card);box-shadow:0 2px 8px rgba(15,68,36,.06);display:flex;flex-direction:column;}
+.mm-litem .card-head{border-radius:0;}
+.mm-litem-summary{display:flex;align-items:center;gap:6px;padding:10px 12px;cursor:pointer;}
+.mm-litem-summary .matchup{flex:1;padding:0;}
+.mm-matchup{gap:16px;}
+.mm-chev{flex-shrink:0;width:30px;height:30px;border-radius:50%;background:var(--bg);border:1.5px solid var(--brd);color:var(--g);font-size:17px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .2s,background .15s;padding:0;line-height:1;}
+.mm-chev:hover{background:#e7f3ea;}
+.mm-litem.open .mm-chev{transform:rotate(180deg);}
+.mm-litem-body{display:none;}
+.mm-litem.open .mm-litem-body{display:block;}
+.mm-litem.flash{box-shadow:0 0 0 3px rgba(232,196,74,.7);}
+/* Palpites: humanos (1 col mobile / 2 col desktop), IAs em 2×2 */
+.mm-preds-wrap{padding:11px 12px;border-top:1px solid var(--brd);}
+.mm-humans{display:grid;grid-template-columns:1fr;gap:7px;margin-bottom:9px;}
+.mm-ias{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;}
+@media(min-width:680px){.mm-humans{grid-template-columns:repeat(2,minmax(0,1fr));}}
+/* Célula do humano — CELULAR (2.1/2.2): tudo numa LINHA só (foto MAIOR + nome ~1/3 · placar+bandeiras ~2/3) */
+.mm-hcell{display:flex;flex-direction:row;align-items:center;gap:8px;}
+.mm-hc-id{flex:0 0 33%;max-width:33%;display:flex;flex-direction:row;align-items:center;gap:7px;min-width:0;}
+.mm-hcell .hum-av{width:42px;height:42px;font-size:15px;}
+.mm-hc-id .hum-name{font-size:13px;font-weight:800;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;}
+/* grade do palpite: celular = [placarA × placarB] [bandeiraA bandeiraB] na mesma linha */
+.mm-hc-pred{flex:1;display:grid;align-items:center;gap:3px 5px;justify-content:center;grid-template-columns:auto auto auto auto auto;grid-template-areas:"na x nb fa fb";}
+.mm-hc-pred .mm-na{grid-area:na;}.mm-hc-pred .mm-nb{grid-area:nb;}.mm-hc-pred .mm-x{grid-area:x;font-weight:700;opacity:.7;}
+.mm-hc-pred .fa{grid-area:fa;margin-left:7px;}.mm-hc-pred .fb{grid-area:fb;}
+.mm-hc-pred input{width:40px;height:38px;text-align:center;border:1.5px solid var(--brd);border-radius:9px;font-size:18px;font-weight:700;background:var(--bg);color:var(--txt);-moz-appearance:textfield;}
+.mm-hc-pred input::-webkit-outer-spin-button,.mm-hc-pred input::-webkit-inner-spin-button{-webkit-appearance:none;}
+.mm-hc-pred input:focus{outline:none;border-color:var(--gl);background:#fff;box-shadow:0 0 0 3px rgba(45,150,83,.13);}
+/* bandeira do "quem passa" colada no placar */
+.mm-qpf{background:var(--card);border:1.5px solid var(--brd);border-radius:6px;padding:2px 4px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;line-height:1;}
+.mm-qpf .flagbx{width:24px;height:16px;}
+.mm-qpf.ro{cursor:default;}
+.mm-qpf.idle{opacity:.45;}
+.mm-qpf.on{border-color:var(--g);background:#e7f3ea;box-shadow:inset 0 0 0 1px var(--g);}
+.mm-qpf.pen.on{border-color:#c0392b;background:#fdeae8;box-shadow:inset 0 0 0 1px #c0392b;}
+/* DESKTOP (card de 2 colunas, estreito) — foto MAIOR empilhada (1.1) + bandeira EM CIMA de cada placar (1.2) */
+@media(min-width:680px){
+  .mm-hc-id{flex-direction:column;gap:4px;justify-content:center;text-align:center;}
+  .mm-hc-id .hum-name{text-align:center;}
+  .mm-hcell .hum-av{width:50px;height:50px;font-size:17px;}
+  .mm-hc-pred{grid-template-columns:auto auto auto;grid-template-areas:"fa . fb" "na x nb";gap:3px 6px;}
+  .mm-hc-pred .fa{margin-left:0;justify-self:center;}.mm-hc-pred .fb{justify-self:center;}
+}
+/* Célula da IA (2): nome em cima; placar (1 linha) + seletor na 2ª linha — bem compacta */
+.mm-iacell{display:flex;flex-direction:column;gap:3px;padding:6px 8px;}
+.mm-iacell-head{display:flex;align-items:center;gap:6px;min-width:0;}
+.mm-iacell .hum-name{font-size:12px;font-weight:800;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mm-iacell-row{display:flex;align-items:center;gap:8px;}
+.mm-iacell-row .mm-iascore{flex:0 0 auto;white-space:nowrap;padding:3px 8px;font-size:14px;min-width:auto;}
+.mm-iacell-row .mm-hc-passa{margin-left:auto;}
+/* Seletor "Quem passa / Pênaltis" em 2 linhas */
+.mm-passa{display:flex;flex-direction:column;align-items:center;gap:2px;}
+.mm-passa-lbl{font-size:8px;font-weight:800;color:var(--mu);text-transform:uppercase;letter-spacing:.2px;white-space:nowrap;}
+.mm-passa.pen .mm-passa-lbl{color:#c0392b;}
+.mm-passa.idle{opacity:.6;}
+.mm-passa-opts{display:flex;gap:3px;}
+.mm-po{background:var(--card);border:1.5px solid var(--brd);border-radius:6px;padding:3px 5px;cursor:pointer;display:inline-flex;align-items:center;line-height:1;}
+.mm-po .flagbx{width:20px;height:13px;}
+.mm-po.ro{cursor:default;}
+.mm-po.on{border-color:var(--g);background:#e7f3ea;box-shadow:inset 0 0 0 1px var(--g);}
+.mm-passa.pen .mm-po.on{border-color:#c0392b;background:#fdeae8;box-shadow:inset 0 0 0 1px #c0392b;}
+/* Rodapé "PLACAR FINAL": bandeira do "quem passou" (SÓ bandeira) embaixo de cada número; Finalizar à direita centralizado (Parte 3) */
+.real-row.mm-footer{display:flex;flex-direction:row;align-items:center;gap:10px;}
+.mm-foot-main{flex:1;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.mm-foot-main .rr-label{font-size:10px;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:.3px;}
+.mm-foot-scores{display:flex;align-items:flex-start;gap:8px;}
+.mm-foot-col{display:flex;flex-direction:column;align-items:center;gap:4px;}
+.mm-foot-col input{width:42px;height:38px;text-align:center;border:1.5px solid var(--brd);border-radius:8px;font-size:17px;font-weight:700;background:var(--bg);color:var(--txt);-moz-appearance:textfield;}
+.mm-foot-col input::-webkit-outer-spin-button,.mm-foot-col input::-webkit-inner-spin-button{-webkit-appearance:none;}
+.mm-foot-col input:focus{outline:none;border-color:var(--gl);background:#fff;box-shadow:0 0 0 3px rgba(45,150,83,.13);}
+.mm-foot-x{align-self:flex-start;height:38px;display:flex;align-items:center;font-weight:800;color:#fff;opacity:.85;}
+.mm-cqp{background:rgba(255,255,255,.16);border:1.5px solid rgba(255,255,255,.45);border-radius:6px;padding:2px 7px;cursor:pointer;display:inline-flex;align-items:center;line-height:1;}
+.mm-cqp .flag-img{height:14px;border-radius:2px;}
+.mm-cqp.on{background:var(--gold);border-color:var(--gold);box-shadow:0 0 0 1px var(--gold);}
+/* TURBO (1.1): laranja no cabeçalho e rodapé; texto ESCURO pra contraste (4.1) */
+.mm-litem.is-turbo{border-color:#ff7a00;box-shadow:0 0 0 2px rgba(255,122,0,.35),0 4px 14px rgba(255,122,0,.18);}
+.mm-litem.is-turbo .card-head{background:linear-gradient(135deg,#ff8c1a,#ff6a00);}
+.mm-litem.is-turbo .card-head .grp-tag,.mm-litem.is-turbo .card-head .dt-tag{color:#0f4424;}
+.mm-litem.is-turbo .card-head .bl-tag.abe{background:rgba(0,0,0,.16);color:#0f4424;}
+.mm-litem.is-turbo .real-row,.mm-litem.is-turbo .real-row.pending{background:repeating-linear-gradient(135deg,#ff8c1a,#ff8c1a 10px,#f06f00 10px,#f06f00 20px);}
+.mm-litem.is-turbo .real-row .rr-label,.mm-litem.is-turbo .mm-foot-x{color:#5c2e00;}
+.mm-litem.is-turbo .mm-cqp{border-color:rgba(0,0,0,.3);background:rgba(255,255,255,.45);}
+.mm-litem.is-turbo .mm-cqp.on{background:var(--gold);border-color:var(--gold);}
+/* PALPITE FALTANDO (7): borda amarela + célula amarela de quem não palpitou */
+.mm-litem.mm-miss{border-color:#e8c44a;box-shadow:0 0 0 2px rgba(232,196,74,.45);}
+.mm-litem.is-turbo.mm-miss{border-color:#e8c44a;box-shadow:0 0 0 2px rgba(232,196,74,.6),0 4px 14px rgba(255,122,0,.18);}
+.mm-hcell.mm-miss-cell{background:#fff8e1;border-color:#e8c44a;}
+/* Card FINALIZADO esmaecido (10.1) */
+.mm-litem.mm-fin{filter:saturate(.55);opacity:.82;}
+/* Card-fantasma + "?" do time indefinido (Parte 5) */
+.mm-ghost{opacity:.95;}
+.mm-q{display:inline-flex;align-items:center;justify-content:center;width:46px;height:31px;border:1.6px dashed var(--brd);border-radius:5px;color:var(--mu);font-weight:800;font-size:18px;}
+.mm-tbd .team-name{min-height:13px;}
+/* Cabeçalho do card: fonte um pouco maior (6) — igual no celular e no desktop */
+.mm-litem .card-head .grp-tag,.mm-ghost .card-head .grp-tag{font-size:11px;}
+.mm-litem .card-head .dt-tag,.mm-ghost .card-head .dt-tag{font-size:12px;}
+/* Quebra de dia colapsável (10.2) */
+.mm-datehdr{cursor:pointer;user-select:none;}
+.mm-day-arrow{font-size:11px;color:var(--mu);font-weight:800;flex-shrink:0;}
+/* Chave: perdedor em cinza + tag "pên" sem desalinhar placar (Parte 9) */
+.mm-bx-side.lost{opacity:.4;}
+.mm-bx-side.lost .mm-bx-nm{text-decoration:line-through;}
+.mm-bx-pen{font-size:7px;font-weight:800;color:var(--g);background:#e7f3ea;border-radius:3px;padding:0 3px;margin-left:4px;vertical-align:1px;}
+.mm-bx-sc{min-width:12px;text-align:right;}
+/* Blocos do topo do mata-mata (próximos / ranking / como funciona) */
+.mm-block{background:var(--card);border:1px solid var(--brd);border-radius:14px;padding:12px 14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(15,68,36,.05);}
+.mm-block-h{font-size:13px;font-weight:800;color:var(--gd);}
+.mm-block-sub{font-size:10.5px;color:var(--mu);margin:3px 0 6px;}
+.mm-next-row{display:flex;flex-direction:column;gap:2px;padding:8px 0;border-top:1px solid var(--brd);cursor:pointer;}
+.mm-next .mm-block-h{margin-bottom:4px;}
+.mm-next-row:first-of-type{border-top:none;}
+.mm-next-when{font-size:11px;font-weight:800;color:var(--g);}
+.mm-next-teams{font-size:14px;font-weight:800;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.mm-next-teams .flagbx{width:22px;height:15px;}
+.mm-next-x{color:var(--mu);}
+.mm-next-tbd{color:var(--mu);font-weight:600;font-style:italic;}
+.mm-next-ven{font-size:10.5px;color:var(--mu);}
+.mm-rk-row{display:flex;align-items:center;gap:9px;padding:6px 0;border-top:1px solid var(--brd);}
+.mm-rk-row:first-of-type{border-top:none;}
+.mm-rk-pos{font-size:13px;font-weight:800;color:var(--mu);min-width:26px;text-align:center;}
+.mm-rk-av{width:30px;height:30px;border-radius:50%;overflow:hidden;position:relative;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:12px;}
+.mm-rk-nm{flex:1;font-size:13px;font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mm-rk-pts{font-size:12px;color:var(--mu);}
+.mm-rk-pts b{color:var(--g);font-size:14px;}
+.mm-how summary{cursor:pointer;list-style:none;}
+.mm-how summary::-webkit-details-marker{display:none;}
+.mm-how-body{font-size:12px;line-height:1.5;color:var(--txt);margin-top:7px;}
+.mm-how-body p{margin:0 0 6px;}
+/* Ambiente DEV: flag + botão de espelho (canto superior) */
+#dev-flag{position:fixed;top:8px;left:8px;z-index:300;background:#ff7a00;color:#fff;font-size:10px;font-weight:800;letter-spacing:1.5px;padding:3px 8px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,.3);}
+#mirror-btn{position:fixed;top:6px;right:8px;z-index:300;background:#b3261e;color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:800;cursor:pointer;box-shadow:0 2px 7px rgba(0,0,0,.35);}
+#mirror-btn:disabled{opacity:.6;cursor:default;}
 </style>
 </head>
 <body>
@@ -357,12 +578,14 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
   <div class="hdr-status"><span id="sync-indicator"></span></div>
   <nav>
     <button class="active" onclick="showTab('palpites')">🎯 Palpites</button>
-    <button onclick="showTab('ranking')">🏆 Ranking &amp; Stats</button>
+    <button onclick="showTab('mata')">⚔️ Mata-Mata</button>
+    <button onclick="showTab('ranking')">🏆 Ranking</button>
   </nav>
 </header>
 <main>
   <div id="error-banner" class="error-banner" style="display:none"></div>
   <div id="tab-palpites" class="tab active"></div>
+  <div id="tab-mata" class="tab"></div>
   <div id="tab-ranking" class="tab"></div>
 </main>
 
@@ -370,7 +593,14 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 // ─── CONFIGURAÇÃO SUPABASE ────────────────────────────────────────────────────
 const SUPABASE_URL = 'https://jgnmenwtxybaqshvxyer.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_-4B34BzFkro0ve-J-OMBKQ_9xO3C5tr';
-const TABLE = 'bolao_games';
+// Ambiente por hostname: na URL de preview do dev (hostname começa com "dev.") o app lê/escreve
+// num banco de DEV isolado (tabelas dev_*) no MESMO projeto Supabase. Qualquer outro hostname
+// (produção, localhost) usa as tabelas de produção, EXATAMENTE como hoje — produção não muda.
+function isDevEnv(h){return (h||location.hostname).startsWith('dev.');}
+const IS_DEV  = isDevEnv();
+const TABLE   = IS_DEV ? 'dev_bolao_games'     : 'bolao_games';
+const MM_TCONF= IS_DEV ? 'dev_mata_confrontos' : 'mata_confrontos';
+const MM_TPAL = IS_DEV ? 'dev_mata_palpites'   : 'mata_palpites';
 // ─────────────────────────────────────────────────────────────────────────────
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -552,9 +782,11 @@ async function loadData(){
   if(error){showErr('Erro ao carregar: '+error.message);hideLoading();return;}
   CACHE={};
   if(data) data.forEach(row=>{CACHE[row.game_id]=row;});
+  await loadMata();              // mata-mata (tabelas novas; ignora se ainda não existirem)
   hideLoading();
   renderAll();
   subscribeRealtime();
+  subscribeMata();
 }
 
 // Colunas de dados que importam para detectar mudanças reais (ignora updated_at etc.)
@@ -632,6 +864,7 @@ function setFilter(f){filterMode=f;localStorage.setItem('bf',f);renderPalpites()
 
 function renderAll(){
   if(activeTab==='palpites')renderPalpites();
+  else if(activeTab==='mata')renderMata();
   else renderRanking();
 }
 
@@ -698,7 +931,7 @@ function tickCountdown(){
   if(!els.length){if(_cdInterval){clearInterval(_cdInterval);_cdInterval=null;}return;}
   let expired=false;
   els.forEach(el=>{const rem=+el.dataset.t-Date.now(); if(rem<=0)expired=true; else el.textContent=fmtCountdown(rem);});
-  if(expired&&!isTyping())renderPalpites();   // algum jogo começou: atualiza a lista do dia
+  if(expired&&!isTyping())renderAll();   // algum jogo começou: atualiza a aba ativa (palpites ou mata)
 }
 // Jogos do dia: do agora até as 6h da próxima manhã (madrugada conta como o mesmo "dia")
 function todaySlate(){
@@ -1278,6 +1511,15 @@ function rankingNew(){
   const fin=GT.map(t=>getGame(t.id)).filter(g=>!g.removed&&g.finished&&g.realA!==''&&inRank(g)).length;
   const tot=GT.map(t=>getGame(t.id)).filter(g=>!g.removed&&inRank(g)).length;
   const sAll=PARTICIPANTS.map(p=>({...p,...getStats(p.id,inRank)}));
+  // Soma os pontos do mata-mata (fase eliminatória) ao total/estatísticas do Bolão Geral.
+  let mataTotal=0;
+  sAll.forEach(s=>{
+    const m=mataStats(s.id);
+    s.total+=m.total; s.rHits+=m.rHits; s.eHits+=m.eHits; s.played+=m.played;
+    s.cravadas=s.cravadas.concat(m.cravadas);
+    s.avg=s.played?s.total/s.played:0;
+    s.mataPts=m.total; mataTotal+=m.total;
+  });
   const ranked=[...sAll].sort((a,b)=>b.total-a.total||b.eHits-a.eHits||b.rHits-a.rHits);
   const mx=Math.max(1,...ranked.map(s=>s.total));
   const hist=geralHistory();
@@ -1287,7 +1529,7 @@ function rankingNew(){
   html+=`<div class="lead-board">
     <div class="lead-head">
       <div class="lh-title">🏆 CLASSIFICAÇÃO GERAL</div>
-      <div class="lh-sub">${fin} de ${tot} jogos · vale a partir de 20/06 ${q('cutoff')}</div>
+      <div class="lh-sub">${fin} de ${tot} jogos${mataTotal>0?' + mata-mata':''} · vale a partir de 20/06 ${q('cutoff')}</div>
     </div>
     <div class="rk-legend">Ao lado da posição: quantas posições a pessoa <b class="up">▲ subiu</b> ou <b class="down">▼ caiu</b> nos últimos 3 jogos (<b>=</b> manteve).</div>`;
   ranked.forEach((p,i)=>{html+=rkRow(p,i,mx,true,deltas[p.id]);});
@@ -1358,19 +1600,684 @@ function renderRanking(){
   document.getElementById('tab-ranking').innerHTML=toggle+(rankMode==='jxv'?rankingOld():rankingNew());
 }
 
+// ─── MATA-MATA (fase eliminatória) ────────────────────────────────────────────
+// Tabelas NOVAS e separadas (MM_TCONF/MM_TPAL = mata_confrontos|dev_mata_confrontos etc.) —
+// não tocam na fase de grupos. TODOS os 8 palpitam (humanos editam na UI; IAs entram pela
+// criação via Claude Code e aparecem como leitura). Criar/editar/remover confronto NÃO fica
+// exposto na UI do usuário final — é feito por fora (admin).
+const MM_HUMANS=['jessica','tonius','leo','vinicius'];   // quem é editável pela UI
+let MM_CONFRONTOS=[];     // linhas de mata_confrontos (ordem = created_at)
+let MM_PALPITES={};       // { confronto_id → { pid → {gols_a,gols_b,quem_passa} } }
+const mmDeb={}, mmRemoveConfirm={}, mmEditing={};
+
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function mmIsTest(c){return /\[TESTE\]/i.test((c.team_a||'')+' '+(c.team_b||'')+' '+(c.phase||''));}
+// Turbos (×2) marcados por fase (flag no código): 16avos=6, oitavas=3, quartas=2, semis=1, 3º=0, final=0.
+const MM_TURBO=new Set(['r32_1','r32_4','r32_7','r32_10','r32_13','r32_16','r16_2','r16_5','r16_8','qf_1','qf_3','sf_2']);
+function mmIsTurbo(c){return MM_TURBO.has(c.id);}
+// Multiplicador por FASE sobre a base (5+1+1+3). Turbo dobra em cima. Teto: Final (×4) é o maior — o
+// maior turbo possível é a semi (×1,75 × 2 = ×3,5 < ×4).
+const MM_PHASE_MULT={'32avos':1,'oitavas':1.25,'quartas':1.5,'semis':1.75,'3lugar':1.75,'final':4};
+function mmPhaseKeyOf(id){const col=MM_COLS.find(c=>c.ids.includes(id));return col?col.key:'32avos';}
+function mmMult(c){return (MM_PHASE_MULT[mmPhaseKeyOf(c.id)]||1)*(mmIsTurbo(c)?2:1);}
+// Palpite só conta como DADO com os DOIS gols preenchidos (e, se empate, também o "quem passa") — Parte 7.
+function mmHasFullPred(pal){return !!(pal&&pal.gols_a!=null&&pal.gols_b!=null&&(pal.gols_a!==pal.gols_b||pal.quem_passa));}
+function mmMissingHuman(c){return PARTICIPANTS.some(p=>p.type==='human'&&!mmHasFullPred((MM_PALPITES[c.id]||{})[p.id]));}
+const mmCollapsedDays=new Set();   // 10: dias recolhidos na lista
+let mmDaysInit=false;
+
+async function loadMata(){
+  try{
+    const [rc,rp]=await Promise.all([
+      sb.from(MM_TCONF).select('*').order('created_at',{ascending:true}),
+      sb.from(MM_TPAL).select('*'),
+    ]);
+    if(rc.error||rp.error){console.warn('Mata-mata sem tabelas ainda?',(rc.error||rp.error).message);MM_CONFRONTOS=[];MM_PALPITES={};return false;}
+    MM_CONFRONTOS=rc.data||[];
+    MM_PALPITES={};
+    (rp.data||[]).forEach(r=>{(MM_PALPITES[r.confronto_id]||(MM_PALPITES[r.confronto_id]={}))[r.pid]={gols_a:r.gols_a,gols_b:r.gols_b,quem_passa:r.quem_passa};});
+    return true;
+  }catch(e){console.warn('loadMata falhou',e);MM_CONFRONTOS=[];MM_PALPITES={};return false;}
+}
+
+let _mmReloadT=null;
+function subscribeMata(){
+  sb.channel('mata_realtime')
+    .on('postgres_changes',{event:'*',schema:'public',table:MM_TCONF},mmReload)
+    .on('postgres_changes',{event:'*',schema:'public',table:MM_TPAL},mmReload)
+    .subscribe();
+}
+function mmReload(){
+  clearTimeout(_mmReloadT);
+  _mmReloadT=setTimeout(async()=>{
+    await loadMata();
+    const typing=document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#tab-mata');
+    if(typing)return;                       // não re-renderiza enquanto edita (dados já atualizados localmente)
+    if(activeTab==='mata')renderMata(); else if(activeTab==='ranking')renderRanking();
+  },250);
+}
+
+// ── Escritas ──
+function mmUpsertConfronto(row){return sb.from(MM_TCONF).upsert({...row,updated_at:new Date().toISOString()},{onConflict:'id'});}
+function mmUpsertPalpite(cid,pid,fields){return sb.from(MM_TPAL).upsert({confronto_id:cid,pid,...fields,updated_at:new Date().toISOString()},{onConflict:'confronto_id,pid'});}
+
+async function mmAddConfronto(){
+  const v=id=>(document.getElementById(id)?.value||'').trim();
+  const ta=v('mm-new-ta'), tb=v('mm-new-tb');
+  if(!ta||!tb){showErr('Preencha os dois times do confronto.');return;}
+  const id='mm_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+  setSyncing(1);
+  const {error}=await mmUpsertConfronto({id,phase:v('mm-new-phase')||'32 avos',team_a:ta,flag_a:v('mm-new-fa'),team_b:tb,flag_b:v('mm-new-fb'),finished:false});
+  setSyncing(-1);
+  if(error){showErr('Erro ao criar confronto: '+error.message);return;}
+  await loadMata(); renderMata();
+}
+async function mmRemoveConfronto(cid){
+  if(!mmRemoveConfirm[cid]){mmRemoveConfirm[cid]=true;renderMata();setTimeout(()=>{delete mmRemoveConfirm[cid];if(activeTab==='mata')renderMata();},3000);return;}
+  delete mmRemoveConfirm[cid];
+  setSyncing(1);
+  const {error}=await sb.from(MM_TCONF).delete().eq('id',cid);   // cascade apaga os palpites
+  setSyncing(-1);
+  if(error){showErr('Erro ao remover: '+error.message);return;}
+  await loadMata(); renderMata();
+}
+function mmToggleEdit(cid){if(mmEditing[cid])delete mmEditing[cid];else mmEditing[cid]=true;renderMata();}
+async function mmSaveEdit(cid){
+  const v=id=>(document.getElementById(id)?.value||'').trim();
+  setSyncing(1);
+  const {error}=await mmUpsertConfronto({id:cid,phase:v('mm-e-phase-'+cid)||'—',team_a:v('mm-e-ta-'+cid),flag_a:v('mm-e-fa-'+cid),team_b:v('mm-e-tb-'+cid),flag_b:v('mm-e-fb-'+cid)});
+  setSyncing(-1);
+  if(error){showErr('Erro ao salvar: '+error.message);return;}
+  delete mmEditing[cid]; await loadMata(); renderMata();
+}
+function mmSetReal(cid,side,val){
+  const c=MM_CONFRONTOS.find(x=>x.id===cid); if(!c)return;
+  const num=val===''?null:parseInt(val); c['real_'+side]=num;
+  mmRefreshPts(cid);
+  clearTimeout(mmDeb[cid+'real'+side]);
+  mmDeb[cid+'real'+side]=setTimeout(()=>{mmUpsertConfronto({id:cid,['real_'+side]:num});if(activeTab==='ranking')renderRanking();},700);
+}
+function mmSetClassificado(cid,side){
+  const c=MM_CONFRONTOS.find(x=>x.id===cid); if(!c)return;
+  c.classificado=c.classificado===side?null:side;
+  document.querySelectorAll(`#tab-mata [data-cid="${cid}"] .mm-class .mm-qpb`).forEach(b=>b.classList.toggle('on',b.dataset.side===c.classificado));
+  mmRefreshPts(cid);
+  mmUpsertConfronto({id:cid,classificado:c.classificado});
+  if(activeTab==='ranking')renderRanking();
+}
+function mmSetFinished(cid){
+  const c=MM_CONFRONTOS.find(x=>x.id===cid); if(!c)return;
+  c.finished=!c.finished; renderMata();
+  mmUpsertConfronto({id:cid,finished:c.finished});
+  if(activeTab==='ranking')renderRanking();
+}
+function mmUpdPalpite(cid,pid,field,val){
+  const num=val===''?null:parseInt(val);
+  const p=(MM_PALPITES[cid]||(MM_PALPITES[cid]={}))[pid]||(MM_PALPITES[cid][pid]={});
+  p[field]=num;
+  if(p.gols_a==null||p.gols_b==null||p.gols_a!==p.gols_b)p.quem_passa=null;   // deixou de ser empate → zera "quem passa"
+  mmRefreshPts(cid); mmRenderQuemPassa(cid,pid);
+  clearTimeout(mmDeb[cid+pid+field]);
+  mmDeb[cid+pid+field]=setTimeout(()=>mmUpsertPalpite(cid,pid,{[field]:num,quem_passa:p.quem_passa}),700);
+}
+function mmSetQuemPassa(cid,pid,side){
+  const p=(MM_PALPITES[cid]||(MM_PALPITES[cid]={}))[pid]||(MM_PALPITES[cid][pid]={});
+  p.quem_passa=p.quem_passa===side?null:side;
+  mmRenderQuemPassa(cid,pid); mmRefreshPts(cid);
+  mmUpsertPalpite(cid,pid,{quem_passa:p.quem_passa});
+}
+
+// ── Pontuação do mata-mata ──
+// Placar FINAL = inclui prorrogação (não os 90 min). Empate só é empate se persistir após a
+// prorrogação → vai pros pênaltis. Regra igual à fase de grupos: 5 resultado +1 gol A +1 gol B
+// +3 exato; +4 SÓ se o palpite foi empate E acertou o "classificado" (quem passou nos pênaltis).
+function calcMataPts(pal,c){
+  if(!pal||pal.gols_a==null||pal.gols_b==null)return null;
+  if(c.real_a==null||c.real_b==null)return null;
+  const pa=+pal.gols_a,pb=+pal.gols_b,ra=+c.real_a,rb=+c.real_b;
+  let base=0;   // base 5+1+1+3 (multiplicada por fase × turbo)
+  if((pa>pb?'A':pa<pb?'B':'E')===(ra>rb?'A':ra<rb?'B':'E'))base+=5;
+  if(pa===ra)base+=1;
+  if(pb===rb)base+=1;
+  if(pa===ra&&pb===rb)base+=3;
+  const bonus=(pa===pb&&pal.quem_passa&&c.classificado&&pal.quem_passa===c.classificado)?4:0;   // +4 à parte
+  return Math.round(base*mmMult(c))+bonus;
+}
+// Estatísticas do mata-mata para o ranking (ignora confrontos de TESTE e não finalizados)
+function mataStats(pid){
+  let total=0,rHits=0,eHits=0,played=0,cravadas=[];
+  MM_CONFRONTOS.forEach(c=>{
+    if(mmIsTest(c)||!c.finished||c.real_a==null||c.real_b==null)return;
+    const pal=(MM_PALPITES[c.id]||{})[pid];
+    const pts=calcMataPts(pal,c); if(pts==null)return;
+    total+=pts; played++;
+    const ra=+c.real_a,rb=+c.real_b,pa=+pal.gols_a,pb=+pal.gols_b;
+    if((pa>pb?'A':pa<pb?'B':'E')===(ra>rb?'A':ra<rb?'B':'E'))rHits++;
+    if(pa===ra&&pb===rb){eHits++;cravadas.push({fA:c.flag_a,tA:c.team_a,realA:c.real_a,fB:c.flag_b,tB:c.team_b,realB:c.real_b});}
+  });
+  return {total,rHits,eHits,played,cravadas};
+}
+
+// ── Render ──
+// Seletor compacto em 2 linhas: rótulo em cima, duas opções (A | B) embaixo.
+// Sem palpite → some. Vencedor no palpite → "Quem passa" com o vencedor AUTO-marcado (não clicável).
+// Empate no palpite → "Pênaltis", clicável (humano escolhe; IA mostra a escolha do Vini, leitura).
+function mmQuemPassaHTML(c,pid,editable){
+  const p=(MM_PALPITES[c.id]||{})[pid]||{};
+  const tm=mmTeams(c);
+  const complete=p.gols_a!=null&&p.gols_b!=null;   // 5.1: sempre carregado (estado neutro sem palpite)
+  const draw=complete&&p.gols_a===p.gols_b;
+  const sel=!complete?null:(draw?p.quem_passa:(p.gols_a>p.gols_b?'A':'B'));   // empate: escolha; vencedor: auto
+  const clickable=draw&&editable;
+  const opt=s=>{
+    const t=s==='A'?tm.a:tm.b, on=sel===s;
+    const click=clickable?` onclick="mmSetQuemPassa('${c.id}','${pid}','${s}')"`:'';
+    return `<button class="mm-po${on?' on':''}${clickable?'':' ro'}"${click} title="${esc((t&&t.name)||s)}">${mmFlag(t&&t.flag)||('<b>'+s+'</b>')}</button>`;
+  };
+  return `<div class="mm-passa${draw?' pen':''}${complete?'':' idle'}"><span class="mm-passa-lbl">${draw?'Pênaltis':'Quem passa'}</span><div class="mm-passa-opts">${opt('A')}${opt('B')}</div></div>`;
+}
+// Estado do "quem passa": completo? empate? lado selecionado (empate=escolha, vencedor=auto).
+function mmQpState(c,pid){
+  const p=(MM_PALPITES[c.id]||{})[pid]||{};
+  const complete=p.gols_a!=null&&p.gols_b!=null, draw=complete&&p.gols_a===p.gols_b;
+  return {complete,draw,sel:!complete?null:(draw?p.quem_passa:(p.gols_a>p.gols_b?'A':'B'))};
+}
+// Bandeira do "quem passa" do HUMANO, posicionada JUNTO ao campo de placar (Partes 1.2/2.1).
+// Empate → clicável (escolhe pênaltis); vencedor → auto-marcada (leitura); sem palpite → apagada.
+function mmHumQpFlag(c,pid,side,editable){
+  const {complete,draw,sel}=mmQpState(c,pid), tm=mmTeams(c), t=side==='A'?tm.a:tm.b;
+  const clickable=draw&&editable, on=sel===side;
+  const cls=['mm-qpf',side==='A'?'fa':'fb']; if(on)cls.push('on'); if(!clickable)cls.push('ro'); if(draw)cls.push('pen'); if(!complete)cls.push('idle');
+  const click=clickable?` onclick="mmSetQuemPassa('${c.id}','${pid}','${side}')"`:'';
+  return `<button class="${cls.join(' ')}" data-side="${side}"${click} title="${esc((t&&t.name)||side)}">${mmFlag(t&&t.flag)||('<b>'+side+'</b>')}</button>`;
+}
+// Grade do palpite do humano: [bandeiraA] [placarA] × [placarB] [bandeiraB] (CSS posiciona por fase).
+function mmHumPredHTML(c,pid,pal){
+  const inp=side=>`<input class="mm-n${side}" type="number" min="0" max="99" inputmode="numeric" value="${pal['gols_'+side]!=null?pal['gols_'+side]:''}" placeholder="–" oninput="mmUpdPalpite('${c.id}','${pid}','gols_${side}',this.value)">`;
+  return `${mmHumQpFlag(c,pid,'A',true)}${inp('a')}<span class="mm-x">×</span>${inp('b')}${mmHumQpFlag(c,pid,'B',true)}`;
+}
+// Atualiza só as bandeiras (sem mexer nos inputs → não perde o foco ao digitar).
+function mmUpdHumFlags(grid,c,pid,editable){
+  ['A','B'].forEach(side=>{const b=grid.querySelector('.mm-qpf.'+(side==='A'?'fa':'fb'));if(b)b.outerHTML=mmHumQpFlag(c,pid,side,editable);});
+}
+function mmRenderQuemPassa(cid,pid){
+  const c=MM_CONFRONTOS.find(x=>x.id===cid),p=PARTICIPANTS.find(x=>x.id===pid); if(!c||!p)return;
+  const editable=p.type==='human';
+  const grid=document.querySelector(`#tab-mata [data-cid="${cid}"] .mm-hc-pred[data-pid="${pid}"]`);
+  if(grid){mmUpdHumFlags(grid,c,pid,editable);return;}   // humano: bandeiras na grade do placar
+  const el=document.querySelector(`#tab-mata [data-cid="${cid}"] .mm-qp[data-pid="${pid}"]`);
+  if(el)el.innerHTML=mmQuemPassaHTML(c,pid,editable);    // IA: bloco compacto (inalterado)
+}
+function mmRefreshPts(cid){
+  const card=document.querySelector(`#tab-mata [data-cid="${cid}"]`); if(!card)return;
+  const c=MM_CONFRONTOS.find(x=>x.id===cid); if(!c)return;
+  const hasScore=c.real_a!=null&&c.real_b!=null;
+  PARTICIPANTS.forEach(p=>{
+    const badge=card.querySelector(`.mm-pts[data-pid="${p.id}"]`); if(!badge)return;
+    const pts=hasScore?calcMataPts((MM_PALPITES[cid]||{})[p.id],c):null;
+    badge.className='pts-badge on-av mm-pts'+(pts!=null?' '+(c.finished?ptsClass(pts):'preview'):' empty');   // sem número → display:none
+    badge.textContent=pts!=null?pts:'';
+  });
+  const lbl=card.querySelector('.rr-label');
+  if(lbl)lbl.innerHTML='PLACAR FINAL'+((!c.finished&&hasScore)?' <span class="prev-tag">prévia</span>':'');
+  // estado "palpite faltando" (7): borda amarela no card + célula amarela em quem não palpitou
+  card.classList.toggle('mm-miss',mmMissingHuman(c));
+  PARTICIPANTS.filter(p=>p.type==='human').forEach(p=>{
+    const cell=card.querySelector(`.mm-hcell[data-pid="${p.id}"]`);
+    if(cell)cell.classList.toggle('mm-miss-cell',!mmHasFullPred((MM_PALPITES[cid]||{})[p.id]));
+  });
+}
+function mmCard(c){
+  const test=mmIsTest(c), editing=mmEditing[c.id];
+  const hasScore=c.real_a!=null&&c.real_b!=null, hasReal=c.finished&&hasScore;
+  const cls=['card','mm-card']; if(c.finished)cls.push('is-finished'); if(test)cls.push('mm-test');
+  // Cabeçalho sem controles de admin (criar/editar/remover é feito por fora, via Claude Code).
+  const head=`<div class="card-head">
+    <span class="grp-tag">${esc(c.phase||'—')}${test?' <span class="bl-tag nao">TESTE</span>':''}</span>
+  </div>`;
+  let mid;
+  if(editing){
+    mid=`<div class="mm-edit">
+      <input id="mm-e-phase-${c.id}" value="${esc(c.phase||'')}" placeholder="Fase (ex: 32 avos)">
+      <div class="mm-nf-team"><input id="mm-e-fa-${c.id}" class="mm-flag" value="${esc(c.flag_a||'')}" placeholder="🏳️"><input id="mm-e-ta-${c.id}" value="${esc(c.team_a||'')}" placeholder="Time A"></div>
+      <div class="mm-nf-team"><input id="mm-e-fb-${c.id}" class="mm-flag" value="${esc(c.flag_b||'')}" placeholder="🏳️"><input id="mm-e-tb-${c.id}" value="${esc(c.team_b||'')}" placeholder="Time B"></div>
+      <button class="mm-add" onclick="mmSaveEdit('${c.id}')">Salvar</button>
+    </div>`;
+  }else{
+    const win=side=>{ if(!hasReal||c.real_a===c.real_b)return 'team'; const aw=c.real_a>c.real_b; return side==='A'?(aw?'team win':'team lose'):(aw?'team lose':'team win'); };
+    mid=`<div class="matchup">
+      <div class="${win('A')}"><span class="team-flag">${c.flag_a?flagImg(c.flag_a):''}</span><span class="team-name">${esc(c.team_a||'?')}</span></div>
+      <div class="mid">${hasReal?`<div class="score-final">${c.real_a}<small>×</small>${c.real_b}</div>`:`<div class="vs-badge">×</div>`}<div class="venue">placar final</div></div>
+      <div class="${win('B')}"><span class="team-flag">${c.flag_b?flagImg(c.flag_b):''}</span><span class="team-name">${esc(c.team_b||'?')}</span></div>
+    </div>`;
+  }
+  let preds=`<div class="preds-grid mm-preds">`;
+  PARTICIPANTS.forEach(p=>{
+    const pid=p.id, isHuman=p.type==='human';
+    const pal=(MM_PALPITES[c.id]||{})[pid]||{};
+    const hasPred=pal.gols_a!=null;
+    const pts=hasScore&&hasPred?calcMataPts(pal,c):null;
+    const inp=side=>`<input type="number" min="0" max="99" inputmode="numeric" value="${pal['gols_'+side]!=null?pal['gols_'+side]:''}" placeholder="–" oninput="mmUpdPalpite('${c.id}','${pid}','gols_${side}',this.value)">`;
+    const palpiteUI=isHuman
+      ? `<div class="pc-inputs">${inp('a')}<span class="sep">×</span>${inp('b')}</div>`
+      : `<div class="mm-iascore${hasPred?'':' empty'}">${hasPred?`${pal.gols_a} × ${pal.gols_b}`:'– × –'}</div>`;
+    preds+=`<div class="pred-cell ${isHuman?'human':'ia'} mm-cell" data-pid="${pid}">
+      <div class="mm-cell-top">
+        <div class="hum-avwrap"><div class="hum-av" style="background:${p.color}">${avInner(p)}</div><span class="pts-badge on-av mm-pts${pts!=null?' '+(c.finished?ptsClass(pts):'preview'):''}" data-pid="${pid}">${pts!=null?pts:''}</span></div>
+        <span class="hum-name">${p.name}</span>
+        ${palpiteUI}
+      </div>
+      <div class="mm-qp" data-pid="${pid}">${mmQuemPassaHTML(c,pid,isHuman)}</div>
+    </div>`;
+  });
+  preds+=`</div>`;
+  const tmc=mmTeams(c);
+  const cbtn=side=>{const t=side==='A'?tmc.a:tmc.b;return `<button class="mm-qpb${c.classificado===side?' on':''}" data-side="${side}" onclick="mmSetClassificado('${c.id}','${side}')">${t&&t.flag?flagImg(t.flag):''} ${esc((t&&t.name)||side)}</button>`;};
+  const classRow=`<div class="mm-class"><span class="mm-class-lbl">Quem passou nos pênaltis (se empatar após a prorrogação):</span><div class="mm-class-btns">${cbtn('A')}${cbtn('B')}</div></div>`;
+  const realInp=side=>`<input type="number" min="0" max="99" inputmode="numeric" value="${c['real_'+side]!=null?c['real_'+side]:''}" placeholder="–" oninput="mmSetReal('${c.id}','${side}',this.value)">`;
+  const resultRow=`<div class="real-row${c.finished?'':' pending'}">
+      <div class="rr-line"><span class="rr-label">PLACAR FINAL${(!c.finished&&hasScore)?' <span class="prev-tag">prévia</span>':''}</span>${realInp('a')}<span class="sep">×</span>${realInp('b')}</div>
+      <button class="rr-finish${c.finished?' done':''}" onclick="mmSetFinished('${c.id}')">${c.finished?'Finalizado ✅':'Finalizar <span class="chk-off">✓</span>'}</button>
+    </div>`;
+  return `<div class="${cls.join(' ')}" data-cid="${c.id}">${head}${mid}${preds}${editing?'':classRow}${editing?'':resultRow}</div>`;
+}
+// ── ESTRUTURA FIXA DA CHAVE (ligações entre as fases, em código, uma vez só) ──
+// Cada vaga referencia o "vencedor/perdedor do jogo X" da fase anterior. O sistema sabe
+// sozinho quem enfrenta quem — não precisa reinformar a cada rodada.
+const MM_BRACKET=(()=>{
+  const b={};
+  for(let i=1;i<=16;i++) b['r32_'+i]={phase:'32 avos'};
+  for(let i=1;i<=8;i++)  b['r16_'+i]={phase:'Oitavas', feeders:{A:{g:'r32_'+(2*i-1),take:'win'},B:{g:'r32_'+(2*i),take:'win'}}};
+  for(let i=1;i<=4;i++)  b['qf_'+i] ={phase:'Quartas', feeders:{A:{g:'r16_'+(2*i-1),take:'win'},B:{g:'r16_'+(2*i),take:'win'}}};
+  for(let i=1;i<=2;i++)  b['sf_'+i] ={phase:'Semis',   feeders:{A:{g:'qf_'+(2*i-1),take:'win'},B:{g:'qf_'+(2*i),take:'win'}}};
+  b['tp_1'] ={phase:'3º lugar', feeders:{A:{g:'sf_1',take:'lose'},B:{g:'sf_2',take:'lose'}}};   // 3º = perdedores das semis
+  b['fin_1']={phase:'Final',    feeders:{A:{g:'sf_1',take:'win'}, B:{g:'sf_2',take:'win'}}};
+  return b;
+})();
+// Colunas da esquerda → direita (3º lugar é coluna própria, logo ANTES da final)
+const MM_COLS=[
+  {key:'32avos', label:'16 avos', short:'16<sup>av</sup>', ids:Array.from({length:16},(_,i)=>'r32_'+(i+1))},
+  {key:'oitavas',label:'Oitavas', short:'8<sup>as</sup>',  ids:Array.from({length:8}, (_,i)=>'r16_'+(i+1))},
+  {key:'quartas',label:'Quartas', short:'4<sup>as</sup>',  ids:Array.from({length:4}, (_,i)=>'qf_'+(i+1))},
+  {key:'semis',  label:'Semis',   short:'Semis',           ids:['sf_1','sf_2']},
+  {key:'3lugar', label:'3º lugar', short:'3º lugar',       ids:['tp_1']},
+  {key:'final',  label:'Final',   short:'Final 🏆',        ids:['fin_1']},
+];
+const mmOpen=new Set();   // confrontos expandidos na lista (preserva estado entre re-renders)
+let mmPhaseFilter='32avos';   // filtro de fase da lista (3.1) — padrão 16 avos (key interna '32avos')
+let mmBracketOpen=true;            // A1: seção do chaveamento expandida/recolhida
+const mmCollapsedCols=new Set();   // A2: fases (colunas) recolhidas na chave
+// AGENDA dos 16 avos (data/hora/local) por VAGA (slot). Fica no código (a anon key não cria coluna
+// nova no banco). O app lê isto OU os campos dt/tm/venue do confronto, se existirem no banco.
+const MM_AGENDA={
+  r32_1:{dt:'28/06',tm:'16h',  ven:'Los Angeles'},
+  r32_2:{dt:'29/06',tm:'14h',  ven:'Houston'},
+  r32_3:{dt:'29/06',tm:'17h30',ven:'Boston'},
+  r32_4:{dt:'29/06',tm:'22h',  ven:'Monterrey'},
+  r32_5:{dt:'30/06',tm:'14h',  ven:'Dallas'},
+  r32_6:{dt:'30/06',tm:'18h',  ven:'Nova Jérsei'},
+  r32_7:{dt:'30/06',tm:'22h',  ven:'Cidade do México'},
+  r32_8:{dt:'01/07',tm:'13h',  ven:'Atlanta'},
+  r32_9:{dt:'01/07',tm:'17h',  ven:'Seattle'},
+  r32_10:{dt:'01/07',tm:'21h', ven:'San Francisco'},
+  r32_11:{dt:'02/07',tm:'16h', ven:'Los Angeles'},
+  r32_12:{dt:'02/07',tm:'20h', ven:'Toronto'},
+  r32_13:{dt:'03/07',tm:'00h', ven:'Vancouver'},
+  r32_14:{dt:'03/07',tm:'15h', ven:'Dallas'},
+  r32_15:{dt:'03/07',tm:'19h', ven:'Miami'},
+  r32_16:{dt:'03/07',tm:'22h30',ven:'Kansas City'},
+  r16_1:{dt:'04/07',tm:'14h',  ven:'Houston'},
+  r16_2:{dt:'04/07',tm:'18h',  ven:'Philadelphia'},
+  r16_3:{dt:'05/07',tm:'17h',  ven:'Nova Jérsei'},
+  r16_4:{dt:'05/07',tm:'21h',  ven:'Cidade do México'},
+  r16_5:{dt:'06/07',tm:'16h',  ven:'Dallas'},
+  r16_6:{dt:'06/07',tm:'21h',  ven:'Seattle'},
+  r16_7:{dt:'07/07',tm:'13h',  ven:'Atlanta'},
+  r16_8:{dt:'07/07',tm:'17h',  ven:'Vancouver'},
+  qf_1:{dt:'09/07',tm:'17h',   ven:'Boston'},
+  qf_2:{dt:'10/07',tm:'16h',   ven:'Los Angeles'},
+  qf_3:{dt:'11/07',tm:'18h',   ven:'Miami'},
+  qf_4:{dt:'11/07',tm:'22h',   ven:'Kansas City'},
+  sf_1:{dt:'14/07',tm:'16h',   ven:'Dallas'},
+  sf_2:{dt:'15/07',tm:'16h',   ven:'Atlanta'},
+  tp_1:{dt:'18/07',tm:'18h',   ven:'Miami'},
+  fin_1:{dt:'19/07',tm:'16h',  ven:'Nova Jérsei'},
+};
+// data/hora/local de um confronto: prioriza o banco (dt/tm/venue) e cai pra agenda em código.
+function mmInfo(c){const a=MM_AGENDA[c.id]||{};return {dt:c.dt||a.dt||'',tm:c.tm||a.tm||'',ven:c.venue||a.ven||''};}
+function mmWeekday(dt){if(!dt)return '';const [dd,mm]=dt.split('/').map(Number);return WD[new Date(2026,mm-1,dd).getDay()];}
+// chave cronológica pra ordenar a lista (sem data → fim)
+function mmSchedKey(c){const i=mmInfo(c);if(!i.dt)return Number.MAX_SAFE_INTEGER;const [dd,mm]=i.dt.split('/').map(Number);const h=i.tm?parseInt(i.tm)||0:0;const mi=(i.tm&&i.tm.split('h')[1])?parseInt(i.tm.split('h')[1]):0;return (mm*100+dd)*10000+h*100+mi;}
+function mmConf(id){return MM_CONFRONTOS.find(c=>c.id===id);}
+// Quem AVANÇOU de verdade — pelo PLACAR REAL (empate → pênaltis via classificado). NUNCA por palpite.
+function mmRealWinner(c){
+  if(!c||c.real_a==null||c.real_b==null)return null;
+  if(c.real_a>c.real_b)return 'A';
+  if(c.real_b>c.real_a)return 'B';
+  return (c.classificado==='A'||c.classificado==='B')?c.classificado:null;
+}
+// Time resolvido de um lado de uma vaga: {name,flag} ou null ("A definir"). Recursivo pela estrutura.
+function mmResolveSide(slotId,side){
+  const slot=MM_BRACKET[slotId];
+  if(slot&&slot.feeders){const f=slot.feeders[side];return mmOutcome(f.g,f.take);}
+  const c=mmConf(slotId); if(!c)return null;
+  const nm=side==='A'?c.team_a:c.team_b, fl=side==='A'?c.flag_a:c.flag_b;
+  return nm?{name:nm,flag:fl}:null;
+}
+function mmOutcome(gameId,take){
+  const w=mmRealWinner(mmConf(gameId)); if(w==null)return null;   // sem resultado real → vaga indefinida
+  const side=take==='win'?w:(w==='A'?'B':'A');
+  return mmResolveSide(gameId,side);
+}
+function mmTeams(c){return {a:mmResolveSide(c.id,'A'),b:mmResolveSide(c.id,'B')};}
+
+// Bloco do confronto (matchup) — mesmo visual da fase de grupos; usa times RESOLVIDOS pela estrutura.
+function mmMatchupHTML(c){
+  const hasReal=c.finished&&c.real_a!=null&&c.real_b!=null, tm=mmTeams(c);
+  const win=side=>{ if(!hasReal||c.real_a===c.real_b)return 'team'; const aw=c.real_a>c.real_b; return side==='A'?(aw?'team win':'team lose'):(aw?'team lose':'team win'); };
+  const sd=(s,t)=>`<div class="${win(s)}${t?'':' mm-tbd'}"><span class="team-flag">${t?mmFlag(t.flag):'<span class="mm-q">?</span>'}</span><span class="team-name">${esc((t&&t.name)||'')}</span></div>`;
+  // Centro: bolinha "×" (ou placar) e, logo abaixo, o local (📍) — omitido quando não há (sem inventar).
+  const ven=mmInfo(c).ven;
+  const venue=ven?`<div class="venue">📍 ${esc(ven)}</div>`:'';
+  return `<div class="matchup mm-matchup">${sd('A',tm.a)}
+      <div class="mid">${hasReal?`<div class="score-final">${c.real_a}<small>×</small>${c.real_b}</div>`:`<div class="vs-badge">×</div>`}${venue}</div>
+      ${sd('B',tm.b)}</div>`;
+}
+// Área COLAPSÁVEL: só os palpites (humanos + IAs). Cabeçalho/bandeiras/placar ficam fora (sempre visíveis).
+function mmCardBody(c){
+  const hasScore=c.real_a!=null&&c.real_b!=null;
+  const cell=p=>{
+    const pid=p.id, isHuman=p.type==='human';
+    const pal=(MM_PALPITES[c.id]||{})[pid]||{};
+    const hasPred=pal.gols_a!=null;
+    const pts=hasScore&&hasPred?calcMataPts(pal,c):null;
+    const badge=`<span class="pts-badge on-av mm-pts${pts!=null?' '+(c.finished?ptsClass(pts):'preview'):' empty'}" data-pid="${pid}">${pts!=null?pts:''}</span>`;
+    const av=`<div class="hum-avwrap"><div class="hum-av" style="background:${p.color}">${avInner(p)}</div>${badge}</div>`;
+    const passa=`<div class="mm-qp mm-hc-passa" data-pid="${pid}">${mmQuemPassaHTML(c,pid,isHuman)}</div>`;
+    if(isHuman){
+      // Foto+nome em 1/3 (celular: lado a lado · desktop: empilhado); 2/3 = grade com a bandeira do
+      // "quem passa" JUNTO de cada campo de placar (desktop: em cima · celular: à direita).
+      return `<div class="pred-cell human mm-cell mm-hcell${mmHasFullPred(pal)?'':' mm-miss-cell'}" data-pid="${pid}">
+        <div class="mm-hc-id">${av}<span class="hum-name">${p.name}</span></div>
+        <div class="mm-hc-pred mm-qp" data-pid="${pid}">${mmHumPredHTML(c,pid,pal)}</div>
+      </div>`;
+    }
+    return `<div class="pred-cell ia mm-cell mm-iacell" data-pid="${pid}">
+      <div class="mm-iacell-head">${av}<span class="hum-name">${p.name}</span></div>
+      <div class="mm-iacell-row"><div class="mm-iascore${hasPred?'':' empty'}">${hasPred?`${pal.gols_a}&nbsp;×&nbsp;${pal.gols_b}`:'–&nbsp;×&nbsp;–'}</div>${passa}</div>
+    </div>`;
+  };
+  const humans=PARTICIPANTS.filter(p=>p.type==='human');
+  const ias=PARTICIPANTS.filter(p=>p.type==='ia');
+  return `<div class="mm-preds-wrap"><div class="mm-humans">${humans.map(cell).join('')}</div><div class="mm-ias">${ias.map(cell).join('')}</div></div>`;
+}
+// Rodapé sempre visível: "quem passou" REAL (só em empate real) + linha PLACAR FINAL.
+// Rodapé (faixa verde/laranja): "Quem passou" + linha PLACAR FINAL, tudo DENTRO do rodapé (Parte 3).
+function mmResultHTML(c){
+  const hasScore=c.real_a!=null&&c.real_b!=null, tmc=mmTeams(c);
+  // "Quem passou": SÓ a bandeira (sem nome), embaixo do respectivo campo de placar (3.1/3.2).
+  const cflag=side=>{const t=side==='A'?tmc.a:tmc.b;return `<button class="mm-cqp${c.classificado===side?' on':''}" data-side="${side}" onclick="mmSetClassificado('${c.id}','${side}')" title="Passou: ${esc((t&&t.name)||side)}">${t&&t.flag?flagImg(t.flag):'<b>'+side+'</b>'}</button>`;};
+  const realInp=side=>`<input type="number" min="0" max="99" inputmode="numeric" value="${c['real_'+side]!=null?c['real_'+side]:''}" placeholder="–" oninput="mmSetReal('${c.id}','${side}',this.value)">`;
+  const col=S=>`<div class="mm-foot-col">${realInp(S.toLowerCase())}${cflag(S)}</div>`;   // S = 'A'/'B' (lado), realInp usa 'a'/'b'
+  return `<div class="real-row mm-footer${c.finished?'':' pending'}">
+      <div class="mm-foot-main"><span class="rr-label">PLACAR FINAL${(!c.finished&&hasScore)?' <span class="prev-tag">prévia</span>':''}</span>
+        <div class="mm-foot-scores">${col('A')}<span class="mm-foot-x">×</span>${col('B')}</div></div>
+      <button class="rr-finish${c.finished?' done':''}" onclick="mmSetFinished('${c.id}')">${c.finished?'Finalizado ✅':'Finalizar <span class="chk-off">✓</span>'}</button>
+    </div>`;
+}
+
+// ── CHAVE (bracket): esqueleto FIXO de todas as fases; vaga sem time resolvido = "A definir" ──
+function mmBracketBox(slotId){
+  const c=mmConf(slotId), tm={a:mmResolveSide(slotId,'A'),b:mmResolveSide(slotId,'B')};
+  const fin=c&&c.finished&&c.real_a!=null&&c.real_b!=null, w=mmRealWinner(c);
+  const side=(s,t)=>{
+    if(!t)return `<div class="mm-bx-side empty"></div>`;   // vaga futura → caixa VAZIA (sem texto)
+    const sc=c?(s==='A'?c.real_a:c.real_b):null;
+    const adv=fin&&c.real_a===c.real_b&&c.classificado===s;   // passou nos pênaltis
+    const won=fin&&w===s, lost=fin&&w&&w!==s;
+    // (p) vira tag ao lado do NOME (não no placar) pra não desalinhar a coluna dos números.
+    return `<div class="mm-bx-side${won?' win':''}${lost?' lost':''}">${mmFlag(t.flag)}<span class="mm-bx-nm">${esc(t.name)}${adv?'<span class="mm-bx-pen">pên</span>':''}</span><span class="mm-bx-sc">${fin&&sc!=null?sc:''}</span></div>`;
+  };
+  const playable=!!(c&&tm.a&&tm.b);   // tem confronto e os dois times conhecidos → clicável (abre na lista)
+  return `<div class="mm-bx${playable?'':' nolink'}"${playable?` onclick="mmGotoConfronto('${slotId}')"`:''} title="${esc(((tm.a&&tm.a.name)||'A definir')+' x '+((tm.b&&tm.b.name)||'A definir'))}">${side('A',tm.a)}${side('B',tm.b)}</div>`;
+}
+function mmColLabel(id){const col=MM_COLS.find(c=>c.ids.includes(id));return col?col.label:'';}
+// Bandeira numa caixa de tamanho FIXO, centralizada, sem distorcer (padroniza quadradas e retangulares).
+function mmFlag(em){return em?`<span class="flagbx">${flagImg(em)}</span>`:'';}
+// Cabeçalho do card no estilo da fase de grupos: fase + status à esquerda; data/hora à direita (omitida se não houver).
+function mmHeadHTML(c){
+  const status=c.finished?'<span class="bl-tag fec">FECHADO</span>':'<span class="bl-tag abe">ABERTO</span>';
+  const turbo=mmIsTurbo(c)?'<span class="bl-tag turbo">⚡ TURBO 2×</span>':'';
+  const i=mmInfo(c);
+  // canto direito: dia da semana + data · hora — igual à fase de grupos; omite se não houver data.
+  const dt=i.dt?`<span class="dt-tag">${mmWeekday(i.dt)}, ${esc(i.dt)}${i.tm?' · '+esc(i.tm):''}</span>`:'';
+  return `<div class="card-head"><span class="grp-tag">${esc((mmColLabel(c.id)||'MATA-MATA').toUpperCase())} ${status}${turbo}</span>${dt}</div>`;
+}
+// Seção do chaveamento com cabeçalho colapsável (A1).
+function mmBracketSectionHTML(){
+  // Card único: cabeçalho (com seta) grudado no topo e a chave logo abaixo, mesma borda/cantos.
+  let h=`<div class="mm-sec${mmBracketOpen?' open':''}"><div class="mm-sec-head" onclick="mmToggleBracket()"><span class="mm-sec-title">⚔️ Chaveamento do mata-mata</span><span class="mm-sec-arrow">${mmBracketOpen?'▲':'▼'}</span></div>`;
+  if(mmBracketOpen)h+=mmBracketHTML();
+  return h+`</div>`;
+}
+function mmRerenderBracket(){const s=document.getElementById('mm-bracket-section');if(s){s.innerHTML=mmBracketSectionHTML();mmFitBracket();}}
+function mmToggleBracket(){mmBracketOpen=!mmBracketOpen;mmRerenderBracket();}
+function mmToggleCol(key){if(mmCollapsedCols.has(key))mmCollapsedCols.delete(key);else mmCollapsedCols.add(key);mmRerenderBracket();}
+// Chave clássica: caixas posicionadas + conectores SVG em colchete. Fases podem ser recolhidas (A2):
+// a coluna expandida mais à esquerda é distribuída uniformemente e as seguintes centralizam entre os
+// feeders, então recolher fases antigas reduz altura E largura, deslocando o foco pra esquerda.
+function mmBracketHTML(){
+  const bw=120, bh=46, gapX=38, gapXc=12, gapY=12, titleH=24, colW0=18, padX=6, padR=8, padB=12, padY=titleH+12;
+  const colX={}, colWid={}; let x=padX;
+  // Colapsada: faixa mais fina (colW0) e gap menor (gapXc) → sobra espaço pra ver as fases à direita (8.1).
+  MM_COLS.forEach(col=>{const cl=mmCollapsedCols.has(col.key);const w=cl?colW0:bw;colX[col.key]=x;colWid[col.key]=w;x+=w+(cl?gapXc:gapX);});
+  const pos={}; let maxBottom=padY;
+  MM_COLS.forEach((col,ci)=>{
+    if(mmCollapsedCols.has(col.key))return;
+    const prev=ci>0?MM_COLS[ci-1]:null, base=!prev||mmCollapsedCols.has(prev.key);
+    col.ids.forEach((id,i)=>{
+      let y; if(base){y=padY+i*(bh+gapY);} else {const f=MM_BRACKET[id].feeders;y=(pos[f.A.g].y+pos[f.B.g].y)/2;}
+      pos[id]={x:colX[col.key],y};
+    });
+  });
+  if(pos['tp_1']&&pos['sf_2'])pos['tp_1'].y=pos['sf_2'].y+(bh+gapY)*1.4;   // 3º lugar: abaixo da semi de baixo
+  Object.keys(pos).forEach(id=>{maxBottom=Math.max(maxBottom,pos[id].y+bh);});
+  const totalW=(x-gapX)+padR, totalH=maxBottom+padB;
+  // conectores: só quando a caixa E a coluna dos feeders estão expandidas
+  let paths='';
+  Object.keys(MM_BRACKET).forEach(id=>{
+    const slot=MM_BRACKET[id]; if(!slot.feeders||!pos[id])return;
+    const feederCol=MM_COLS.find(c=>c.ids.includes(slot.feeders.A.g)).key;
+    if(mmCollapsedCols.has(feederCol))return;
+    const bx=pos[id].x, bym=pos[id].y+bh/2, is3=(id==='tp_1');
+    ['A','B'].forEach(s=>{const f=slot.feeders[s],fp=pos[f.g];if(!fp)return;const fxr=fp.x+bw,fym=fp.y+bh/2,mx=(fxr+bx)/2;paths+=`<path d="M${fxr} ${fym} H${mx} V${bym} H${bx}" class="mm-cn${is3?' c3':''}"/>`;});
+  });
+  // títulos clicáveis (recolhe/expande a fase); colapsada vira faixa estreita vertical
+  let titles='';
+  MM_COLS.forEach(col=>{
+    const cl=mmCollapsedCols.has(col.key);
+    titles+=`<div class="mm-coltitle${cl?' col-collapsed':''}" style="left:${colX[col.key]}px;width:${colWid[col.key]}px${cl?`;height:${totalH-padB}px`:''}" onclick="mmToggleCol('${col.key}')" title="${cl?'Expandir':'Recolher'} esta fase">${col.label}</div>`;
+  });
+  let boxes='';
+  Object.keys(pos).forEach(id=>{boxes+=`<div class="mm-bxpos" style="left:${pos[id].x}px;top:${pos[id].y}px;width:${bw}px;height:${bh}px">${mmBracketBox(id)}</div>`;});
+  return `<div class="mm-bracket-wrap">
+    <div class="mm-bracket-hint">Toque num confronto definido pra abrir os palpites · toque no título de uma fase pra recolhê-la</div>
+    <div class="mm-bracket-scroll"><div class="mm-bracket" data-w="${totalW}" data-h="${totalH}" style="width:${totalW}px;height:${totalH}px">
+      <svg class="mm-cn-svg" width="${totalW}" height="${totalH}" viewBox="0 0 ${totalW} ${totalH}" preserveAspectRatio="xMinYMin meet">${paths}</svg>
+      ${titles}${boxes}
+    </div></div>
+  </div>`;
+}
+// Desktop (≥760px): escala a chave pra caber na largura SEM rolagem horizontal. Celular: rola.
+function mmFitBracket(){
+  const el=document.querySelector('#tab-mata .mm-bracket'); if(!el)return;
+  const wrap=el.parentElement, W=+el.dataset.w, H=+el.dataset.h;
+  if(window.innerWidth>=760){
+    const avail=Math.max(320,wrap.clientWidth-16), s=Math.min(1.3,avail/W);
+    el.style.transform='scale('+s+')';
+    wrap.style.height=(H*s+4)+'px'; wrap.style.overflowX='hidden';
+  }else{
+    el.style.transform='none'; wrap.style.height=''; wrap.style.overflowX='auto';
+  }
+}
+let _mmResizeBound=false;
+
+// ── LISTA: só fases que já existem; cada confronto é clicável e expande inline ──
+function mmListItem(c){
+  const open=mmOpen.has(c.id);
+  const cls=['mm-litem']; if(open)cls.push('open'); if(mmIsTurbo(c))cls.push('is-turbo'); if(mmMissingHuman(c))cls.push('mm-miss'); if(c.finished)cls.push('mm-fin');
+  // Cabeçalho + bandeiras/local + rodapé SEMPRE visíveis; só os palpites colapsam (3.1).
+  return `<div class="${cls.join(' ')}" data-cid="${c.id}">
+    ${mmHeadHTML(c)}
+    <div class="mm-litem-summary" onclick="mmToggleItem('${c.id}')">${mmMatchupHTML(c)}<button class="mm-chev" aria-label="expandir/recolher">▾</button></div>
+    <div class="mm-litem-body">${mmCardBody(c)}</div>
+    ${mmResultHTML(c)}
+  </div>`;
+}
+function mmToggleItem(cid){
+  const item=document.querySelector(`#tab-mata .mm-litem[data-cid="${cid}"]`);
+  if(!item)return;
+  if(item.classList.toggle('open'))mmOpen.add(cid); else mmOpen.delete(cid);
+}
+function mmGotoConfronto(cid){
+  const item=document.querySelector(`#tab-mata .mm-litem[data-cid="${cid}"]`);
+  if(!item)return;
+  if(!item.classList.contains('open')){item.classList.add('open');mmOpen.add(cid);}
+  item.scrollIntoView({behavior:'smooth',block:'center'});
+  item.classList.add('flash');setTimeout(()=>item.classList.remove('flash'),1400);
+}
+// Card-fantasma (3.1): fase ainda sem confronto definido → mostra data/hora/local, sem bandeiras/times.
+function mmGhostCard(c){
+  return `<div class="mm-litem mm-ghost${mmIsTurbo(c)?' is-turbo':''}" data-cid="${c.id}">${mmHeadHTML(c)}<div class="mm-litem-summary mm-ghost-sum">${mmMatchupHTML(c)}</div></div>`;
+}
+// Na 1ª vez, recolhe os dias que JÁ PASSARAM (10.3); dias futuros começam abertos.
+function mmEnsureDaysInit(){
+  if(mmDaysInit)return; mmDaysInit=true;
+  const now=new Date(), hoje=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  MM_CONFRONTOS.forEach(c=>{const d=mmGameDate(c);if(d&&new Date(d.getFullYear(),d.getMonth(),d.getDate())<hoje)mmCollapsedDays.add(mmInfo(c).dt);});
+}
+function mmToggleDay(dt){if(mmCollapsedDays.has(dt))mmCollapsedDays.delete(dt);else mmCollapsedDays.add(dt);const l=document.getElementById('mm-list');if(l)l.innerHTML=mmListHTML();}
+// Lista da fase do filtro: TODOS os jogos (fantasmas pras vagas não definidas), por DATA, dia colapsável (7.1/10).
+function mmListHTML(){
+  mmEnsureDaysInit();
+  const col=MM_COLS.find(c=>c.key===mmPhaseFilter)||MM_COLS[0];
+  const cards=col.ids.map(id=>mmConf(id)).filter(Boolean).sort((a,b)=>mmSchedKey(a)-mmSchedKey(b));
+  if(!cards.length)return `<div class="empty-state">Confrontos ainda não definidos.</div>`;
+  let html='', i=0;
+  while(i<cards.length){
+    const dt=mmInfo(cards[i]).dt, group=[];
+    while(i<cards.length&&mmInfo(cards[i]).dt===dt){group.push(cards[i]);i++;}
+    const col2=mmCollapsedDays.has(dt);
+    html+=`<div class="section-hdr mm-datehdr${col2?' col':''}" onclick="mmToggleDay('${dt||''}')"><span class="section-badge">${dt?mmWeekday(dt)+', '+esc(dt):'Sem data'} (${group.length})</span><div class="section-line"></div><span class="mm-day-arrow">${col2?'▼':'▲'}</span></div>`;
+    if(!col2)group.forEach(c=>{html+=(mmResolveSide(c.id,'A')&&mmResolveSide(c.id,'B'))?mmListItem(c):mmGhostCard(c);});
+  }
+  return html;
+}
+function mmSetPhase(key){
+  mmPhaseFilter=key;
+  const l=document.getElementById('mm-list'); if(l)l.innerHTML=mmListHTML();
+  document.querySelectorAll('#tab-mata .mm-fbtn').forEach(b=>b.classList.toggle('active',b.dataset.key===key));
+}
+// Data/hora de um jogo (pra calcular "próximos" e ordenar).
+function mmGameDate(c){const i=mmInfo(c);if(!i.dt)return null;const [dd,mm]=i.dt.split('/').map(Number);const h=i.tm?parseInt(i.tm)||0:0;const mi=(i.tm&&i.tm.split('h')[1])?parseInt(i.tm.split('h')[1]):0;return new Date(2026,mm-1,dd,h,mi);}
+// (1) Próximos 3 jogos do mata-mata — MESMO visual do hero "jogos de hoje" da fase de grupos (com contagem).
+function mmGotoFromHero(cid){mmSetPhase(mmPhaseKeyOf(cid));mmGotoConfronto(cid);}
+function mmNextGamesHTML(){
+  const now=Date.now();
+  const up=MM_CONFRONTOS.map(c=>({c,d:mmGameDate(c)})).filter(x=>x.d&&x.d.getTime()>now).sort((a,b)=>a.d-b.d).slice(0,3);
+  if(!up.length)return '';
+  const tnm=t=>t?`${t.flag?flagImg(t.flag):''} <b>${esc(t.name)}</b>`:'<b>?</b>';
+  const row=({c,d})=>{const i=mmInfo(c),tm=mmTeams(c),t=d.getTime(),miss=mmMissingHuman(c);
+    return `<div class="dh-row${mmIsTurbo(c)?' dh-turbo':''}" onclick="mmGotoFromHero('${c.id}')">
+      <span class="dh-time">${esc(i.tm||'')}</span>
+      ${mmIsTurbo(c)?'<span class="dh-turbobadge">⚡2×</span>':''}
+      <span class="dh-teams"><span class="dh-scroll">${tnm(tm.a)} <i>×</i> ${tnm(tm.b)}${miss?' <span class="dh-miss">• falta palpite</span>':''}</span></span>
+      <span class="dh-cd" data-t="${t}">${fmtCountdown(t-now)}</span>
+    </div>`;};
+  return `<div class="day-hero"><div class="dh-head"><span class="nh-live"></span>PRÓXIMOS JOGOS · MATA-MATA</div><div class="dh-list">${up.map(row).join('')}</div></div>`;
+}
+// (2) Classificação do mata-mata — MESMA barra rolante da classificação geral, filtrando só o mata-mata.
+function mmMataRankingHTML(){
+  const rows=PARTICIPANTS.map(p=>({p,...mataStats(p.id)})).sort((a,b)=>b.total-a.total||b.eHits-a.eHits||b.rHits-a.rHits);
+  const medals=['🥇','🥈','🥉'];
+  const item=(o,i)=>`<span class="rm-item"><span class="rm-pos">${medals[i]||(i+1)+'º'}</span><span class="rm-av" style="background:${o.p.color}">${avInner(o.p)}</span><span class="rm-nm">${o.p.name}</span><span class="rm-pts">${o.total} pts</span></span>`;
+  const seq=rows.map(item).join('');
+  return `<div class="rank-marquee"><div class="rm-head">🏆 CLASSIFICAÇÃO DO MATA-MATA</div><div class="rm-track-wrap"><div class="rm-track" onclick="this.classList.toggle('paused')">${seq}${seq}</div></div></div>`;
+}
+// (3) Como funciona a pontuação.
+function mmHowItWorksHTML(){
+  return `<details class="mm-block mm-how"><summary class="mm-block-h">📐 Como funciona a pontuação</summary><div class="mm-how-body">
+    <p><b>Base por jogo</b> (sobre o <b>placar final</b>, com prorrogação): <b>5</b> acertar o resultado · <b>+1</b> gols do A · <b>+1</b> gols do B · <b>+3</b> cravar o placar.</p>
+    <p><b>+4</b> de bônus: palpite empate <b>e</b> acertar quem passou nos pênaltis.</p>
+    <p><b>Multiplicador por fase</b> (sobre a base): 16 avos ×1 · Oitavas ×1,25 · Quartas ×1,5 · Semis ×1,75 · 3º lugar ×1,75 · <b>Final ×4</b>.</p>
+    <p><b>Turbo ⚡</b> = <b>×2</b> em cima do multiplicador da fase (ex.: turbo na semi = ×3,5). Nenhum jogo passa da Final (×4).</p>
+  </div></details>`;
+}
+function renderMata(){
+  let html=mmNextGamesHTML()+mmMataRankingHTML()+mmHowItWorksHTML();
+  html+=`<div id="mm-bracket-section">${mmBracketSectionHTML()}</div>`;   // chave (não afetada pelo filtro)
+  html+=`<div class="mm-filters">${MM_COLS.map(col=>`<button class="mm-fbtn${col.key===mmPhaseFilter?' active':''}" data-key="${col.key}" onclick="mmSetPhase('${col.key}')">${col.short}</button>`).join('')}</div>`;
+  html+=`<div id="mm-list">${mmListHTML()}</div>`;
+  document.getElementById('tab-mata').innerHTML=html;
+  mmFitBracket();
+  setupMarquees();   // faz o texto dos jogos do hero rolar quando não cabe (igual à fase de grupos)
+  if(_cdInterval){clearInterval(_cdInterval);_cdInterval=null;}
+  if(document.querySelector('#tab-mata .dh-cd'))_cdInterval=setInterval(tickCountdown,1000);   // contagem regressiva
+  if(!_mmResizeBound){_mmResizeBound=true;window.addEventListener('resize',()=>{if(activeTab==='mata')mmFitBracket();});}
+}
+
+// ─── ESPELHO PROD→DEV (só no ambiente de dev) ─────────────────────────────────
+// Lê a PRODUÇÃO (somente leitura) e regrava no banco de DEV (tabelas dev_*). Usa só a anon key.
+async function mirrorProdToDev(){
+  if(!IS_DEV){showErr('O espelho só funciona no ambiente de dev.');return;}
+  if(!confirm('Isso vai apagar todos os dados do dev e copiar os da produção. Continuar?'))return;
+  const btn=document.getElementById('mirror-btn'); if(btn){btn.disabled=true;btn.textContent='Espelhando…';}
+  try{
+    setSyncing(1);
+    // 1) lê produção (NÃO escreve nela)
+    const pg=await sb.from('bolao_games').select('*');      if(pg.error)throw pg.error;
+    const pc=await sb.from('mata_confrontos').select('*');  // podem ainda não existir em produção
+    const pp=await sb.from('mata_palpites').select('*');
+    // 2) zera o dev (filhos antes dos pais)
+    let r;
+    r=await sb.from('dev_mata_palpites').delete().not('confronto_id','is',null);  if(r.error)throw r.error;
+    r=await sb.from('dev_mata_confrontos').delete().not('id','is',null);          if(r.error)throw r.error;
+    r=await sb.from('dev_bolao_games').delete().not('game_id','is',null);         if(r.error)throw r.error;
+    // 3) copia produção → dev
+    if(pg.data&&pg.data.length){r=await sb.from('dev_bolao_games').insert(pg.data);         if(r.error)throw r.error;}
+    if(!pc.error&&pc.data&&pc.data.length){r=await sb.from('dev_mata_confrontos').insert(pc.data); if(r.error)throw r.error;}
+    if(!pp.error&&pp.data&&pp.data.length){r=await sb.from('dev_mata_palpites').insert(pp.data);    if(r.error)throw r.error;}
+    setSyncing(-1);
+    alert(`Pronto! Dev espelhado da produção: ${pg.data?pg.data.length:0} jogos, ${(!pc.error&&pc.data)?pc.data.length:0} confrontos. Recarregando…`);
+    location.reload();
+  }catch(e){
+    setSyncing(-1);
+    if(btn){btn.disabled=false;btn.textContent='🪞 Espelhar prod→dev';}
+    showErr('Erro ao espelhar (as tabelas dev_* existem? rode supabase_dev_setup.sql): '+(e.message||e));
+  }
+}
+
 // ─── TAB NAV ──────────────────────────────────────────────────────────────────
 function showTab(name){
   activeTab=name;
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
-  ['palpites','ranking'].forEach((n,i)=>{
+  ['palpites','mata','ranking'].forEach((n,i)=>{
     if(n===name)document.querySelectorAll('nav button')[i].classList.add('active');
   });
   renderAll();
 }
 
 // ─── BOOT ─────────────────────────────────────────────────────────────────────
+if(IS_DEV){   // marca visual + botão de espelho, só no ambiente de dev (canto superior direito)
+  document.body.insertAdjacentHTML('afterbegin','<div id="dev-flag">DEV</div><button id="mirror-btn" onclick="mirrorProdToDev()">🪞 Espelhar prod→dev</button>');
+  // 6.1: no dev, o Mata-Mata abre por padrão
+  activeTab='mata';
+  document.getElementById('tab-palpites').classList.remove('active');
+  document.getElementById('tab-mata').classList.add('active');
+  const nb=document.querySelectorAll('nav button'); nb[0].classList.remove('active'); nb[1].classList.add('active');
+}
 loadData();
 </script>
 </body>
