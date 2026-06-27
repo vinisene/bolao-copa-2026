@@ -474,9 +474,9 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
   .mm-hc-id{flex-direction:column;gap:4px;justify-content:center;text-align:center;}
   .mm-hc-id .hum-name{text-align:center;}
   .mm-hcell .hum-av{width:50px;height:50px;font-size:17px;}
-  .mm-hc-pred{grid-template-columns:auto auto auto;grid-template-areas:"na x nb" "fa . fb";gap:3px 6px;}
+  .mm-hc-pred{grid-template-columns:auto auto auto;grid-template-areas:"na x nb" "lbl lbl lbl" "fa . fb";gap:1px 6px;}
   .mm-hc-pred .fa{margin-left:0;justify-self:center;align-self:auto;}.mm-hc-pred .fb{justify-self:center;align-self:auto;}
-  .mm-qplbl{display:none;}   /* desktop: bandeiras abaixo de cada placar (split), sem rótulo único */
+  .mm-qplbl{display:block;margin-left:0;align-self:end;}   /* rótulo de volta no desktop: acima das bandeiras, compacto e colado (uma tarefa anterior o havia ocultado) */
 }
 /* Célula da IA (2): nome em cima; placar (1 linha) + seletor na 2ª linha — bem compacta */
 .mm-iacell{display:flex;flex-direction:column;gap:3px;padding:6px 8px;}
