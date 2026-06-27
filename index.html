@@ -451,11 +451,11 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .mm-hc-id{flex:0 0 33%;max-width:33%;display:flex;flex-direction:row;align-items:center;gap:7px;min-width:0;}
 .mm-hcell .hum-av{width:42px;height:42px;font-size:15px;}
 .mm-hc-id .hum-name{font-size:13px;font-weight:800;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;}
-/* grade do palpite: celular = [placarA × placarB] à esquerda · à direita as bandeiras [fa fb] com o RÓTULO em cima (1.2) */
-.mm-hc-pred{flex:1;display:grid;align-items:center;gap:1px 5px;justify-content:center;grid-template-columns:auto auto auto auto auto;grid-template-areas:". . . lbl lbl" "na x nb fa fb";}
+/* grade do palpite: celular = [placarA × placarB] à esquerda (centralizado vertical) · à direita as bandeiras [fa fb] com o RÓTULO colado em cima (3.1/3.2) */
+.mm-hc-pred{flex:1;display:grid;align-items:center;gap:0 5px;justify-content:center;grid-template-columns:auto auto auto auto auto;grid-template-areas:"na x nb lbl lbl" "na x nb fa fb";}
 .mm-hc-pred .mm-na{grid-area:na;}.mm-hc-pred .mm-nb{grid-area:nb;}.mm-hc-pred .mm-x{grid-area:x;font-weight:700;opacity:.7;}
-.mm-hc-pred .fa{grid-area:fa;margin-left:7px;}.mm-hc-pred .fb{grid-area:fb;}
-.mm-qplbl{grid-area:lbl;font-size:8px;font-weight:800;color:var(--mu);text-transform:uppercase;letter-spacing:.2px;text-align:center;white-space:nowrap;margin-left:7px;}
+.mm-hc-pred .fa{grid-area:fa;margin-left:7px;align-self:start;}.mm-hc-pred .fb{grid-area:fb;align-self:start;}
+.mm-qplbl{grid-area:lbl;font-size:7.5px;line-height:1;font-weight:800;color:var(--mu);text-transform:uppercase;letter-spacing:0;text-align:center;white-space:nowrap;margin-left:7px;align-self:end;}
 .mm-qplbl.pen{color:#c0392b;}
 .mm-qplbl.idle{opacity:.55;}
 .mm-hc-pred input{width:40px;height:38px;text-align:center;border:1.5px solid var(--brd);border-radius:9px;font-size:18px;font-weight:700;background:var(--bg);color:var(--txt);-moz-appearance:textfield;}
@@ -468,15 +468,15 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .mm-qpf.idle{opacity:.45;}
 .mm-qpf.on{border-color:var(--g);background:#e7f3ea;box-shadow:inset 0 0 0 1px var(--g);}
 .mm-qpf.pen.on{border-color:#c0392b;background:#fdeae8;box-shadow:inset 0 0 0 1px #c0392b;}
-/* DESKTOP (card de 2 colunas, estreito) — foto MAIOR empilhada (1.1) + bandeira EM CIMA de cada placar (1.2) */
+/* DESKTOP (card de 2 colunas, estreito) — foto MAIOR empilhada + PALPITE em cima e bandeiras ABAIXO de cada placar (Parte 2) */
 @media(min-width:680px){
   .pred-cell.human.mm-hcell{padding-left:6px;}
   .mm-hc-id{flex-direction:column;gap:4px;justify-content:center;text-align:center;}
   .mm-hc-id .hum-name{text-align:center;}
   .mm-hcell .hum-av{width:50px;height:50px;font-size:17px;}
-  .mm-hc-pred{grid-template-columns:auto auto auto;grid-template-areas:"fa . fb" "na x nb";gap:3px 6px;}
-  .mm-hc-pred .fa{margin-left:0;justify-self:center;}.mm-hc-pred .fb{justify-self:center;}
-  .mm-qplbl{display:none;}   /* desktop: bandeiras já ficam em cima de cada placar, sem rótulo único */
+  .mm-hc-pred{grid-template-columns:auto auto auto;grid-template-areas:"na x nb" "fa . fb";gap:3px 6px;}
+  .mm-hc-pred .fa{margin-left:0;justify-self:center;align-self:auto;}.mm-hc-pred .fb{justify-self:center;align-self:auto;}
+  .mm-qplbl{display:none;}   /* desktop: bandeiras abaixo de cada placar (split), sem rótulo único */
 }
 /* Célula da IA (2): nome em cima; placar (1 linha) + seletor na 2ª linha — bem compacta */
 .mm-iacell{display:flex;flex-direction:column;gap:3px;padding:6px 8px;}
@@ -498,6 +498,10 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .mm-passa.pen .mm-po.on{border-color:#c0392b;background:#fdeae8;box-shadow:inset 0 0 0 1px #c0392b;}
 /* Rodapé numa LINHA só (Parte 2): PLACAR FINAL · placar A×B · rótulo + 2 bandeiras menores (quem passou) · Finalizar */
 .real-row.mm-footer{display:flex;flex-direction:row;align-items:center;gap:9px;flex-wrap:wrap;}
+/* Parte 1: "PLACAR FINAL" + prévia EMPILHADOS (prévia embaixo) — largura fixa do rótulo, não empurra o placar */
+.mm-foot-fl{display:inline-flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.05;flex-shrink:0;}
+.mm-foot-fl .prev-tag{display:none;margin-left:0;align-self:flex-start;}
+.mm-foot-fl .prev-tag.show{display:inline-block;}
 .real-row.mm-footer .rr-label{font-size:10px;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:.3px;}
 .mm-foot-scores{display:flex;align-items:center;gap:6px;}
 .mm-foot-scores input{width:42px;height:38px;text-align:center;border:1.5px solid var(--brd);border-radius:8px;font-size:17px;font-weight:700;background:var(--bg);color:var(--txt);-moz-appearance:textfield;}
@@ -1837,8 +1841,7 @@ function mmRefreshPts(cid){
     badge.className='pts-badge on-av mm-pts'+(pts!=null?' '+(c.finished?ptsClass(pts):'preview'):' empty');   // sem número → display:none
     badge.textContent=pts!=null?pts:'';
   });
-  const lbl=card.querySelector('.rr-label');
-  if(lbl)lbl.innerHTML='PLACAR FINAL'+((!c.finished&&hasScore)?' <span class="prev-tag">prévia</span>':'');
+  const pv=card.querySelector('.mm-foot-fl .prev-tag'); if(pv)pv.classList.toggle('show',!c.finished&&hasScore);   // prévia abaixo do "PLACAR FINAL", sem empurrar
   const fqp=card.querySelector('.mm-foot-qp'); if(fqp)fqp.outerHTML=mmFootQpHTML(c);   // rótulo/bandeiras seguem o placar real
   // estado "palpite faltando" (7): borda amarela no card + célula amarela em quem não palpitou
   card.classList.toggle('mm-miss',mmMissingHuman(c));
@@ -2048,7 +2051,7 @@ function mmResultHTML(c){
   const hasScore=c.real_a!=null&&c.real_b!=null;
   const realInp=side=>`<input type="number" min="0" max="99" inputmode="numeric" value="${c['real_'+side]!=null?c['real_'+side]:''}" placeholder="–" oninput="mmSetReal('${c.id}','${side}',this.value)">`;
   return `<div class="real-row mm-footer${c.finished?'':' pending'}">
-      <span class="rr-label">PLACAR FINAL${(!c.finished&&hasScore)?' <span class="prev-tag">prévia</span>':''}</span>
+      <span class="mm-foot-fl"><span class="rr-label">PLACAR FINAL</span><span class="prev-tag${(!c.finished&&hasScore)?' show':''}">prévia</span></span>
       <div class="mm-foot-scores">${realInp('a')}<span class="mm-foot-x">×</span>${realInp('b')}</div>
       ${mmFootQpHTML(c)}
       <button class="rr-finish${c.finished?' done':''}" onclick="mmSetFinished('${c.id}')">${c.finished?'Finalizado ✅':'Finalizar <span class="chk-off">✓</span>'}</button>
