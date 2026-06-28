@@ -2052,13 +2052,28 @@ function mmCard(c){
 // Cada vaga referencia o "vencedor/perdedor do jogo X" da fase anterior. O sistema sabe
 // sozinho quem enfrenta quem — não precisa reinformar a cada rodada.
 const MM_BRACKET=(()=>{
-  const b={};
+  const b={}, W=g=>({g,take:'win'}), L=g=>({g,take:'lose'});
   for(let i=1;i<=16;i++) b['r32_'+i]={phase:'32 avos'};
-  for(let i=1;i<=8;i++)  b['r16_'+i]={phase:'Oitavas', feeders:{A:{g:'r32_'+(2*i-1),take:'win'},B:{g:'r32_'+(2*i),take:'win'}}};
-  for(let i=1;i<=4;i++)  b['qf_'+i] ={phase:'Quartas', feeders:{A:{g:'r16_'+(2*i-1),take:'win'},B:{g:'r16_'+(2*i),take:'win'}}};
-  for(let i=1;i<=2;i++)  b['sf_'+i] ={phase:'Semis',   feeders:{A:{g:'qf_'+(2*i-1),take:'win'},B:{g:'qf_'+(2*i),take:'win'}}};
-  b['tp_1'] ={phase:'3º lugar', feeders:{A:{g:'sf_1',take:'lose'},B:{g:'sf_2',take:'lose'}}};   // 3º = perdedores das semis
-  b['fin_1']={phase:'Final',    feeders:{A:{g:'sf_1',take:'win'}, B:{g:'sf_2',take:'win'}}};
+  // OITAVAS — fiação REAL da Copa 2026 (cada vaga mantém posição/data; só os feeders foram acertados).
+  // Vagas (r16_*) com suas datas: 1=04/07 14h · 2=04/07 18h · 3=05/07 17h · 4=05/07 21h · 5=06/07 16h · 6=06/07 21h · 7=07/07 13h · 8=07/07 17h
+  b['r16_1']={phase:'Oitavas', feeders:{A:W('r32_1'), B:W('r32_4')}};   // ÁfrSul/Canadá × Holanda/Marrocos
+  b['r16_2']={phase:'Oitavas', feeders:{A:W('r32_3'), B:W('r32_6')}};   // Alemanha/Paraguai × França/Suécia
+  b['r16_3']={phase:'Oitavas', feeders:{A:W('r32_2'), B:W('r32_5')}};   // Brasil/Japão × CostaMarfim/Noruega
+  b['r16_4']={phase:'Oitavas', feeders:{A:W('r32_7'), B:W('r32_8')}};   // México/Equador × Inglaterra/RDCongo  (já estava OK)
+  b['r16_5']={phase:'Oitavas', feeders:{A:W('r32_12'),B:W('r32_11')}};  // Portugal/Croácia × Espanha/Áustria
+  b['r16_6']={phase:'Oitavas', feeders:{A:W('r32_10'),B:W('r32_9')}};   // EUA/Bósnia × Bélgica/Senegal
+  b['r16_7']={phase:'Oitavas', feeders:{A:W('r32_15'),B:W('r32_14')}};  // Argentina/CaboVerde × Austrália/Egito
+  b['r16_8']={phase:'Oitavas', feeders:{A:W('r32_13'),B:W('r32_16')}};  // Suíça/Argélia × Colômbia/Gana
+  // QUARTAS — Q1=O1×O2 · Q2=O3×O4 · Q3=O5×O6 · Q4=O7×O8 (apontando pras vagas das oitavas acima)
+  b['qf_1']={phase:'Quartas', feeders:{A:W('r16_1'), B:W('r16_2')}};    // O2×O1 (matchup já OK)
+  b['qf_2']={phase:'Quartas', feeders:{A:W('r16_5'), B:W('r16_6')}};    // O3×O4 (corrigido)
+  b['qf_3']={phase:'Quartas', feeders:{A:W('r16_3'), B:W('r16_4')}};    // O5×O6 (corrigido)
+  b['qf_4']={phase:'Quartas', feeders:{A:W('r16_7'), B:W('r16_8')}};    // O7×O8 (já OK)
+  // SEMIS / FINAL / 3º — inalterados (já corretos): SF1=Q1×Q2 · SF2=Q3×Q4 · Final=SF1×SF2 · 3º=perdedores
+  b['sf_1']={phase:'Semis', feeders:{A:W('qf_1'), B:W('qf_2')}};
+  b['sf_2']={phase:'Semis', feeders:{A:W('qf_3'), B:W('qf_4')}};
+  b['tp_1'] ={phase:'3º lugar', feeders:{A:L('sf_1'),B:L('sf_2')}};
+  b['fin_1']={phase:'Final',    feeders:{A:W('sf_1'),B:W('sf_2')}};
   return b;
 })();
 // Colunas da esquerda → direita (3º lugar é coluna própria, logo ANTES da final)
