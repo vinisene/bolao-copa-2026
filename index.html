@@ -16,10 +16,24 @@ header{background:var(--gd);color:#fff;text-align:center;padding:11px 14px 0;pos
 .hdr-title{font-size:20px;font-weight:800;}.hdr-title b{color:var(--gold);}
 .hdr-status{font-size:10px;font-weight:600;margin:5px 0 8px;min-height:13px;color:rgba(255,255,255,.85);}
 @media(min-width:680px){.hdr-logo{height:56px;}.hdr-title{font-size:30px;}}
-nav{display:flex;}
-nav button{flex:1;padding:11px 4px;background:transparent;border:none;color:rgba(255,255,255,.6);font-size:14.5px;font-weight:700;cursor:pointer;border-bottom:3px solid transparent;}
-nav button.active{color:var(--gold);border-bottom-color:var(--gold);}
+nav{display:flex;background:var(--card);margin:0 -14px;}
+nav button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:7px 4px;background:transparent;border:none;color:var(--mu);font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+nav button .nav-ico{font-size:19px;line-height:1;}
+nav button .nav-lbl{font-size:11.5px;line-height:1.1;white-space:nowrap;}
+nav button.active{color:#fff;background:var(--g);box-shadow:inset 0 -3px 0 var(--gold);}   /* ativo: verde do app + barra dourada (desktop: barra embaixo); inativos em cinza (--mu) */
 main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
+/* CELULAR: menu vira barra inferior FIXA; topo fica só com o banner verde */
+@media(max-width:679px){
+  header nav{position:fixed;left:0;right:0;bottom:0;margin:0;z-index:300;border-top:1px solid var(--brd);box-shadow:0 -2px 10px rgba(0,0,0,.18);padding-bottom:env(safe-area-inset-bottom);}
+  nav button.active{box-shadow:inset 0 3px 0 var(--gold);}   /* barra no TOPO do item (aponta pro conteúdo acima) */
+  main{padding-bottom:calc(76px + env(safe-area-inset-bottom));}   /* respiro pro último item não ficar atrás da barra */
+}
+/* DESKTOP: menu no topo, emoji ao lado do texto (como antes), só com a nova ordem/rótulos/ativo */
+@media(min-width:680px){
+  nav button{flex-direction:row;gap:6px;padding:11px 4px;}
+  nav button .nav-ico{font-size:16px;}
+  nav button .nav-lbl{font-size:14.5px;}
+}
 .tab{display:none;}.tab.active{display:block;}
 
 /* Loading / Error */
@@ -596,9 +610,9 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
   </div>
   <div class="hdr-status"><span id="sync-indicator"></span></div>
   <nav>
-    <button class="active" onclick="showTab('palpites')">🎯 Palpites</button>
-    <button onclick="showTab('mata')">⚔️ Mata-Mata</button>
-    <button onclick="showTab('ranking')">🏆 Ranking</button>
+    <button onclick="showTab('mata')"><span class="nav-ico">⚔️</span><span class="nav-lbl">Mata-Mata</span></button>
+    <button class="active" onclick="showTab('palpites')"><span class="nav-ico">📋</span><span class="nav-lbl">Fase de Grupos</span></button>
+    <button onclick="showTab('ranking')"><span class="nav-ico">🏆</span><span class="nav-lbl">Ranking</span></button>
   </nav>
 </header>
 <main>
@@ -2296,7 +2310,7 @@ function showTab(name){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
-  ['palpites','mata','ranking'].forEach((n,i)=>{
+  ['mata','palpites','ranking'].forEach((n,i)=>{   // ordem do menu: Mata-Mata · Fase de Grupos · Ranking
     if(n===name)document.querySelectorAll('nav button')[i].classList.add('active');
   });
   renderAll();
@@ -2304,12 +2318,13 @@ function showTab(name){
 
 // ─── BOOT ─────────────────────────────────────────────────────────────────────
 if(IS_DEV){   // marca visual + botão de espelho, só no ambiente de dev (canto superior direito)
+  document.title='DEV Bolão Copa 26';   // título da aba do navegador só no dev (mesma detecção IS_DEV)
   document.body.insertAdjacentHTML('afterbegin','<div id="dev-flag">DEV</div><button id="mirror-btn" onclick="mirrorProdToDev()">🪞 Espelhar prod→dev</button>');
-  // 6.1: no dev, o Mata-Mata abre por padrão
+  // 6.1: no dev, o Mata-Mata abre por padrão (Mata-Mata é o 1º botão na nova ordem)
   activeTab='mata';
   document.getElementById('tab-palpites').classList.remove('active');
   document.getElementById('tab-mata').classList.add('active');
-  const nb=document.querySelectorAll('nav button'); nb[0].classList.remove('active'); nb[1].classList.add('active');
+  const nb=document.querySelectorAll('nav button'); nb.forEach(b=>b.classList.remove('active')); nb[0].classList.add('active');
 }
 loadData();
 </script>
