@@ -2077,10 +2077,14 @@ const MM_BRACKET=(()=>{
   return b;
 })();
 // Colunas da esquerda → direita (3º lugar é coluna própria, logo ANTES da final)
+// ORDEM DE EXIBIÇÃO na ÁRVORE (cima→baixo). Os 16 avos NÃO ficam em ordem de data: ficam em ORDEM DE
+// CHAVE, pra que os vizinhos (1+2, 3+4, …) alimentem a mesma oitava e as linhas não cruzem. A lista por
+// data é independente (mmListHTML re-ordena por data). As oitavas seguem a mesma ordem top→baixo dos seus
+// alimentadores. Quartas/semis/final já saem na ordem certa pela posição média dos feeders.
 const MM_COLS=[
-  {key:'32avos', label:'16 avos', short:'16<sup>av</sup>', ids:Array.from({length:16},(_,i)=>'r32_'+(i+1))},
-  {key:'oitavas',label:'Oitavas', short:'8<sup>as</sup>',  ids:Array.from({length:8}, (_,i)=>'r16_'+(i+1))},
-  {key:'quartas',label:'Quartas', short:'4<sup>as</sup>',  ids:Array.from({length:4}, (_,i)=>'qf_'+(i+1))},
+  {key:'32avos', label:'16 avos', short:'16<sup>av</sup>', ids:['r32_3','r32_6','r32_1','r32_4','r32_12','r32_11','r32_10','r32_9','r32_2','r32_5','r32_7','r32_8','r32_15','r32_14','r32_13','r32_16']},
+  {key:'oitavas',label:'Oitavas', short:'8<sup>as</sup>',  ids:['r16_2','r16_1','r16_5','r16_6','r16_3','r16_4','r16_7','r16_8']},
+  {key:'quartas',label:'Quartas', short:'4<sup>as</sup>',  ids:['qf_1','qf_2','qf_3','qf_4']},
   {key:'semis',  label:'Semis',   short:'Semis',           ids:['sf_1','sf_2']},
   {key:'3lugar', label:'3º lugar', short:'3º lugar',       ids:['tp_1']},
   {key:'final',  label:'Final',   short:'Final 🏆',        ids:['fin_1']},
