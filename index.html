@@ -447,6 +447,15 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 #mm-list .mm-datehdr{grid-column:1/-1;margin:5px 0 1px;}   /* quebra de data ocupa a linha toda (7.1) */
 /* Card do confronto: cabeçalho/bandeiras/rodapé sempre visíveis; só os palpites colapsam (3.1) */
 .mm-litem{border:1px solid var(--brd);border-radius:14px;overflow:hidden;background:var(--card);box-shadow:0 2px 8px rgba(15,68,36,.06);display:flex;flex-direction:column;}
+/* Selo de zebra (C): chip no cabeçalho, junto das tags. Zebrão = dourado. */
+.mm-zebra-seal{display:inline-flex;align-items:center;gap:2px;font-size:9.5px;font-weight:800;background:#eef1ee;color:#3a3a3a;border:1px solid var(--brd);border-radius:6px;padding:1px 5px;margin-left:5px;vertical-align:middle;letter-spacing:.2px;cursor:help;}
+.mm-zebra-seal.zebrao{background:var(--gold);color:#5c4708;border-color:#caa629;box-shadow:0 1px 3px rgba(184,148,31,.45);}
+/* Balão "de onde vêm os pontos" (B): reaproveita o #floating-tip escuro */
+#floating-tip.mm-ptstip{pointer-events:none;}
+.mm-ptstip .mm-tip-l1{color:#fff;}
+.mm-ptstip .mm-tip-l2{color:#ffd9a8;margin-top:3px;font-weight:700;}
+.mm-ptstip .mm-tip-zeb{color:#9be7a0;margin-top:3px;font-weight:800;}
+.mm-ptstip .mm-tip-tot{margin-top:5px;font-weight:800;font-size:13px;border-top:1px solid rgba(255,255,255,.2);padding-top:4px;}
 .mm-litem .card-head{border-radius:0;}
 .mm-litem-summary{display:flex;align-items:center;gap:6px;padding:10px 12px;cursor:pointer;}
 .mm-litem-summary .matchup{flex:1;padding:0;}
@@ -1305,7 +1314,7 @@ function showTip(ev,key){
   el.style.left=left+'px';
   el.style.top=(r.bottom+window.scrollY+7)+'px';
 }
-function hideTip(){const el=document.getElementById('floating-tip');if(el)el.style.display='none';}
+function hideTip(){const el=document.getElementById('floating-tip');if(el){el.style.display='none';el.classList.remove('mm-ptstip');}}
 document.addEventListener('click',hideTip);
 function q(key){return `<span class="q" onclick="showTip(event,'${key}')" onmouseenter="showTip(event,'${key}')" onmouseleave="hideTip()">?</span>`;}
 
@@ -1363,7 +1372,7 @@ function statCard(p){
       <div style="font-size:10.5px;color:var(--mu)">${p.type==='ia'?'🤖 IA':'👤 Humano'} · ${p.played} jogos contabilizados</div></div>
     </div>
     <div class="stat-grid">
-      <div class="stat-box"><div class="val">${p.total}</div><div class="lbl">Pontos</div></div>
+      <div class="stat-box"><div class="val">${fmtPts(p.total)}</div><div class="lbl">Pontos</div></div>
       <div class="stat-box"><div class="val">${p.avg.toFixed(1)}</div><div class="lbl">Pontos por jogo ${q('media')}</div></div>
       <div class="stat-box"><div class="val">${p.rHits}</div><div class="lbl">Acerto ganhador/empate ${q('resultado')}</div></div>
       <div class="stat-box"><div class="val">${p.eHits}</div><div class="lbl">Placares cravados ${q('cravados')}</div></div>
@@ -1387,7 +1396,7 @@ function rkRow(p,i,mx,withTeam,delta){
       <div class="rk-sub2">✓ ${p.rHits} resultados · 🎯 ${p.eHits} cravados · ⌀ ${p.avg.toFixed(1)} pts</div>
       <div class="rk-bar"><i style="width:${(p.total/mx*100).toFixed(0)}%;background:${p.color}"></i></div>
     </div>
-    <div class="rk-tot"><b>${p.total}</b><span>pts</span></div>
+    <div class="rk-tot"><b>${fmtPts(p.total)}</b><span>pts</span></div>
   </div>`;
 }
 
@@ -1404,7 +1413,7 @@ function podium(ranked){
         <span class="pod-badge">${c.m}</span>
       </div>
       <div class="pod-name">${c.p.name}</div>
-      <div class="pod-pts">${c.p.total}<span> pts</span></div>
+      <div class="pod-pts">${fmtPts(c.p.total)}<span> pts</span></div>
       <div class="pod-base"><span>${c.pl}º</span></div>
     </div>`).join('')}</div>`;
 }
@@ -1888,21 +1897,57 @@ function mmSetQuemPassa(cid,pid,side){
   mmUpsertPalpite(cid,pid,{quem_passa:p.quem_passa});
 }
 
-// ── Pontuação do mata-mata ──
-// Placar FINAL = inclui prorrogação (não os 90 min). Empate só é empate se persistir após a
-// prorrogação → vai pros pênaltis. Regra igual à fase de grupos: 5 resultado +1 gol A +1 gol B
-// +3 exato; +4 SÓ se o palpite foi empate E acertou o "classificado" (quem passou nos pênaltis).
-function calcMataPts(pal,c){
+// ── Pontuação do MATA-MATA (só mata-mata; a fase de grupos NÃO usa isto e fica congelada) ──
+// Sobre o PLACAR FINAL (com prorrogação). Componentes que MULTIPLICAM pela fase×turbo:
+//   5 resultado · 1 gols A · 1 gols B · 2 SALDO (só quando há vencedor no real) · 3 placar exato ·
+//   4 PÊNALTIS (real empate + palpitou empate + acertou quem passa) — o +4 ENTRA na base e MULTIPLICA.
+// Bônus de ZEBRA (FIXO, não multiplica): +3 zebra / +5 zebrão, se a pessoa apontou o azarão pra
+// avançar E o azarão avançou de verdade. Total = round(base × fase × turbo) + zebra.
+function fmtPts(n){ if(n==null||isNaN(n))return ''; return (''+(Math.round(n*100)/100)).replace('.',','); }
+function mmScore(pal,c){
   if(!pal||pal.gols_a==null||pal.gols_b==null)return null;
   if(c.real_a==null||c.real_b==null)return null;
   const pa=+pal.gols_a,pb=+pal.gols_b,ra=+c.real_a,rb=+c.real_b;
-  let base=0;   // base 5+1+1+3 (multiplicada por fase × turbo)
-  if((pa>pb?'A':pa<pb?'B':'E')===(ra>rb?'A':ra<rb?'B':'E'))base+=5;
-  if(pa===ra)base+=1;
-  if(pb===rb)base+=1;
-  if(pa===ra&&pb===rb)base+=3;
-  const bonus=(pa===pb&&pal.quem_passa&&c.classificado&&pal.quem_passa===c.classificado)?4:0;   // +4 à parte
-  return Math.round(base*mmMult(c))+bonus;
+  const realDraw=ra===rb, comp=[]; let base=0;
+  const pres=pa>pb?'A':pa<pb?'B':'E', rres=ra>rb?'A':ra<rb?'B':'E';
+  if(pres===rres){base+=5;comp.push({v:5,lbl:'resultado'});}
+  if(pa===ra){base+=1;comp.push({v:1,lbl:'gols '+(c.team_a||'A')});}
+  if(pb===rb){base+=1;comp.push({v:1,lbl:'gols '+(c.team_b||'B')});}
+  if(!realDraw && (pa-pb)===(ra-rb)){base+=2;comp.push({v:2,lbl:'saldo'});}     // saldo só quando há vencedor
+  if(pa===ra&&pb===rb){base+=3;comp.push({v:3,lbl:'placar exato'});}
+  if(realDraw && pa===pb && pal.quem_passa && c.classificado && pal.quem_passa===c.classificado){base+=4;comp.push({v:4,lbl:'pênaltis'});}   // +4 ENTRA na base (multiplica)
+  const phaseKey=mmPhaseKeyOf(c.id), phaseMult=MM_PHASE_MULT[phaseKey]||1, turbo=mmIsTurbo(c);
+  const partida=Math.round(base*phaseMult*(turbo?2:1)*100)/100;   // pontos da partida (já multiplicados)
+  let zebra=0, zebraTipo=null; const z=mmZebra(c);   // bônus de zebra: fixo, somado no fim
+  if(z){
+    const rw=mmRealWinner(c), palAdv=pa>pb?'A':pa<pb?'B':(pal.quem_passa||null);   // quem a pessoa apontou pra avançar
+    if(rw && rw===z.azarao && palAdv===z.azarao){zebra=z.tipo==='zebrao'?5:3; zebraTipo=z.tipo;}
+  }
+  return {total:Math.round((partida+zebra)*100)/100, comp, base, phaseKey, phaseMult, turbo, partida, zebra, zebraTipo};
+}
+function calcMataPts(pal,c){const s=mmScore(pal,c);return s?s.total:null;}
+// Balão "de onde vêm os pontos" (PARTE B): componentes · multiplicadores · zebra (soma fixa) · total.
+function mmPtsTipHTML(s){
+  const PH={'32avos':'16 avos','oitavas':'oitavas','quartas':'quartas','semis':'semis','3lugar':'3º lugar','final':'final'};
+  const comps=s.comp.length?s.comp.map(c=>`+${c.v} ${c.lbl}`).join(' · '):'sem acertos';
+  let mult=`× ${fmtPts(s.phaseMult)} (${PH[s.phaseKey]||s.phaseKey})`+(s.turbo?` · × 2 (turbo)`:'');
+  let h=`<div class="mm-tip-l1">${comps}</div><div class="mm-tip-l2">${mult}</div>`;
+  if(s.zebra)h+=`<div class="mm-tip-zeb">+${s.zebra} ${s.zebraTipo==='zebrao'?'zebrão 🦓':'zebra 🦓'}</div>`;
+  h+=`<div class="mm-tip-tot">= ${fmtPts(s.total)} pts</div>`;
+  return h;
+}
+function mmShowPtsTip(ev,cid,pid){
+  ev.stopPropagation();
+  const c=MM_CONFRONTOS.find(x=>x.id===cid); if(!c)return;
+  const s=mmScore((MM_PALPITES[cid]||{})[pid],c); if(!s)return;
+  let el=document.getElementById('floating-tip');
+  if(!el){el=document.createElement('div');el.id='floating-tip';document.body.appendChild(el);}
+  el.classList.add('mm-ptstip'); el.innerHTML=mmPtsTipHTML(s); el.style.display='block';
+  const w=Math.min(250,window.innerWidth-24); el.style.width=w+'px';
+  const r=ev.currentTarget.getBoundingClientRect();
+  let left=r.left+r.width/2-w/2+window.scrollX;
+  left=Math.max(window.scrollX+12,Math.min(left,window.scrollX+window.innerWidth-w-12));
+  el.style.left=left+'px'; el.style.top=(r.bottom+window.scrollY+7)+'px';
 }
 // Estatísticas do mata-mata para o ranking (ignora confrontos de TESTE e não finalizados)
 function mataStats(pid){
@@ -1983,7 +2028,7 @@ function mmRefreshPts(cid){
     const badge=card.querySelector(`.mm-pts[data-pid="${p.id}"]`); if(!badge)return;
     const pts=hasScore?calcMataPts((MM_PALPITES[cid]||{})[p.id],c):null;
     badge.className='pts-badge on-av mm-pts'+(pts!=null?' '+(c.finished?ptsClass(pts):'preview'):' empty');   // sem número → display:none
-    badge.textContent=pts!=null?pts:'';
+    badge.textContent=pts!=null?fmtPts(pts):'';
   });
   const pv=card.querySelector('.mm-foot-fl .prev-tag'); if(pv)pv.classList.toggle('show',!c.finished&&hasScore);   // prévia abaixo do "PLACAR FINAL", sem empurrar
   const fqp=card.querySelector('.mm-foot-qp'); if(fqp)fqp.outerHTML=mmFootQpHTML(c);   // rótulo/bandeiras seguem o placar real
@@ -2188,7 +2233,7 @@ function mmCardBody(c){
     const pal=(MM_PALPITES[c.id]||{})[pid]||{};
     const hasPred=pal.gols_a!=null;
     const pts=hasScore&&hasPred?calcMataPts(pal,c):null;
-    const badge=`<span class="pts-badge on-av mm-pts${pts!=null?' '+(c.finished?ptsClass(pts):'preview'):' empty'}" data-pid="${pid}">${pts!=null?pts:''}</span>`;
+    const badge=`<span class="pts-badge on-av mm-pts${pts!=null?' '+(c.finished?ptsClass(pts):'preview'):' empty'}" data-pid="${pid}" onmouseenter="mmShowPtsTip(event,'${c.id}','${pid}')" onmouseleave="hideTip()" onclick="mmShowPtsTip(event,'${c.id}','${pid}')">${pts!=null?fmtPts(pts):''}</span>`;
     const av=`<div class="hum-avwrap"><div class="hum-av" style="background:${p.color}">${avInner(p)}</div>${badge}</div>`;
     const passa=`<div class="mm-qp mm-hc-passa" data-pid="${pid}">${mmQuemPassaHTML(c,pid,isHuman)}</div>`;
     if(isHuman){
@@ -2257,7 +2302,7 @@ function mmHeadHTML(c){
   const i=mmInfo(c);
   // canto direito: dia da semana + data · hora — igual à fase de grupos; omite se não houver data.
   const dt=i.dt?`<span class="dt-tag">${mmWeekday(i.dt)}, ${esc(i.dt)}${i.tm?' · '+esc(i.tm):''}</span>`:'';
-  return `<div class="card-head"><span class="grp-tag">${esc((mmColLabel(c.id)||'MATA-MATA').toUpperCase())} ${status}${turbo}</span>${dt}</div>`;
+  return `<div class="card-head"><span class="grp-tag">${esc((mmColLabel(c.id)||'MATA-MATA').toUpperCase())} ${status}${turbo}${mmZebraSeal(c)}</span>${dt}</div>`;
 }
 // Seção do chaveamento com cabeçalho colapsável (A1).
 function mmBracketSectionHTML(){
@@ -2329,6 +2374,12 @@ function mmFitBracket(){
 let _mmResizeBound=false;
 
 // ── LISTA: só fases que já existem; cada confronto é clicável e expande inline ──
+// Selo de zebra (PARTE C): 🦓 +3 (zebra) ou 🦓 +5 dourado (zebrão), no cantinho do card.
+function mmZebraSeal(c){
+  const z=mmZebra(c); if(!z)return '';
+  const big=z.tipo==='zebrao';
+  return `<span class="mm-zebra-seal${big?' zebrao':''}" title="${big?'Zebrão':'Zebra'} — bônus fixo +${big?5:3} se o azarão avançar (quem apontar o azarão pra passar)">🦓 +${big?5:3}</span>`;
+}
 function mmListItem(c){
   const open=mmOpen.has(c.id);
   const cls=['mm-litem']; if(open)cls.push('open'); if(mmIsTurbo(c))cls.push('is-turbo'); if(mmMissingHuman(c))cls.push('mm-miss'); if(c.finished)cls.push('mm-fin');
@@ -2412,11 +2463,11 @@ function mmMataRankingHTML(){
 }
 // (3) Como funciona a pontuação.
 function mmHowItWorksHTML(){
-  return `<details class="mm-block mm-how"><summary class="mm-block-h">📐 Como funciona a pontuação</summary><div class="mm-how-body">
-    <p><b>Base por jogo</b> (sobre o <b>placar final</b>, com prorrogação): <b>5</b> acertar o resultado · <b>+1</b> gols do A · <b>+1</b> gols do B · <b>+3</b> cravar o placar.</p>
-    <p><b>+4</b> de bônus: palpite empate <b>e</b> acertar quem passou nos pênaltis.</p>
-    <p><b>Multiplicador por fase</b> (sobre a base): 16 avos ×1 · Oitavas ×1,25 · Quartas ×1,5 · Semis ×1,75 · 3º lugar ×1,75 · <b>Final ×4</b>.</p>
-    <p><b>Turbo ⚡</b> = <b>×2</b> em cima do multiplicador da fase (ex.: turbo na semi = ×3,5). Nenhum jogo passa da Final (×4).</p>
+  return `<details class="mm-block mm-how"><summary class="mm-block-h">📐 Como funciona a pontuação (só mata-mata)</summary><div class="mm-how-body">
+    <p><b>Vale só pro mata-mata</b> — a fase de grupos <b>não muda</b>. Tudo sobre o <b>placar final</b> (com prorrogação).</p>
+    <p><b>Pontos da partida</b> (multiplicam pela fase e pelo turbo): <b>5</b> resultado · <b>+1</b> gols do A · <b>+1</b> gols do B · <b>+2</b> saldo de gols <i>(só quando há vencedor; em empate não conta)</i> · <b>+3</b> cravar o placar · <b>+4</b> pênaltis <i>(palpitou empate e acertou quem passou)</i> — <b>o +4 também multiplica</b>.</p>
+    <p><b>Multiplicador por fase</b>: 16 avos ×1 · Oitavas ×1,25 · Quartas ×1,5 · Semis ×1,75 · 3º lugar ×1,75 · <b>Final ×4</b>. <b>Turbo ⚡ ×2</b> em cima da fase (ex.: turbo na semi = ×3,5). Nenhum jogo passa da Final (×4).</p>
+    <p><b>Bônus de zebra 🦓</b> (soma <b>fixa</b> no fim, <b>não</b> multiplica): <b>+3 zebra</b> · <b>+5 zebrão</b> (dourado). Ganha quem apontou o <b>azarão</b> pra avançar <b>e</b> ele realmente avançou. Azarão com ≤25% de chance de passar = zebra; ≤12% = zebrão.</p>
   </div></details>`;
 }
 function renderMata(){
