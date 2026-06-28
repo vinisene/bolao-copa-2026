@@ -19,19 +19,26 @@ que são âncoras estáveis. Os números aqui são referência aproximada (estad
 
 **Onde estamos:**
 - **Fase de grupos:** em produção (`main`), funcionando, é o que os participantes usam hoje.
-- **Fase mata-mata:** **construída e validada no `dev`** — pontuação testada de ponta a ponta na
-  tela, incluindo **empate com pênaltis e o bônus +4**, para **humanos E IAs**. Aba "⚔️ Mata-Mata",
-  tabelas próprias, integração no ranking. Detalhes técnicos: §10.
+- **Fase mata-mata: CONCLUÍDA no `dev`** (visual + pontuação validados de ponta a ponta). Pronto:
+  **chaveamento visual colapsável** (bracket), **lista por fase com filtro**, **cards de palpite**
+  (humanos editam / IAs leitura), **cabeçalho com data/hora/local**, **rodapé "placar final"**,
+  **turbo** pintando só cabeçalho+rodapé, **palpite-faltando em amarelo**, e **avanço automático**
+  da chave pelo **resultado real** (empate → quem passa nos pênaltis). Aba "⚔️ Mata-Mata", tabelas
+  próprias, integração no ranking dos 8. Detalhes técnicos: §10.
 - **Ambiente de dev isolado:** funcionando (tabelas `dev_*`, detecção por hostname, botão
   "🪞 Espelhar prod→dev"). Detalhes: §11.
-- **Nada subiu pra produção ainda.** **PR #3** (`dev → main`) está **aberto, aguardando** ordem
-  explícita do Vini (ver regra de ouro no topo).
+- **No ar (testes):** `dev.bolao-copa-sene-piovan.pages.dev` (branch `dev`).
+- **Nada subiu pra produção.** `main`/produção **INTACTAS**. **PR #3** (`dev → main`) está **aberto e
+  intocado**, aguardando ordem explícita do Vini (ver regra de ouro no topo).
 
 **Regra de pontuação do mata-mata (resumo):** base **5 (resultado) + 1 (gol A) + 1 (gol B) +
 3 (placar exato)** sobre o **PLACAR FINAL** (inclui prorrogação), **multiplicada por fase**
 (16 avos ×1 · oitavas ×1,25 · quartas ×1,5 · semis ×1,75 · 3º ×1,75 · **final ×4**) e por
 **turbo ×2** (em cima da fase). **+4** (à parte, não multiplicado) só para quem palpitou **empate**
 e acertou **quem passa nos pênaltis**. `Math.round` no fim. As **4 duplas (humanos e IAs) competem**.
+**Quantidade de jogos turbo por fase:** 16 avos **6** · oitavas **3** · quartas **2** · semis **1** ·
+3º lugar **0** · final **0**. **Regra de ouro do equilíbrio:** nenhum jogo pode valer **≥ a final**
+(a final ×4 = 40 é o teto; o maior turbo possível é semis ×1,75×2 = ×3,5 ≈ 35, abaixo da final).
 Fórmula em `calcMataPts`; multiplicadores em `MM_PHASE_MULT`/`mmMult`; turbos em `MM_TURBO` (§10).
 
 **Estado visual do mata-mata (jun/2026, só no `dev`):** a aba já abre por padrão no dev, na ordem
@@ -43,18 +50,19 @@ amarelo (só conta com os dois gols, e quem-passa no empate). **Célula do human
 (celular: lado a lado numa linha; desktop: empilhado), placar nos ~2/3 com a **bandeira do "quem
 passa" junto de cada campo** (desktop em cima, celular à direita) — funções `mmHumPredHTML`/
 `mmHumQpFlag`/`mmUpdHumFlags`. **Rodapé "placar final":** "quem passou" é **só a bandeira**, embaixo
-de cada número, com Finalizar à direita (`mmResultHTML`, classes `.mm-foot-*`/`.mm-cqp`). **Agenda**
-(data/hora Brasília/local) das 6 fases mora no código (`MM_AGENDA`) — a anon key não cria colunas.
+de cada número, com Finalizar à direita (`mmResultHTML`, classes `.mm-foot-*`/`.mm-cqp`). **Agenda
+das 6 fases COMPLETA no código** (`MM_AGENDA`): datas, **horários de Brasília** e **sedes** de todos
+os jogos já preenchidos — a anon key não cria colunas, então a agenda vive no código (não no banco).
 
 **Regra de ouro do fluxo:** nada vai pra produção (merge/push na `main`) sem o Vini pedir
 **explicitamente**. Todo trabalho acontece no `dev` (ver banner no topo do arquivo).
 
 **Roadmap (nesta ordem):**
-1. **Chaveamento visual interativo** do mata-mata (bracket).
-2. **Abas separando** Fase de Grupos e Mata-Mata.
+1. ✅ **Chaveamento visual interativo** do mata-mata (bracket) — **FEITO** (no `dev`).
+2. 👉 **PRÓXIMO PASSO: Abas separando** Fase de Grupos e Mata-Mata.
 3. **Filtros no ranking** (Total · Grupos · Mata-Mata) + espaço pra disputa **Vini × Jeca**.
 4. **Dinâmica anti-desengajamento:** multiplicador por rodada, pontos crescentes por fase,
-   bônus de zebra.
+   bônus de zebra. (Multiplicador por fase + turbos do mata-mata já implementados — ver §10.)
 5. **Identidade visual da Copa** (por último).
 
 **Meta:** concentrar o **máximo de alterações no `dev` até sábado à noite** e **subir tudo de uma
