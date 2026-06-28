@@ -1,12 +1,13 @@
 # CLAUDE.md
 
-> ## ⛔ REGRA PERMANENTE — NÃO subir pra produção sem ordem explícita
-> **Nunca** faça `merge` de Pull Request nem `push` para a branch **`main`** (produção), em
-> hipótese alguma, até o usuário pedir **explicitamente**. Frases que liberam: **"pode subir
-> para produção"** ou **"pode fazer o merge"**. Sem isso, não suba.
-> - Todo desenvolvimento acontece na branch **`dev`**.
-> - Se você achar que algo está pronto pra subir, **apenas avise e aguarde** a confirmação explícita.
-> - O **PR #3** deve permanecer **aberto e sem merge** até ordem em contrário.
+> ## 🚀 LANÇADO — "Bolão Ratazana Copa 26" está em produção (jun/2026)
+> A versão nova (mata-mata + tudo) **já subiu pra `main`**. Produção nova: **`bolao-ratazana-copa26.pages.dev`**
+> (publica a **`main`**). O site antigo **`bolao-copa-sene-piovan.pages.dev`** está **CONGELADO** na
+> fase de grupos, publicando a branch **`congelado-fase-grupos`** — **NÃO mexer nele**.
+> - **Trabalho do dia a dia agora é na branch `ratazana`** (não mais na `dev`).
+> - **Subir pra produção = merge/push na `main`** — só com ordem **explícita** do Vini
+>   ("pode subir para produção" / "pode fazer o merge"). Sempre crie um **safepoint (tag)** antes.
+> - Não toque na `congelado-fase-grupos` (museu) nem na `dev` (backup antigo congelado).
 
 Guia de navegação do projeto. O objetivo é que, ao ler este arquivo, você saiba **onde mexer
 sem explorar o código**. Os números de linha **andam** a cada edição — confie nos **nomes de
@@ -17,32 +18,45 @@ que são âncoras estáveis. Os números aqui são referência aproximada (estad
 
 ## 0. Estado atual e roadmap (atualizado jun/2026)
 
-**Onde estamos:**
-- **Fase de grupos:** em produção (`main`), funcionando, é o que os participantes usam hoje.
-- **Fase mata-mata: CONCLUÍDA no `dev`** (visual + pontuação validados de ponta a ponta). Pronto:
-  **chaveamento visual colapsável** (bracket), **lista por fase com filtro**, **cards de palpite**
-  (humanos editam / IAs leitura), **cabeçalho com data/hora/local**, **rodapé "placar final"**,
-  **turbo** pintando só cabeçalho+rodapé, **palpite-faltando em amarelo**, e **avanço automático**
-  da chave pelo **resultado real** (empate → quem passa nos pênaltis). Aba "⚔️ Mata-Mata", tabelas
-  próprias, integração no ranking dos 8. Detalhes técnicos: §10.
-- **Ambiente de dev isolado:** funcionando (tabelas `dev_*`, detecção por hostname, botão
-  "🪞 Espelhar prod→dev"). Detalhes: §11.
-- **No ar (testes):** `dev.bolao-copa-sene-piovan.pages.dev` (branch `dev`).
-- **Nada subiu pra produção.** `main`/produção **INTACTAS**. **PR #3** (`dev → main`) está **aberto e
-  intocado**, aguardando ordem explícita do Vini (ver regra de ouro no topo).
+**Onde estamos (LANÇADO):**
+- **Produção nova = `main` = "Bolão Ratazana Copa 26"** (commit `68517fa`). No ar em
+  **`bolao-ratazana-copa26.pages.dev`**. Tem **fase de grupos + mata-mata completo** (chave visual,
+  lista por fase, cards de palpite, pontuação nova, zebras, turbos, novos participantes).
+- **Site antigo CONGELADO:** `bolao-copa-sene-piovan.pages.dev` publica a branch
+  **`congelado-fase-grupos`** (= fase de grupos, commit `6fdd117`). **Não recebe mais mudanças.**
+- **Branches:** `main` = **produção nova** · `ratazana` = **branch de trabalho** (dia a dia) ·
+  `congelado-fase-grupos` = **museu do site antigo** (não tocar) · `dev` = **backup antigo congelado**
+  (pré-lançamento; não mexer). O **PR #3** ficou obsoleto (a `main` já tem tudo via fast-forward).
+- **Safepoints (tags):** `v2-fim-melhorias` (`fc7a69d`, tudo pronto antes do lançamento) ·
+  `v3-prod-fase-grupos-congelada` (`6fdd117`, estado da fase de grupos). Voltar: `git checkout <tag>`.
+- **Detecção de ambiente:** hostname começando com **`dev.` OU `ratazana.`** = **DEV** (lê `dev_*`);
+  produção (`bolao-ratazana-copa26.pages.dev`, sem esses prefixos) e localhost lêem as tabelas **sem
+  prefixo**. Função `isDevEnv` (§11). O preview da branch é `ratazana.bolao-copa-sene-piovan.pages.dev`.
+- **Detalhes técnicos do mata-mata:** §10. Ambientes/tabelas: §11.
 
-**Regra de pontuação do mata-mata (resumo):** base **5 (resultado) + 1 (gol A) + 1 (gol B) +
-3 (placar exato)** sobre o **PLACAR FINAL** (inclui prorrogação), **multiplicada por fase**
-(16 avos ×1 · oitavas ×1,25 · quartas ×1,5 · semis ×1,75 · 3º ×1,75 · **final ×4**) e por
-**turbo ×2** (em cima da fase). **+4** (à parte, não multiplicado) só para quem palpitou **empate**
-e acertou **quem passa nos pênaltis**. `Math.round` no fim. As **4 duplas (humanos e IAs) competem**.
-**Quantidade de jogos turbo por fase:** 16 avos **6** · oitavas **3** · quartas **2** · semis **1** ·
-3º lugar **0** · final **0**. **Regra de ouro do equilíbrio:** nenhum jogo pode valer **≥ a final**
-(a final ×4 = 40 é o teto; o maior turbo possível é semis ×1,75×2 = ×3,5 ≈ 35, abaixo da final).
-Fórmula em `calcMataPts`; multiplicadores em `MM_PHASE_MULT`/`mmMult`; turbos em `MM_TURBO` (§10).
+**Regra de pontuação do MATA-MATA (resumo — SÓ mata-mata; a fase de grupos é CONGELADA e NÃO
+muda/recalcula).** Sobre o **PLACAR FINAL** (com prorrogação). **Componentes que MULTIPLICAM** pela
+fase × turbo: **5** resultado · **1** gol A · **1** gol B · **2** saldo (SÓ quando há vencedor no
+real; em empate não conta) · **3** placar exato · **4** pênaltis (palpitou empate **e** acertou quem
+passa) — **o +4 ENTRA na base e multiplica** (não é mais fixo). **Multiplicador por fase:** 16 avos
+×1 · oitavas ×1,25 · quartas ×1,5 · semis ×1,75 · 3º ×1,75 · **final ×4**; **turbo ×2** em cima.
+**Bônus de ZEBRA (FIXO, somado no fim, NÃO multiplica):** **+3 zebra** · **+5 zebrão** — se a pessoa
+apontou o **azarão** pra avançar **e** ele avançou (azarão ≤25% = zebra; ≤12% = zebrão). O total pode
+ser **fracionário** (ex.: 17,5; `fmtPts` mostra com vírgula). Funções: **`mmScore`** (detalhamento) /
+`calcMataPts` / multiplicadores `MM_PHASE_MULT`·`mmMult` / turbos `MM_TURBO` / zebras `MM_ZEBRA`.
+**Quantidade de turbos por fase:** 16 avos **6** · oitavas **3** · quartas **2** · semis **1** · 3º
+**0** · final **0**. **Turbos dos 16 avos:** Brasil×Japão · CostaMarfim×Noruega · França×Suécia ·
+México×Equador · Bélgica×Senegal · EUA×Bósnia (África×Canadá NÃO). **Regra de ouro do equilíbrio:**
+nenhum jogo passa da **final ×4** (maior fora da final = semis turbo ×3,5). **Balão de pontos**
+(hover/toque no número) mostra a quebra; **selo de zebra** 🦓 no cabeçalho do card (§10).
 
-**Estado visual do mata-mata (jun/2026, só no `dev`):** a aba já abre por padrão no dev, na ordem
-**Próximos jogos** (hero+contagem, igual à fase de grupos) → **Classificação do Mata-Mata** (barra
+**Supabase (produção do mata já pronta):** tabelas de produção **`mata_confrontos`** (32 jogos:
+16 avos preenchidos + vagas das fases seguintes) e **`mata_palpites`** já **criadas e populadas**,
+com **RLS ligada** e políticas de **leitura/escrita públicas** (mesmo padrão de `bolao_games`). Mesmo
+projeto Supabase de sempre; dev usa as `dev_*` (espelho). Schema em `supabase_mata_mata.sql` (§11).
+
+**Estado visual do mata-mata (no ar na produção nova):** a aba já abre por padrão no ambiente de
+teste, na ordem **Próximos jogos** (hero+contagem, igual à fase de grupos) → **Classificação do Mata-Mata** (barra
 rolante, só pontos do mata) → **Como funciona** → **chave** (colapsável) → **lista por dia** (dias
 passados recolhidos). Cards copiam a fase de grupos; **turbo** pinta cabeçalho+rodapé de laranja
 (texto escuro); **cards-fantasma** das fases futuras com data/local e times "?"; palpite faltando =
@@ -54,19 +68,23 @@ de cada número, com Finalizar à direita (`mmResultHTML`, classes `.mm-foot-*`/
 das 6 fases COMPLETA no código** (`MM_AGENDA`): datas, **horários de Brasília** e **sedes** de todos
 os jogos já preenchidos — a anon key não cria colunas, então a agenda vive no código (não no banco).
 
-**Regra de ouro do fluxo:** nada vai pra produção (merge/push na `main`) sem o Vini pedir
-**explicitamente**. Todo trabalho acontece no `dev` (ver banner no topo do arquivo).
+**Regra de ouro do fluxo:** trabalho do dia a dia na **`ratazana`**; nada vai pra produção
+(merge/push na `main`) sem o Vini pedir **explicitamente**, e sempre com **safepoint (tag) antes**.
 
-**Roadmap (nesta ordem):**
-1. ✅ **Chaveamento visual interativo** do mata-mata (bracket) — **FEITO** (no `dev`).
-2. 👉 **PRÓXIMO PASSO: Abas separando** Fase de Grupos e Mata-Mata.
-3. **Filtros no ranking** (Total · Grupos · Mata-Mata) + espaço pra disputa **Vini × Jeca**.
-4. **Dinâmica anti-desengajamento:** multiplicador por rodada, pontos crescentes por fase,
-   bônus de zebra. (Multiplicador por fase + turbos do mata-mata já implementados — ver §10.)
-5. **Identidade visual da Copa** (por último).
+**Regras TRAVADAS (continuam valendo):**
+- **Pontuação do mata NÃO é retroativa** e vale **só pro mata-mata**; a **fase de grupos é congelada**
+  (não recalcula, não muda). Bolão Geral = grupos (congelados) **+** mata (regras novas).
+- **Zebra +3 / zebrão +5 FIXO** (soma no fim, não multiplica). **Turbos por fase** (lista nos 16 avos
+  acima). **g01, g02 e g03 NUNCA contam** (em nenhuma aba/tabela/gráfico).
+- **Participantes `Pepe`, `Du`, `Yuri` (humanos) e `Pepe IA` são SÓ-MATA** (`mataOnly:true` em
+  `MATA_EXTRA`/`MATA_PARTS`): aparecem nos cards e no ranking do mata, **não** no Bolão Geral/JxV nem
+  na fase de grupos. `PARTICIPANTS` (os 8) segue intacto pros contextos de grupos/Geral.
 
-**Meta:** concentrar o **máximo de alterações no `dev` até sábado à noite** e **subir tudo de uma
-vez** (com a ordem explícita do Vini).
+**PRÓXIMA FASE — REDESIGN VISUAL (identidade "Bolão Ratazana Copa 26" / Copa 26):**
+Aplicar **na branch `ratazana`, em etapas**, com **safepoint (tag) antes de cada etapa grande**:
+1. **Tokens** de cor/fonte (CSS vars no `:root`) — a base da identidade, sem mexer em layout.
+2. Depois **tela por tela** (header/nav, cards, ranking, chave…), reaproveitando os tokens.
+Só subir pra `main` (produção nova) com ordem explícita do Vini.
 
 ## 1. O que é
 
