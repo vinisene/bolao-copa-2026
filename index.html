@@ -260,6 +260,9 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .rank-toggle{display:flex;background:var(--card);border:1px solid var(--brd);border-radius:10px;overflow:hidden;margin-bottom:12px;}
 .rank-toggle button{flex:1;padding:9px;border:none;background:transparent;font-size:12.5px;font-weight:700;color:var(--mu);cursor:pointer;}
 .rank-toggle button.active{background:var(--gd);color:var(--gold);}
+.hist-toggle{display:flex;gap:7px;justify-content:center;margin:0 4px 10px;}
+.hist-toggle button{flex:0 0 auto;padding:6px 16px;border:1px solid var(--brd);background:var(--card);border-radius:999px;font-size:12px;font-weight:700;color:var(--mu);cursor:pointer;}
+.hist-toggle button.active{background:var(--gd);color:var(--gold);border-color:var(--gd);}
 
 /* ── Corrida de times (3 times) ── */
 .tr-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
@@ -1453,13 +1456,98 @@ function deltaBadge(d){
   if(d<0)return `<span class="rk-delta down">▼${-d}</span>`;
   return `<span class="rk-delta flat">=</span>`;
 }
-// Gráfico de evolução: eixo X = jogos (bandeiras), eixo Y = posição 1..8
-// No desktop preenche a largura (último jogo na direita); no celular cresce e rola pro lado.
+// ─── DADOS DO GRÁFICO DE EVOLUÇÃO (3 abas × 2 visões: Por Jogos / Por Rodada) ───
+// REGRA DE OURO: g01–g03 NUNCA entram (em nenhuma aba, tabela ou gráfico).
+const GROUP_EXCLUDED=new Set(['g01','g02','g03']);
+let histUnit='jogos';   // 'jogos' (cada jogo é um ponto) | 'rodada' (agrupa por rodada)
+function setHistUnit(u){histUnit=u;renderRanking();}
+// Pontos de UM jogo de grupo por participante: {pid->{pts,rHits,eHits}} (reusa ptsOf, sem reimplementar)
+function groupPtsByPid(g){
+  const o={};
+  PARTICIPANTS.forEach(p=>{
+    const pred=g.predictions[p.id]; if(emptyVal(pred.a))return;
+    const pts=ptsOf(g,pred); if(pts===null)return;
+    const ra=+g.realA,rb=+g.realB,pa=+pred.a,pb=+pred.b;
+    o[p.id]={pts,rHits:((pa>pb?'A':pa<pb?'B':'E')===(ra>rb?'A':ra<rb?'B':'E'))?1:0,eHits:(pa===ra&&pb===rb)?1:0};
+  });
+  return o;
+}
+// Pontos de UM confronto do mata-mata por participante (reusa calcMataPts, sem reimplementar)
+function mataPtsByPid(c){
+  const o={};
+  PARTICIPANTS.forEach(p=>{
+    const pal=(MM_PALPITES[c.id]||{})[p.id];
+    const pts=calcMataPts(pal,c); if(pts==null)return;
+    const ra=+c.real_a,rb=+c.real_b,pa=+pal.gols_a,pb=+pal.gols_b;
+    o[p.id]={pts,rHits:((pa>pb?'A':pa<pb?'B':'E')===(ra>rb?'A':ra<rb?'B':'E'))?1:0,eHits:(pa===ra&&pb===rb)?1:0};
+  });
+  return o;
+}
+function groupGamesFinished(filterFn){   // jogos de grupo finalizados (sem g01-03/removidos), cronológicos
+  return GT.map(t=>getGame(t.id))
+    .filter(g=>!g.removed&&!GROUP_EXCLUDED.has(g.id)&&g.finished&&!emptyVal(g.realA)&&!emptyVal(g.realB)&&(!filterFn||filterFn(g)))
+    .sort((a,b)=>sortKey(a)-sortKey(b));
+}
+function mataGamesFinished(){            // confrontos do mata finalizados (sem TESTE), cronológicos (agenda)
+  return MM_CONFRONTOS.filter(c=>!mmIsTest(c)&&c.finished&&c.real_a!=null&&c.real_b!=null).sort((a,b)=>mmSchedKey(a)-mmSchedKey(b));
+}
+function sumPidList(list){               // soma vários {pid->{pts,rHits,eHits}} (agrupar por rodada)
+  const o={};
+  list.forEach(per=>Object.keys(per).forEach(pid=>{
+    if(!o[pid])o[pid]={pts:0,rHits:0,eHits:0};
+    o[pid].pts+=per[pid].pts; o[pid].rHits+=per[pid].rHits; o[pid].eHits+=per[pid].eHits;
+  }));
+  return o;
+}
+// Unidades do eixo X: cada uma vira um ponto. tab:'geral'|'jxv'|'mata' · unit:'jogos'|'rodada'.
+function histUnits(tab,unit){
+  const filterFn = tab==='geral' ? (g=>sortKey(g)>=CUT) : null;   // Geral: a partir de 20/06 (CUT); JxV: tudo (g01-03 já fora)
+  const grp  = tab==='mata' ? [] : groupGamesFinished(filterFn);
+  const mata = mataGamesFinished();
+  if(unit==='jogos'){
+    const u=[];
+    grp.forEach(g=>u.push({perPid:groupPtsByPid(g),label:{fA:g.fA,fB:g.fB}}));
+    mata.forEach(c=>u.push({perPid:mataPtsByPid(c),label:{fA:c.flag_a,fB:c.flag_b}}));
+    return u;
+  }
+  // Por Rodada (ordem fixa: 1ª/2ª/3ª grupos · 16 avos · oitavas · quartas · semis · 3º · final)
+  const u=[], GRP_SHORT={1:'1ª',2:'2ª',3:'3ª'}, MM_SHORT={'32avos':'16av','oitavas':'8ª','quartas':'4ª','semis':'Semi','3lugar':'3º','final':'Final'};
+  if(tab!=='mata'){
+    [1,2,3].forEach(r=>{const gs=grp.filter(g=>g.r===r); if(gs.length)u.push({perPid:sumPidList(gs.map(groupPtsByPid)),label:{txt:r+'ª Rodada',short:GRP_SHORT[r]}});});
+  }
+  MM_COLS.forEach(col=>{const cs=mata.filter(c=>mmPhaseKeyOf(c.id)===col.key); if(cs.length)u.push({perPid:sumPidList(cs.map(mataPtsByPid)),label:{txt:col.label,short:MM_SHORT[col.key]||col.label}});});
+  return u;
+}
+// Steps do gráfico: posição 1..P acumulada após cada unidade (mesmo critério de desempate da tabela).
+function buildSteps(units,parts){
+  const acc={}; parts.forEach(p=>acc[p.id]={total:0,eHits:0,rHits:0});
+  const steps=[];
+  units.forEach(unit=>{
+    parts.forEach(p=>{const d=unit.perPid[p.id]; if(d){acc[p.id].total+=d.pts;acc[p.id].eHits+=d.eHits;acc[p.id].rHits+=d.rHits;}});
+    const order=parts.map(p=>({id:p.id,...acc[p.id]})).sort((a,b)=>b.total-a.total||b.eHits-a.eHits||b.rHits-a.rHits);
+    const pos={},tot={}; order.forEach((o,i)=>{pos[o.id]=i+1;tot[o.id]=o.total;});
+    steps.push({pos,tot,label:unit.label});
+  });
+  return steps;
+}
+function histToggle(){
+  return `<div class="hist-toggle">
+    <button class="${histUnit==='jogos'?'active':''}" onclick="setHistUnit('jogos')">Por Jogos</button>
+    <button class="${histUnit==='rodada'?'active':''}" onclick="setHistUnit('rodada')">Por Rodada</button>
+  </div>`;
+}
+// Seção "Evolução" (título + toggle + gráfico) reutilizada nas 3 abas.
+function evolutionSection(tab,parts){
+  return `<div class="section-title">📈 EVOLUÇÃO DA CLASSIFICAÇÃO</div>`+histToggle()+histChart(buildSteps(histUnits(tab,histUnit),parts),parts);
+}
+// Gráfico de evolução: eixo X = jogos (bandeiras) ou rodadas (texto), eixo Y = posição 1..P
+// No desktop preenche a largura (último à direita); no celular cresce e rola pro lado.
 // Interativo: passar o mouse (desktop) realça a linha; clicar/tocar fixa o destaque.
 let histLocked=null;
-function histChart(steps){
+function histChart(steps,parts){
   histLocked=null;
-  if(steps.length<2)return `<div class="hist-empty">O gráfico de evolução aparece a partir de 2 jogos finalizados no Bolão Geral.</div>`;
+  const P=parts.length;   // nº de linhas (participantes) = altura do eixo Y
+  if(steps.length<2)return `<div class="hist-empty">O gráfico de evolução aparece a partir de 2 unidades finalizadas nesta visão.</div>`;
   const N=steps.length;
   const host=document.getElementById('tab-ranking');
   const hostW=(host&&host.clientWidth)?host.clientWidth:Math.min(892,(window.innerWidth||375)-28);
@@ -1476,24 +1564,29 @@ function histChart(steps){
   const fit=fillColW>=minColW;                   // enche a largura (último jogo na direita)?
   const colW=fit?fillColW:minColW;
   const W=fit?availW:(leftAxis+N*colW+rightPad);
-  const H = topPad+7*rowH+bottomPad;
+  const H = topPad+(P-1)*rowH+bottomPad;
   const X=i=>leftAxis+i*colW+colW/2;
   const Y=pos=>topPad+(pos-1)*rowH;
   let svg=`<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" class="hist-svg" xmlns="http://www.w3.org/2000/svg">`;
   svg+=`<rect x="0" y="0" width="${W}" height="${H}" fill="transparent" style="pointer-events:all" onclick="histClick('')"/>`;
-  for(let pos=1;pos<=8;pos++){
+  for(let pos=1;pos<=P;pos++){
     const y=Y(pos);
     svg+=`<line x1="${leftAxis}" y1="${y}" x2="${leftAxis+N*colW}" y2="${y}" class="hist-grid"/>`;
     svg+=`<text x="${leftAxis-5}" y="${y+3}" class="hist-ylbl">${pos}</text>`;
   }
-  const fy=topPad+7*rowH+8;
+  const fy=topPad+(P-1)*rowH+8;
   steps.forEach((s,i)=>{
-    const x=X(i),ua=flagUrl(s.g.fA),ub=flagUrl(s.g.fB);
-    if(ua)svg+=`<image href="${ua}" x="${x-flagW/2}" y="${fy}" width="${flagW}" height="${flagH}"/>`;
-    svg+=`<text x="${x}" y="${fy+flagH+xGap-3}" class="hist-x">×</text>`;
-    if(ub)svg+=`<image href="${ub}" x="${x-flagW/2}" y="${fy+flagH+xGap}" width="${flagW}" height="${flagH}"/>`;
+    const x=X(i),L=s.label||{};
+    if(L.fA!==undefined||L.fB!==undefined){           // visão "Por Jogos": bandeiras dos times
+      const ua=flagUrl(L.fA),ub=flagUrl(L.fB);
+      if(ua)svg+=`<image href="${ua}" x="${x-flagW/2}" y="${fy}" width="${flagW}" height="${flagH}"/>`;
+      svg+=`<text x="${x}" y="${fy+flagH+xGap-3}" class="hist-x">×</text>`;
+      if(ub)svg+=`<image href="${ub}" x="${x-flagW/2}" y="${fy+flagH+xGap}" width="${flagW}" height="${flagH}"/>`;
+    }else{                                             // visão "Por Rodada": nome curto da rodada
+      svg+=`<text x="${x}" y="${fy+flagH+3}" class="hist-x" style="font-size:${big?11:9}px;font-weight:800">${L.short||L.txt||''}</text>`;
+    }
   });
-  PARTICIPANTS.forEach(p=>{
+  parts.forEach(p=>{
     const pts=steps.map((s,i)=>`${X(i)},${Y(s.pos[p.id])}`).join(' ');
     let g=`<g data-pid="${p.id}" onmouseover="histHover('${p.id}')" onmouseout="histHover('')" onclick="histClick('${p.id}')">`;
     g+=`<polyline points="${pts}" fill="none" stroke="#000" stroke-opacity="0" stroke-width="${big?20:14}" style="pointer-events:stroke"/>`;   // alvo de clique
@@ -1568,8 +1661,7 @@ function rankingNew(){
   ranked.forEach((p,i)=>{html+=rkRow(p,i,mx,true,deltas[p.id]);});
   html+=`</div>`;
 
-  html+=`<div class="section-title">📈 EVOLUÇÃO DA CLASSIFICAÇÃO</div>`;
-  html+=histChart(hist);
+  html+=evolutionSection('geral',PARTICIPANTS);   // gráfico com toggle Por Jogos/Por Rodada (grupos + mata)
 
   const byId=id=>sAll.find(p=>p.id===id).total;
   const hP=sAll.filter(p=>p.type==='human').reduce((s,p)=>s+p.total,0);
@@ -1594,7 +1686,15 @@ function rankingNew(){
 function rankingOld(){
   const fin=GT.map(t=>getGame(t.id)).filter(g=>!g.removed&&g.finished&&g.realA!=='').length;
   const tot=GT.filter(t=>!getGame(t.id).removed).length;
-  const sAll=OLD_IDS.map(id=>{const p=PARTICIPANTS.find(x=>x.id===id);return {...p,...getStats(p.id)};});
+  // JxV: exclui g01-03 (regra de ouro) e SOMA o mata-mata aos totais (tabela e gráfico).
+  const sAll=OLD_IDS.map(id=>{
+    const p=PARTICIPANTS.find(x=>x.id===id);
+    const s={...p,...getStats(p.id,g=>!GROUP_EXCLUDED.has(g.id))};
+    const m=mataStats(id);
+    s.total+=m.total; s.rHits+=m.rHits; s.eHits+=m.eHits; s.played+=m.played;
+    s.cravadas=s.cravadas.concat(m.cravadas); s.avg=s.played?s.total/s.played:0;
+    return s;
+  });
   const ranked=[...sAll].sort((a,b)=>b.total-a.total||b.eHits-a.eHits||b.rHits-a.rHits);
   const mx=Math.max(1,...ranked.map(s=>s.total));
 
@@ -1602,10 +1702,11 @@ function rankingOld(){
   html+=`<div class="lead-board">
     <div class="lead-head">
       <div class="lh-title">🏆 BOLÃO JxV</div>
-      <div class="lh-sub">${fin} de ${tot} jogos · conta todos os jogos da Copa ${q('pontuacao')}</div>
+      <div class="lh-sub">${fin} de ${tot} jogos da Copa + mata-mata ${q('pontuacao')}</div>
     </div>`;
   ranked.forEach((p,i)=>{html+=rkRow(p,i,mx,false);});
   html+=`</div>`;
+  html+=evolutionSection('jxv',OLD_IDS.map(id=>PARTICIPANTS.find(p=>p.id===id)));   // gráfico JxV (grupos + mata)
 
   const byId=id=>sAll.find(p=>p.id===id).total;
   const hP=sAll.filter(p=>p.type==='human').reduce((s,p)=>s+p.total,0);
@@ -1622,15 +1723,43 @@ function rankingOld(){
   return html;
 }
 
-let rankMode=localStorage.getItem('brm')||'geral';
-function setRank(m){rankMode=m;localStorage.setItem('brm',m);renderRanking();}
+// ─── RANKING SÓ DO MATA-MATA (8 participantes, só pontos do mata) ─────────────
+function rankingMata(){
+  const sAll=PARTICIPANTS.map(p=>{const m=mataStats(p.id);return {...p,...m,avg:m.played?m.total/m.played:0};});
+  const ranked=[...sAll].sort((a,b)=>b.total-a.total||b.eHits-a.eHits||b.rHits-a.rHits);
+  const mx=Math.max(1,...ranked.map(s=>s.total));
+  const fin=mataGamesFinished().length;
 
+  let html=podium(ranked);
+  html+=`<div class="lead-board">
+    <div class="lead-head">
+      <div class="lh-title">⚔️ CLASSIFICAÇÃO MATA-MATA</div>
+      <div class="lh-sub">${fin} jogo(s) do mata-mata finalizado(s) · placar final (com prorrogação) ${q('pontuacao')}</div>
+    </div>`;
+  ranked.forEach((p,i)=>{html+=rkRow(p,i,mx,true);});
+  html+=`</div>`;
+  html+=evolutionSection('mata',PARTICIPANTS);   // gráfico só do mata-mata, com toggle Por Jogos/Por Rodada
+
+  const byId=id=>sAll.find(p=>p.id===id).total;
+  const hP=sAll.filter(p=>p.type==='human').reduce((s,p)=>s+p.total,0);
+  const iP=sAll.filter(p=>p.type==='ia').reduce((s,p)=>s+p.total,0);
+  html+=`<div class="section-title">⚔️ COMPARATIVOS (MATA-MATA)</div>`;
+  html+=versus('🤝 Humanos vs Máquinas','👤 Humanos','Jeca + Tonius + Leo + Vini',hP,'#3d8ef0','🤖 Máquinas','ChatGPT Jeca + Claude Tonius + ChatGPT Leo + Claude Vini',iP,'#e8c44a');
+  html+=teamRace('👥 Times', TEAMS.map(t=>{
+    const hu=PARTICIPANTS.find(x=>x.id===t.human), ia=PARTICIPANTS.find(x=>x.id===t.ia);
+    return {name:t.name, mem:hu.name+' + '+ia.name, pts:byId(t.human)+byId(t.ia), col:t.color, human:hu, ia:ia};
+  }));
+  return html;
+}
+
+// Ordem das abas: Mata-Mata · Bolão Geral · Bolão JxV. Mata-Mata é o padrão ao abrir o ranking.
+let rankMode='mata';
+function setRank(m){rankMode=m;renderRanking();}
 function renderRanking(){
-  const toggle=`<div class="rank-toggle">
-    <button class="${rankMode==='geral'?'active':''}" onclick="setRank('geral')">🏆 Bolão Geral</button>
-    <button class="${rankMode==='jxv'?'active':''}" onclick="setRank('jxv')">Bolão JxV</button>
-  </div>`;
-  document.getElementById('tab-ranking').innerHTML=toggle+(rankMode==='jxv'?rankingOld():rankingNew());
+  const tabs=[['mata','⚔️ Mata-Mata'],['geral','🏆 Bolão Geral'],['jxv','Bolão JxV']];
+  const toggle=`<div class="rank-toggle">${tabs.map(([k,l])=>`<button class="${rankMode===k?'active':''}" onclick="setRank('${k}')">${l}</button>`).join('')}</div>`;
+  const body=rankMode==='mata'?rankingMata():rankMode==='jxv'?rankingOld():rankingNew();
+  document.getElementById('tab-ranking').innerHTML=toggle+body;
 }
 
 // ─── MATA-MATA (fase eliminatória) ────────────────────────────────────────────
