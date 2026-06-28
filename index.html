@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Bolão Sene Piovan · Copa 2026</title>
+<title>Bolão Ratazana Copa 26</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
@@ -618,7 +618,7 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 <header>
   <div class="hdr-top">
     <img class="hdr-logo" src="fotos/logo-copa-branco.png" alt="" onerror="this.style.display='none'">
-    <span class="hdr-title">Bolão <b>Copa 2026</b></span>
+    <span class="hdr-title">Bolão <b>Ratazana</b> Copa 26</span>
   </div>
   <div class="hdr-status"><span id="sync-indicator"></span></div>
   <nav>
@@ -641,7 +641,9 @@ const SUPABASE_KEY = 'sb_publishable_-4B34BzFkro0ve-J-OMBKQ_9xO3C5tr';
 // Ambiente por hostname: na URL de preview do dev (hostname começa com "dev.") o app lê/escreve
 // num banco de DEV isolado (tabelas dev_*) no MESMO projeto Supabase. Qualquer outro hostname
 // (produção, localhost) usa as tabelas de produção, EXATAMENTE como hoje — produção não muda.
-function isDevEnv(h){return (h||location.hostname).startsWith('dev.');}
+// Ambiente de TESTE (lê tabelas dev_): hostname começa com "dev." OU "ratazana.".
+// Produção (main, sem esses prefixos) e localhost continuam como produção.
+function isDevEnv(h){h=h||location.hostname;return h.startsWith('dev.')||h.startsWith('ratazana.');}
 const IS_DEV  = isDevEnv();
 const TABLE   = IS_DEV ? 'dev_bolao_games'     : 'bolao_games';
 const MM_TCONF= IS_DEV ? 'dev_mata_confrontos' : 'mata_confrontos';
@@ -2545,7 +2547,7 @@ function showTab(name){
 
 // ─── BOOT ─────────────────────────────────────────────────────────────────────
 if(IS_DEV){   // marca visual + botão de espelho, só no ambiente de dev (canto superior direito)
-  document.title='DEV Bolão Copa 26';   // título da aba do navegador só no dev (mesma detecção IS_DEV)
+  document.title='DEV · Bolão Ratazana Copa 26';   // título da aba só em teste (dev./ratazana.), mesma detecção IS_DEV
   document.body.insertAdjacentHTML('afterbegin','<div id="dev-flag">DEV</div><button id="mirror-btn" onclick="mirrorProdToDev()">🪞 Espelhar prod→dev</button>');
   // 6.1: no dev, o Mata-Mata abre por padrão (Mata-Mata é o 1º botão na nova ordem)
   activeTab='mata';
