@@ -10,6 +10,7 @@
     "clean:teste": "node scripts/mata-teste.mjs clean",
     "seed:chave": "node scripts/seed-bracket.mjs seed",
     "clean:chave": "node scripts/seed-bracket.mjs clean",
+    "seed:16avos": "node scripts/seed-16avos.mjs",
     "dev": "npx serve -p 3333 ."
   }
 }

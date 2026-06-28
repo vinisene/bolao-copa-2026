@@ -2110,6 +2110,17 @@ const MM_AGENDA={
   tp_1:{dt:'18/07',tm:'18h',   ven:'Miami'},
   fin_1:{dt:'19/07',tm:'16h',  ven:'Nova Jérsei'},
 };
+// ZEBRAS dos 16 avos (por VAGA/slot) — só o DADO, pronto pra próxima etapa ler. NÃO usado ainda
+// (sem visual, sem mexer em pontuação). tipo: 'zebra' | 'zebrao' · azarao: 'A' | 'B' (qual lado é o azarão).
+// Fica no código porque a anon key não cria coluna nova no banco (mesmo caso da agenda).
+const MM_ZEBRA={
+  r32_3: {tipo:'zebra',  azarao:'B'},   // Alemanha × Paraguai      → azarão: Paraguai
+  r32_6: {tipo:'zebra',  azarao:'B'},   // França × Suécia          → azarão: Suécia
+  r32_8: {tipo:'zebrao', azarao:'B'},   // Inglaterra × RD Congo    → azarão: RD Congo
+  r32_11:{tipo:'zebra',  azarao:'B'},   // Espanha × Áustria        → azarão: Áustria
+  r32_15:{tipo:'zebrao', azarao:'B'},   // Argentina × Cabo Verde   → azarão: Cabo Verde
+};
+function mmZebra(c){return MM_ZEBRA[c&&c.id]||null;}   // leitor (pra próxima etapa); por enquanto não é chamado
 // data/hora/local de um confronto: prioriza o banco (dt/tm/venue) e cai pra agenda em código.
 function mmInfo(c){const a=MM_AGENDA[c.id]||{};return {dt:c.dt||a.dt||'',tm:c.tm||a.tm||'',ven:c.venue||a.ven||''};}
 function mmWeekday(dt){if(!dt)return '';const [dd,mm]=dt.split('/').map(Number);return WD[new Date(2026,mm-1,dd).getDay()];}
