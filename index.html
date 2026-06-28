@@ -411,7 +411,7 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .mm-bx:active{transform:scale(.99);}
 .mm-bx.nolink{cursor:default;background:#eef2ee;box-shadow:none;}
 .mm-bx.nolink:hover{box-shadow:none;}
-.mm-bx-side{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:var(--txt);min-width:0;line-height:1.2;min-height:16px;}
+.mm-bx-side{display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;color:var(--txt);min-width:0;line-height:1.2;min-height:16px;}
 .mm-bx-side.win{color:var(--g);}
 .mm-bx-nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .mm-bx-sc{font-weight:800;font-variant-numeric:tabular-nums;flex-shrink:0;}
@@ -2318,7 +2318,7 @@ function mmToggleCol(key){if(mmCollapsedCols.has(key))mmCollapsedCols.delete(key
 // a coluna expandida mais à esquerda é distribuída uniformemente e as seguintes centralizam entre os
 // feeders, então recolher fases antigas reduz altura E largura, deslocando o foco pra esquerda.
 function mmBracketHTML(){
-  const bw=120, bh=46, gapX=38, gapXc=12, gapY=12, titleH=24, colW0=18, padX=6, padR=8, padB=12, padY=titleH+12;
+  const bw=134, bh=46, gapX=38, gapXc=12, gapY=12, titleH=24, colW0=18, padX=6, padR=8, padB=12, padY=titleH+12;   // caixa um pouco mais larga p/ caber nomes inteiros ("Inglaterra")
   const colX={}, colWid={}; let x=padX;
   // Colapsada: faixa mais fina (colW0) e gap menor (gapXc) → sobra espaço pra ver as fases à direita (8.1).
   MM_COLS.forEach(col=>{const cl=mmCollapsedCols.has(col.key);const w=cl?colW0:bw;colX[col.key]=x;colWid[col.key]=w;x+=w+(cl?gapXc:gapX);});
