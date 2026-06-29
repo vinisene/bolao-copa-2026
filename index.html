@@ -369,39 +369,39 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .crav-empty{font-size:11px;color:var(--mu);background:var(--bg);border-radius:8px;padding:7px 9px;}
 
 /* ── Hero "Jogos de hoje" (compacto) ── */
-.day-hero{background:linear-gradient(135deg,var(--gd),var(--g));border-radius:14px;padding:11px 13px;margin-bottom:12px;color:#fff;box-shadow:0 4px 14px rgba(15,68,36,.22);}
-.dh-head{font-size:10px;font-weight:800;letter-spacing:1.1px;color:var(--gold);margin-bottom:8px;display:flex;align-items:center;gap:7px;}
+.day-hero{background:var(--card-dark);border-radius:var(--r-card);padding:12px 14px;margin-bottom:13px;color:var(--on-dark);box-shadow:var(--shadow-card);}
+.dh-head{font-family:var(--font-display);font-size:11px;font-weight:900;letter-spacing:.5px;color:var(--lime);margin-bottom:9px;display:flex;align-items:center;gap:7px;}
 .dh-list{display:flex;flex-direction:column;gap:2px;}
-.dh-row{display:flex;align-items:center;gap:9px;padding:6px 7px;border-radius:9px;cursor:pointer;transition:background .15s;}
-.dh-row:active{background:rgba(255,255,255,.1);}
-.dh-time{font-size:12px;font-weight:800;color:var(--gold);min-width:42px;flex-shrink:0;font-variant-numeric:tabular-nums;}
-.dh-teams{flex:1;font-size:12.5px;min-width:0;overflow:hidden;}
+.dh-row{display:flex;align-items:center;gap:9px;padding:7px;border-radius:var(--r-field);cursor:pointer;transition:background .15s;}
+.dh-row:active{background:rgba(255,255,255,.08);}
+.dh-time{font-size:12px;font-weight:800;color:var(--lime);min-width:42px;flex-shrink:0;font-variant-numeric:tabular-nums;}
+.dh-teams{flex:1;font-size:12.5px;min-width:0;overflow:hidden;color:var(--on-dark);}
 .dh-scroll{display:inline-block;white-space:nowrap;}
 .dh-teams.marq .dh-scroll{animation:marq linear infinite;}
 @keyframes marq{0%,12%{transform:translateX(0);}48%,62%{transform:translateX(var(--shift));}98%,100%{transform:translateX(0);}}
-.dh-teams i{color:rgba(255,255,255,.5);font-style:normal;font-weight:700;margin:0 2px;}
-.dh-miss{color:var(--gold);font-size:10.5px;font-weight:700;}
-.dh-row.dh-turbo{border:1.5px solid #ff7a00;background:rgba(255,122,0,.1);box-shadow:0 0 10px rgba(255,122,0,.3);}
-.dh-turbobadge{background:linear-gradient(90deg,#ff7a00,#ff3d3d);color:#fff;font-size:9px;font-weight:800;padding:1px 5px;border-radius:4px;white-space:nowrap;}
-.dh-cd{font-size:12px;font-weight:800;background:rgba(255,255,255,.16);border-radius:7px;padding:3px 8px;flex-shrink:0;font-variant-numeric:tabular-nums;}
+.dh-teams i{color:var(--on-dark-muted);font-style:normal;font-weight:700;margin:0 2px;}
+.dh-miss{color:var(--lime);font-size:10.5px;font-weight:700;}
+.dh-row.dh-turbo{border:1.5px solid var(--orange);background:rgba(255,90,31,.14);box-shadow:none;}
+.dh-turbobadge{background:var(--orange);color:#fff;font-size:9px;font-weight:800;padding:1px 5px;border-radius:4px;white-space:nowrap;}
+.dh-cd{font-size:12px;font-weight:800;background:rgba(255,255,255,.12);border-radius:7px;padding:3px 8px;flex-shrink:0;font-variant-numeric:tabular-nums;color:var(--on-dark);}
 .dh-soon{font-size:13px;flex-shrink:0;opacity:.6;}
 
 /* ── Barra rolante do ranking (aba Palpites) ── */
-.rank-marquee{background:repeating-linear-gradient(135deg,var(--gd),var(--gd) 10px,#123d22 10px,#123d22 20px);border-radius:14px;padding:9px 0 10px;margin-bottom:12px;color:#fff;overflow:hidden;box-shadow:0 4px 14px rgba(15,68,36,.22);}
-.rm-head{font-size:10px;font-weight:800;letter-spacing:1.1px;color:var(--gold);margin:0 13px 8px;display:flex;align-items:center;gap:6px;}
-.rm-hint{font-weight:600;letter-spacing:0;color:rgba(255,255,255,.45);font-size:8.5px;}
+.rank-marquee{background:transparent;border-radius:0;padding:2px 0 4px;margin-bottom:14px;color:var(--ink);overflow:hidden;box-shadow:none;}
+.rm-head{font-family:var(--font-display);font-size:11px;font-weight:900;letter-spacing:.3px;color:var(--ink);margin:0 2px 9px;display:flex;align-items:center;gap:6px;}
+.rm-hint{font-family:var(--font-body);font-weight:600;letter-spacing:0;color:var(--faint);font-size:8.5px;}
 .rm-track-wrap{overflow:hidden;width:100%;}
 .rm-track{display:flex;width:max-content;animation:rmscroll 38s linear infinite;cursor:pointer;}
 .rm-track:hover,.rm-track.paused{animation-play-state:paused;}
 @keyframes rmscroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}
-.rm-item{display:flex;align-items:center;gap:6px;padding:3px 14px;border-right:1px solid rgba(255,255,255,.12);white-space:nowrap;}
-.rm-pos{font-size:14px;font-weight:800;color:var(--gold);min-width:20px;text-align:center;font-variant-numeric:tabular-nums;}
-.rm-av{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:10px;color:#fff;position:relative;overflow:hidden;flex-shrink:0;}
-.rm-nm{font-size:12.5px;font-weight:700;}
-.rm-pts{font-size:10.5px;color:rgba(255,255,255,.6);}
-.rm-up{color:#46d369;font-size:11px;font-weight:800;}
-.rm-down{color:#ff6b6b;font-size:11px;font-weight:800;}
-.rm-flat{color:rgba(255,255,255,.5);font-size:11px;font-weight:800;}
+.rm-item{display:flex;align-items:center;gap:7px;padding:8px 12px;margin-right:8px;border-right:none;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-mini);box-shadow:var(--shadow-card);white-space:nowrap;}
+.rm-pos{font-family:var(--font-display);font-size:14px;font-weight:900;color:var(--faint);min-width:20px;text-align:center;font-variant-numeric:tabular-nums;}
+.rm-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;color:#fff;position:relative;overflow:hidden;flex-shrink:0;}
+.rm-nm{font-size:12.5px;font-weight:800;color:var(--ink);}
+.rm-pts{font-size:10.5px;color:var(--muted);}
+.rm-up{color:var(--green-ink);font-size:11px;font-weight:800;}
+.rm-down{color:var(--red);font-size:11px;font-weight:800;}
+.rm-flat{color:var(--faint);font-size:11px;font-weight:800;}
 
 /* ── Delta de posição no ranking ── */
 .rk-medal{display:flex;flex-direction:column;align-items:center;gap:1px;}
@@ -683,6 +683,45 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .mm-rk-nm{flex:1;font-size:13px;font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .mm-rk-pts{font-size:12px;color:var(--mu);}
 .mm-rk-pts b{color:var(--g);font-size:14px;}
+
+/* ── Mata-mata: cartão de confronto no visual Copa 26 (ESCOPO .mm-litem/.mm-ghost; não afeta Grupos) ── */
+.mm-litem,.mm-ghost{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);box-shadow:var(--shadow-card);}
+.mm-litem .card-head,.mm-ghost .card-head{background:var(--card-dark);}
+.mm-litem .card-head .grp-tag,.mm-ghost .card-head .grp-tag{color:var(--on-dark-muted);}
+.mm-litem .card-head .dt-tag,.mm-ghost .card-head .dt-tag{color:var(--on-dark);}
+.mm-litem .ch-dot,.mm-ghost .ch-dot{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;flex-shrink:0;box-shadow:0 0 0 3px rgba(15,174,98,.22);}
+.mm-litem .ch-dot.closed,.mm-ghost .ch-dot.closed{background:var(--faint);box-shadow:none;}
+.mm-litem .bl-tag.abe,.mm-ghost .bl-tag.abe{background:rgba(15,174,98,.22);color:#86efb4;font-weight:800;}
+.mm-litem .bl-tag.fec,.mm-ghost .bl-tag.fec{background:rgba(255,255,255,.14);color:rgba(255,255,255,.6);}
+.mm-litem .team-name,.mm-ghost .team-name{color:var(--ink);}
+.mm-litem .vs-badge,.mm-ghost .vs-badge{background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2);font-family:var(--font-display);font-weight:800;font-size:11px;}
+.mm-litem .score-final{background:var(--ink);box-shadow:0 2px 7px rgba(20,20,26,.28);}
+.mm-litem .pred-cell.human{background:var(--surface);border-color:var(--line);}
+.mm-litem .pred-cell.ia{background:var(--surface-2);}
+.mm-litem .mm-hc-pred input,.mm-litem .mm-foot-scores input{background:var(--input-dark);color:var(--on-dark);border:1.5px solid transparent;}
+.mm-litem .mm-hc-pred input::placeholder,.mm-litem .mm-foot-scores input::placeholder{color:var(--on-dark-muted);}
+.mm-litem .mm-hc-pred input:focus,.mm-litem .mm-foot-scores input:focus{border-color:var(--lime);background:var(--input-dark);box-shadow:0 0 0 3px rgba(194,236,0,.25);}
+.mm-litem .mm-iascore{background:var(--surface);border-color:var(--line);color:var(--ink);}
+.mm-litem .mm-preds-wrap{border-top-color:var(--line);}
+.mm-litem .real-row{background:var(--card-dark);}
+.mm-litem .real-row.pending{background:repeating-linear-gradient(135deg,var(--card-dark),var(--card-dark) 10px,#1d1d24 10px,#1d1d24 20px);}
+.mm-litem .real-row .rr-label,.mm-litem .mm-foot-x{color:var(--on-dark-muted);}
+.mm-litem .rr-finish{background:var(--green);border:1.5px solid var(--green);color:#fff;}
+.mm-litem .rr-finish.done{background:transparent;border-color:rgba(255,255,255,.4);color:#fff;}
+/* Turbo: cabeçalho laranja + rodapé claro --turbo-foot */
+.mm-litem.is-turbo{border-color:var(--orange);box-shadow:0 0 0 2px rgba(255,90,31,.4),var(--shadow-turbo);}
+.mm-litem.is-turbo .card-head{background:var(--orange);}
+.mm-litem.is-turbo .card-head .grp-tag{color:rgba(255,255,255,.92);}
+.mm-litem.is-turbo .card-head .dt-tag{color:#fff;}
+.mm-litem.is-turbo .ch-dot{background:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.3);}
+.mm-litem.is-turbo .bl-tag.turbo{background:#fff;color:var(--orange);box-shadow:none;animation:none;}
+.mm-litem.is-turbo .bl-tag.abe{background:rgba(255,255,255,.25);color:#fff;}
+.mm-litem.is-turbo .real-row,.mm-litem.is-turbo .real-row.pending{background:var(--turbo-foot);}
+.mm-litem.is-turbo .real-row .rr-label{color:var(--orange);}
+.mm-litem.is-turbo .mm-foot-x{color:#cf8a60;}
+.mm-litem.is-turbo .mm-foot-scores input{background:#fff;color:var(--ink);border:1.5px solid #f3c6ad;}
+.mm-litem.is-turbo .rr-finish{background:var(--orange);border-color:var(--orange);color:#fff;}
+.mm-litem.is-turbo .rr-finish.done{background:transparent;border-color:#e0a07f;color:var(--orange);}
 .mm-how summary{cursor:pointer;list-style:none;}
 .mm-how summary::-webkit-details-marker{display:none;}
 .mm-how-body{font-size:12px;line-height:1.5;color:var(--txt);margin-top:7px;}
@@ -2331,7 +2370,7 @@ function mmMatchupHTML(c){
   const ven=mmInfo(c).ven;
   const venue=ven?`<div class="venue">📍 ${esc(ven)}</div>`:'';
   return `<div class="matchup mm-matchup">${sd('A',tm.a)}
-      <div class="mid">${hasReal?`<div class="score-final">${c.real_a}<small>×</small>${c.real_b}</div>`:`<div class="vs-badge">×</div>`}${venue}</div>
+      <div class="mid">${hasReal?`<div class="score-final">${c.real_a}<small>×</small>${c.real_b}</div>`:`<div class="vs-badge">VS</div>`}${venue}</div>
       ${sd('B',tm.b)}</div>`;
 }
 // Área COLAPSÁVEL: só os palpites (humanos + IAs). Cabeçalho/bandeiras/placar ficam fora (sempre visíveis).
@@ -2411,7 +2450,7 @@ function mmHeadHTML(c){
   const i=mmInfo(c);
   // canto direito: dia da semana + data · hora — igual à fase de grupos; omite se não houver data.
   const dt=i.dt?`<span class="dt-tag">${mmWeekday(i.dt)}, ${esc(i.dt)}${i.tm?' · '+esc(i.tm):''}</span>`:'';
-  return `<div class="card-head"><span class="grp-tag">${esc((mmColLabel(c.id)||'MATA-MATA').toUpperCase())} ${status}${turbo}${mmZebraSeal(c)}</span>${dt}</div>`;
+  return `<div class="card-head"><span class="grp-tag"><span class="ch-dot${c.finished?' closed':''}"></span>${esc((mmColLabel(c.id)||'MATA-MATA').toUpperCase())} ${status}${turbo}${mmZebraSeal(c)}</span>${dt}</div>`;
 }
 // Seção do chaveamento com cabeçalho colapsável (A1).
 function mmBracketSectionHTML(){
@@ -2566,7 +2605,7 @@ function mmNextGamesHTML(){
 function mmMataRankingHTML(){
   const rows=MATA_PARTS.map(p=>({p,...mataStats(p.id)})).sort((a,b)=>b.total-a.total||b.eHits-a.eHits||b.rHits-a.rHits);
   const medals=['🥇','🥈','🥉'];
-  const item=(o,i)=>`<span class="rm-item"><span class="rm-pos">${medals[i]||(i+1)+'º'}</span><span class="rm-av" style="background:${o.p.color}">${avInner(o.p)}</span><span class="rm-nm">${o.p.name}</span><span class="rm-pts">${fmtPts(o.total)} pts</span></span>`;
+  const item=(o,i)=>`<span class="rm-item"><span class="rm-pos">${medals[i]||(i+1)+'º'}</span><span class="rm-av" style="background:${o.p.color};box-shadow:0 0 0 2px var(--surface),0 0 0 3px ${o.p.color}">${avInner(o.p)}</span><span class="rm-nm">${o.p.name}</span><span class="rm-pts">${fmtPts(o.total)} pts</span></span>`;
   const seq=rows.map(item).join('');
   return `<div class="rank-marquee"><div class="rm-head">🏆 CLASSIFICAÇÃO DO MATA-MATA</div><div class="rm-track-wrap"><div class="rm-track" onclick="this.classList.toggle('paused')">${seq}${seq}</div></div></div>`;
 }
