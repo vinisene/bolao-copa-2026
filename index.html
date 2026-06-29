@@ -1633,6 +1633,9 @@ function deltaBadge(d){
 // ─── DADOS DO GRÁFICO DE EVOLUÇÃO (3 abas × 2 visões: Por Jogos / Por Rodada) ───
 // REGRA DE OURO: g01–g03 NUNCA entram (em nenhuma aba, tabela ou gráfico).
 const GROUP_EXCLUDED=new Set(['g01','g02','g03']);
+// Elegibilidade do Bolão JxV (Tarefa 5): a Copa inteira, exceto removidos e g01-03.
+// MESMO criterio que o ranking JxV usa no getStats — a lista e o ranking compartilham esta função.
+function jxvEligible(g){return !g.removed&&!GROUP_EXCLUDED.has(g.id);}
 let histUnit='jogos';   // 'jogos' (cada jogo é um ponto) | 'rodada' (agrupa por rodada)
 function setHistUnit(u){histUnit=u;renderRanking();}
 // Pontos de UM jogo de grupo por participante: {pid->{pts,rHits,eHits}} (reusa ptsOf, sem reimplementar)
@@ -1886,7 +1889,7 @@ function rankingOld(){
   // JxV: exclui g01-03 (regra de ouro) e SOMA o mata-mata aos totais (tabela e gráfico).
   const sAll=OLD_IDS.map(id=>{
     const p=PARTICIPANTS.find(x=>x.id===id);
-    const s={...p,...getStats(p.id,g=>!GROUP_EXCLUDED.has(g.id))};
+    const s={...p,...getStats(p.id,jxvEligible)};
     const m=mataStats(id);
     s.total+=m.total; s.rHits+=m.rHits; s.eHits+=m.eHits; s.played+=m.played;
     s.cravadas=s.cravadas.concat(m.cravadas); s.avg=s.played?s.total/s.played:0;
@@ -1919,7 +1922,7 @@ function rankingOld(){
   sAll.forEach(p=>{html+=statCard(p);});
   // Tarefa C: jogos considerados no Bolão JxV — mesma regra do ranking (rankingOld/getStats):
   // toda a Copa, exceto g01-g03 (GROUP_EXCLUDED) e jogos removidos. São 69 jogos.
-  html+=gamesListHTML('🆚 Jogos do Bolão JxV', GT.map(t=>getGame(t.id)).filter(g=>!g.removed&&!GROUP_EXCLUDED.has(g.id)));
+  html+=gamesListHTML('🆚 Jogos do Bolão JxV', GT.map(t=>getGame(t.id)).filter(jxvEligible));   // Tarefa 5: mesma função do ranking
   return html;
 }
 
