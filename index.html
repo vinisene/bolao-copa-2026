@@ -1966,10 +1966,14 @@ function rankingMata(){
   const hAvg=Math.round(groupAvg(humans)*10)/10, iAvg=Math.round(groupAvg(machines)*10)/10;
   html+=`<div class="section-title">⚔️ COMPARATIVOS (MATA-MATA)</div>`;
   html+=versus('🤝 Humanos vs Máquinas · média por palpiteiro','👤 Humanos',`${humans.map(p=>p.name).join(', ')} · média de ${humans.length}`,hAvg,'#3d8ef0','🤖 Máquinas',`${machines.map(p=>p.name).join(', ')} · média de ${machines.length}`,iAvg,'#e8c44a');
-  html+=teamRace('👥 Times', TEAMS.map(t=>{
+  const mataTeamRows=TEAMS.map(t=>{
     const hu=PARTICIPANTS.find(x=>x.id===t.human), ia=PARTICIPANTS.find(x=>x.id===t.ia);
     return {name:t.name, mem:hu.name+' + '+ia.name, pts:byId(t.human)+byId(t.ia), col:t.color, human:hu, ia:ia};
-  }));
+  });
+  // Tarefa 2: Time Pepe (Pepe + Pepe IA) — só-mata, então entra só AQUI (escopo do mata-mata), nunca no Bolão Geral.
+  const tPepe=MATA_PARTS.find(p=>p.id==='pepe'), tPepeIA=MATA_PARTS.find(p=>p.id==='pepe_ia');
+  if(tPepe&&tPepeIA) mataTeamRows.push({name:'Time Pepe', mem:tPepe.name+' + '+tPepeIA.name, pts:byId('pepe')+byId('pepe_ia'), col:tPepe.color, human:tPepe, ia:tPepeIA});
+  html+=teamRace('👥 Times', mataTeamRows);
   // Tarefa 6: estatísticas individuais de cada palpiteiro do mata (mesmo componente do Bolão Geral), escopo mata.
   html+=`<div class="section-title">📊 ESTATÍSTICAS INDIVIDUAIS</div>`;
   [...humans, ...machines].forEach(p=>{html+=statCard(p);});
