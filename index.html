@@ -527,9 +527,12 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .mm-fbtn sup{font-size:.72em;}
 .mm-fbtn.active{background:var(--lime);border-color:var(--lime);color:var(--ink);}
 /* Cabeçalho da seção do chaveamento (A1) — grudado no topo do card .mm-sec */
-.mm-sec-head{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--card-dark);padding:11px 14px;cursor:pointer;}
-.mm-sec-title{font-family:var(--font-display);font-size:13px;font-weight:900;color:var(--lime);letter-spacing:.3px;}
-.mm-sec-arrow{color:var(--on-dark);font-size:13px;font-weight:800;}
+.mm-sec-head{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--card-dark);padding:15px 16px;cursor:pointer;min-height:62px;-webkit-tap-highlight-color:transparent;}
+.mm-sec-head:active{background:#1d1d24;}
+.mm-sec-title{font-family:var(--font-display);font-size:17px;font-weight:900;color:var(--lime);letter-spacing:.3px;line-height:1.05;}
+.mm-sec-cta{display:flex;align-items:center;gap:9px;flex-shrink:0;}
+.mm-sec-cta-lbl{font-size:10.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--lime);white-space:nowrap;}
+.mm-sec-arrow{width:33px;height:33px;border-radius:50%;background:var(--lime);color:var(--ink);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:900;line-height:1;flex-shrink:0;box-shadow:0 3px 11px -2px rgba(194,236,0,.7);}
 /* Lista de confrontos: 2 colunas no desktop, 1 no celular (2.1); align-items:start = expandir não empurra o vizinho (5.3) */
 #mm-list{display:grid;grid-template-columns:1fr;gap:11px;align-items:start;}
 @media(min-width:680px){#mm-list{grid-template-columns:repeat(2,minmax(0,1fr));}}
@@ -2315,7 +2318,7 @@ const MM_COLS=[
 ];
 const mmOpen=new Set();   // confrontos expandidos na lista (preserva estado entre re-renders)
 let mmPhaseFilter='32avos';   // filtro de fase da lista (3.1) — padrão 16 avos (key interna '32avos')
-let mmBracketOpen=true;            // A1: seção do chaveamento expandida/recolhida
+let mmBracketOpen=false;            // A1: seção do chaveamento — COLAPSADA por padrão (Tarefa 2)
 const mmCollapsedCols=new Set();   // A2: fases (colunas) recolhidas na chave
 // AGENDA dos 16 avos (data/hora/local) por VAGA (slot). Fica no código (a anon key não cria coluna
 // nova no banco). O app lê isto OU os campos dt/tm/venue do confronto, se existirem no banco.
@@ -2492,8 +2495,9 @@ function mmHeadHTML(c){
 // Seção do chaveamento com cabeçalho colapsável (A1).
 function mmBracketSectionHTML(){
   // Card único: cabeçalho (com seta) grudado no topo e a chave logo abaixo, mesma borda/cantos.
-  let h=`<div class="mm-sec${mmBracketOpen?' open':''}"><div class="mm-sec-head" onclick="mmToggleBracket()"><span class="mm-sec-title">⚔️ Chaveamento do mata-mata</span><span class="mm-sec-arrow">${mmBracketOpen?'▲':'▼'}</span></div>`;
-  if(mmBracketOpen)h+=mmBracketHTML();
+  const op=mmBracketOpen;
+  let h=`<div class="mm-sec${op?' open':''}"><div class="mm-sec-head" onclick="mmToggleBracket()"><span class="mm-sec-title">⚔️ Chaveamento</span><span class="mm-sec-cta"><span class="mm-sec-cta-lbl">${op?'fechar':'ver chaveamento'}</span><span class="mm-sec-arrow">${op?'▴':'▾'}</span></span></div>`;
+  if(op)h+=mmBracketHTML();
   return h+`</div>`;
 }
 function mmRerenderBracket(){const s=document.getElementById('mm-bracket-section');if(s){s.innerHTML=mmBracketSectionHTML();mmFitBracket();}}
