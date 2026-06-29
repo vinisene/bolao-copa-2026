@@ -4,42 +4,73 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Bolão Ratazana Copa 26</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>">
+<link rel="icon" href="Imagens/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="Imagens/favicon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="Imagens/favicon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="Imagens/favicon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="Imagens/favicon-512.png">
+<meta name="theme-color" content="#0C0C0E">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,500&display=swap');
+/* ── Tokens de design (identidade "Bolão Ratazana Copa 26") ── */
 :root{--g:#1a6b3a;--gl:#2d9653;--gd:#0f4424;--gold:#e8c44a;--bg:#f4f7f4;--card:#fff;--txt:#1a1a1a;--mu:#666;--brd:#dde6dd;--je:#e05c8b;--vi:#3d8ef0;--ch:#19c37d;--cl:#cc6b2c;}
+:root{
+  --frame:#0C0C0E; --card-dark:#15151A; --input-dark:#26262C; --note-dark:#16161B;
+  --sheet:#EDEAE3; --surface:#FFFFFF; --surface-2:#F3F1EA; --surface-3:#E7E4DA; --turbo-foot:#FFF3EE;
+  --ink:#16161B; --ink-2:#43434B; --muted:#6E6E77; --faint:#A2A2AA; --on-dark:#F6F6F7; --on-dark-muted:#8A8A94;
+  --lime:#C2EC00; --lime-deep:#7D9B00; --blue:#2F63F6; --red:#F5314F; --cyan:#0FA3BD; --violet:#6D3BF5;
+  --orange:#FF5A1F; --green:#0FAE62; --green-ink:#0A8F4F; --yellow:#D99500; --pink:#EC3C7E; --mint:#10B894;
+  --gold:#E0A82E; --silver:#8B95A1; --bronze:#B06D35;
+  --line:rgba(20,20,26,.10); --line-2:rgba(20,20,26,.16);
+  --font-display:'Archivo',sans-serif; --font-body:'Noto Sans',system-ui,sans-serif;
+  --r-card:18px; --r-stat:16px; --r-mini:14px; --r-btn:11px; --r-field:9px; --r-pill:20px;
+  --shape-block:5px 1px 5px 1px;
+  --shadow-card:0 8px 22px -16px rgba(20,20,26,.5);
+  --shadow-turbo:0 12px 28px -16px rgba(255,90,31,.55);
+  --shadow-nav:0 -12px 28px -18px rgba(0,0,0,.9);
+}
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;}
-header{background:var(--gd);color:#fff;text-align:center;padding:11px 14px 0;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.3);}
-.hdr-top{display:flex;align-items:center;justify-content:center;gap:10px;}
-.hdr-logo{height:40px;width:auto;flex-shrink:0;}
-.hdr-title{font-size:20px;font-weight:800;}.hdr-title b{color:var(--gold);}
-.hdr-status{font-size:10px;font-weight:600;margin:5px 0 8px;min-height:13px;color:rgba(255,255,255,.85);}
-@media(min-width:680px){.hdr-logo{height:56px;}.hdr-title{font-size:30px;}}
-nav{display:flex;background:var(--card);margin:0 -14px;}
-nav button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:7px 4px;background:transparent;border:none;color:var(--mu);font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;}
-nav button .nav-ico{font-size:19px;line-height:1;}
-nav button .nav-lbl{font-size:11.5px;line-height:1.1;white-space:nowrap;}
-nav button.active{color:#fff;background:var(--g);box-shadow:inset 0 -3px 0 var(--gold);}   /* ativo: verde do app + barra dourada (desktop: barra embaixo); inativos em cinza (--mu) */
-main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
-/* CELULAR: menu vira barra inferior FIXA; topo fica só com o banner verde */
-@media(max-width:679px){
-  header nav{position:fixed;left:0;right:0;bottom:0;margin:0;z-index:300;border-top:1px solid var(--brd);box-shadow:0 -2px 10px rgba(0,0,0,.18);padding-bottom:env(safe-area-inset-bottom);}
-  nav button.active{box-shadow:inset 0 3px 0 var(--gold);}   /* barra no TOPO do item (aponta pro conteúdo acima) */
-  main{padding-bottom:calc(76px + env(safe-area-inset-bottom));}   /* respiro pro último item não ficar atrás da barra */
-}
-/* DESKTOP: menu no topo, emoji ao lado do texto (como antes), só com a nova ordem/rótulos/ativo */
+body{font-family:var(--font-body);background:var(--sheet);color:var(--txt);min-height:100vh;}
+/* identidade Copa 26: títulos, números e horas em Archivo (só troca a fonte; cores/posições intactas) */
+.hdr-title,.dh-time,.dh-cd,.nh-cd .clock,.nh-label,.card-head .dt-tag,.pc-score,.score-final,.rk-tot b,.rk-place,.pod-base,.pod-pts,.stat-box .val,.vs2-pts,.tr-pts,.mm-bx-sc,.mm-iascore,.mm-next-when,.mm-rk-pos,.mm-rk-pts b,.lh-title,.section-badge,.mm-block-h{font-family:var(--font-display);}
+/* ── Cabeçalho (barra preta, identidade Copa 26) ── */
+header{position:sticky;top:0;z-index:100;background:var(--frame);color:var(--on-dark);padding:9px 14px 8px;border-bottom:1px solid rgba(255,255,255,.07);overflow:hidden;}
+.hdr-shapes{position:absolute;top:0;right:0;width:120px;height:100%;pointer-events:none;z-index:0;}
+.hsh{position:absolute;display:block;}
+.hsh-blue{top:0;right:0;width:96px;height:96px;background:var(--blue);border-radius:0 0 0 100%;opacity:.2;}
+.hsh-red{top:0;right:36px;width:52px;height:52px;background:var(--red);border-radius:50% 0 0 0;opacity:.22;}
+.hsh-lime{top:31px;right:13px;width:18px;height:18px;background:var(--lime);border-radius:var(--shape-block);opacity:.5;}
+.hdr-top{position:relative;z-index:1;display:flex;align-items:center;gap:11px;}
+.hdr-logo{height:40px;width:auto;flex-shrink:0;display:block;}
+.hdr-titles{flex:1;min-width:0;}
+.hdr-title{font-family:var(--font-display);font-weight:900;line-height:.97;letter-spacing:.2px;display:flex;flex-direction:column;}
+.hdr-title .ht-1{font-size:17px;color:var(--on-dark);}
+.hdr-title .ht-2{font-size:17px;color:var(--lime);}
+.hdr-sub{font-size:8px;font-weight:700;letter-spacing:2.4px;color:var(--on-dark-muted);text-transform:uppercase;margin-top:4px;}
+.hdr-dev{flex-shrink:0;align-self:flex-start;font-family:var(--font-display);font-weight:800;font-size:10px;letter-spacing:1.5px;color:var(--on-dark);border:1px solid rgba(255,255,255,.5);border-radius:6px;padding:2px 7px;}
+.hdr-status{position:relative;z-index:1;font-size:9px;font-weight:600;min-height:11px;margin-top:5px;color:var(--on-dark-muted);}
 @media(min-width:680px){
-  nav button{flex-direction:row;gap:6px;padding:11px 4px;}
-  nav button .nav-ico{font-size:16px;}
-  nav button .nav-lbl{font-size:14.5px;}
+  .hdr-logo{height:48px;}
+  .hdr-title .ht-1,.hdr-title .ht-2{font-size:23px;}
+  .hdr-sub{font-size:9px;}
 }
+/* ── Menu inferior (barra preta fixa na base) ── */
+nav{position:fixed;left:0;right:0;bottom:0;z-index:300;display:flex;justify-content:center;gap:8px;background:var(--frame);border-top:1px solid rgba(255,255,255,.08);box-shadow:var(--shadow-nav);padding:6px 10px;padding-bottom:calc(6px + env(safe-area-inset-bottom));}
+nav button{position:relative;flex:1 1 0;max-width:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 4px 5px;background:transparent;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent;color:#7C7C85;}
+nav button .nav-ico{width:23px;height:23px;display:block;}
+nav button .nav-ico svg{width:100%;height:100%;display:block;}
+nav button .nav-lbl{font-size:10.5px;font-weight:700;line-height:1;white-space:nowrap;color:#9A9AA2;}
+nav button.active{color:var(--lime);}
+nav button.active .nav-lbl{color:var(--lime);}
+nav button.active::before{content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);width:26px;height:3px;border-radius:0 0 3px 3px;background:var(--lime);}
+main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + env(safe-area-inset-bottom));}
 .tab{display:none;}.tab.active{display:block;}
 
 /* Loading / Error */
-#loading-screen{position:fixed;inset:0;background:var(--gd);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;color:#fff;gap:12px;}
+#loading-screen{position:fixed;inset:0;background:var(--frame);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;color:#fff;gap:12px;}
 #loading-screen.hidden{display:none;}
-.spinner{width:36px;height:36px;border:3px solid rgba(255,255,255,.3);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;}
+.spinner{width:36px;height:36px;border:3px solid rgba(255,255,255,.18);border-top-color:var(--lime);border-radius:50%;animation:spin .8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
 #loading-screen p{font-size:13px;color:rgba(255,255,255,.7);}
 .error-banner{background:#c00;color:#fff;text-align:center;padding:10px 16px;font-size:12px;font-weight:600;}
@@ -602,9 +633,8 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 .mm-how summary::-webkit-details-marker{display:none;}
 .mm-how-body{font-size:12px;line-height:1.5;color:var(--txt);margin-top:7px;}
 .mm-how-body p{margin:0 0 6px;}
-/* Ambiente DEV: flag + botão de espelho (canto superior) */
-#dev-flag{position:fixed;top:8px;left:8px;z-index:300;background:#ff7a00;color:#fff;font-size:10px;font-weight:800;letter-spacing:1.5px;padding:3px 8px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,.3);}
-#mirror-btn{position:fixed;top:6px;right:8px;z-index:300;background:#b3261e;color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:800;cursor:pointer;box-shadow:0 2px 7px rgba(0,0,0,.35);}
+/* Ambiente DEV: botão de espelho (canto superior direito). O selo "DEV" agora fica no cabeçalho (.hdr-dev) */
+#mirror-btn{position:fixed;top:6px;right:8px;z-index:400;background:#b3261e;color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:800;cursor:pointer;box-shadow:0 2px 7px rgba(0,0,0,.35);}
 #mirror-btn:disabled{opacity:.6;cursor:default;}
 </style>
 </head>
@@ -616,21 +646,26 @@ main{padding:12px 14px 28px;max-width:920px;margin:0 auto;}
 </div>
 
 <header>
+  <div class="hdr-shapes" aria-hidden="true"><span class="hsh hsh-blue"></span><span class="hsh hsh-red"></span><span class="hsh hsh-lime"></span></div>
   <div class="hdr-top">
-    <img class="hdr-logo" src="fotos/logo-copa-branco.png" alt="" onerror="this.style.display='none'">
-    <span class="hdr-title">Bolão <b>Ratazana</b> Copa 26</span>
+    <img class="hdr-logo" src="Imagens/Ratazana.png" alt="Ratazana" onerror="this.style.display='none'">
+    <div class="hdr-titles">
+      <div class="hdr-title"><span class="ht-1">BOLÃO RATAZANA</span><span class="ht-2">COPA 26</span></div>
+      <div class="hdr-sub">PALPITES EM FAMÍLIA · 2026</div>
+    </div>
+    <span id="dev-seal" class="hdr-dev" style="display:none">DEV</span>
   </div>
   <div class="hdr-status"><span id="sync-indicator"></span></div>
-  <nav>
-    <button onclick="showTab('mata')"><span class="nav-ico">⚔️</span><span class="nav-lbl">Mata-Mata</span></button>
-    <button class="active" onclick="showTab('palpites')"><span class="nav-ico">📋</span><span class="nav-lbl">Fase de Grupos</span></button>
-    <button onclick="showTab('ranking')"><span class="nav-ico">🏆</span><span class="nav-lbl">Ranking</span></button>
-  </nav>
 </header>
+<nav>
+  <button class="active" onclick="showTab('mata')"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5v4h4"/><path d="M5 19v-4h4"/><path d="M9 9v6"/><path d="M9 12h5"/><path d="M14 9.5v5"/><path d="M14 12h5"/></svg></span><span class="nav-lbl">Mata-mata</span></button>
+  <button onclick="showTab('palpites')"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/></svg></span><span class="nav-lbl">Grupos</span></button>
+  <button onclick="showTab('ranking')"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v1a3 3 0 0 0 3 3"/><path d="M17 6h3v1a3 3 0 0 1-3 3"/><path d="M12 14v3"/><path d="M9.5 20.5h5l-.6-3h-3.8z"/></svg></span><span class="nav-lbl">Ranking</span></button>
+</nav>
 <main>
   <div id="error-banner" class="error-banner" style="display:none"></div>
-  <div id="tab-palpites" class="tab active"></div>
-  <div id="tab-mata" class="tab"></div>
+  <div id="tab-mata" class="tab active"></div>
+  <div id="tab-palpites" class="tab"></div>
   <div id="tab-ranking" class="tab"></div>
 </main>
 
@@ -920,7 +955,7 @@ function showErr(msg){const el=document.getElementById('error-banner');el.textCo
 let filterMode=localStorage.getItem('bf')||'pending';
 if(filterMode==='removed')filterMode='naocons';   // migração de nomes antigos
 if(filterMode==='missing')filterMode='pending';
-let activeTab='palpites';
+let activeTab='mata';   // home padrão = Mata-mata (em qualquer ambiente)
 
 function setFilter(f){filterMode=f;localStorage.setItem('bf',f);renderPalpites();}
 
@@ -2546,16 +2581,12 @@ function showTab(name){
 }
 
 // ─── BOOT ─────────────────────────────────────────────────────────────────────
-if(IS_DEV){   // marca visual + botão de espelho, só no ambiente de dev (canto superior direito)
-  document.title='DEV · Bolão Ratazana Copa 26';   // título da aba só em teste (dev./ratazana.), mesma detecção IS_DEV
-  document.body.insertAdjacentHTML('afterbegin','<div id="dev-flag">DEV</div><button id="mirror-btn" onclick="mirrorProdToDev()">🪞 Espelhar prod→dev</button>');
-  // 6.1: no dev, o Mata-Mata abre por padrão (Mata-Mata é o 1º botão na nova ordem)
-  activeTab='mata';
-  document.getElementById('tab-palpites').classList.remove('active');
-  document.getElementById('tab-mata').classList.add('active');
-  const nb=document.querySelectorAll('nav button'); nb.forEach(b=>b.classList.remove('active')); nb[0].classList.add('active');
+if(IS_DEV){   // marca visual + botão de espelho, só no ambiente de dev (hostname dev./ratazana.)
+  document.title='DEV · Bolão Ratazana Copa 26';   // título da aba só em teste, mesma detecção IS_DEV
+  const seal=document.getElementById('dev-seal'); if(seal)seal.style.display='';   // selo DEV no cabeçalho
+  document.body.insertAdjacentHTML('afterbegin','<button id="mirror-btn" onclick="mirrorProdToDev()">🪞 Espelhar prod→dev</button>');
 }
-loadData();
+loadData();   // home padrão = Mata-mata (definido em activeTab e nas classes .active estáticas)
 </script>
 </body>
 </html>
