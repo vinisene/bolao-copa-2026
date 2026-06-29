@@ -38,14 +38,14 @@ body{font-family:var(--font-body);background:var(--sheet);color:var(--txt);min-h
 /* Cabeçalho em fluxo normal (NÃO sticky): se ficasse fixo no topo (z-index alto), ele cobria a
    parte de cima do conteúdo e ENGOLIA os toques no cabeçalho do chaveamento e nas colunas de fase
    (bug "às vezes não abre"). Sem sticky, nada fica coberto. A navegação fixa é a barra de baixo. */
-header{position:relative;z-index:1;background:var(--frame);color:var(--on-dark);padding:9px 14px 8px;border-bottom:1px solid rgba(255,255,255,.07);overflow:hidden;}
+header{position:relative;z-index:1;background:var(--frame);color:var(--on-dark);padding:15px 14px 13px;border-bottom:1px solid rgba(255,255,255,.07);overflow:hidden;}
 .hdr-shapes{position:absolute;top:0;right:0;width:120px;height:100%;pointer-events:none;z-index:0;}
 .hsh{position:absolute;display:block;}
 .hsh-blue{top:0;right:0;width:96px;height:96px;background:var(--blue);border-radius:0 0 0 100%;opacity:.2;}
 .hsh-red{top:0;right:36px;width:52px;height:52px;background:var(--red);border-radius:50% 0 0 0;opacity:.22;}
 .hsh-lime{top:31px;right:13px;width:18px;height:18px;background:var(--lime);border-radius:var(--shape-block);opacity:.5;}
 .hdr-top{position:relative;z-index:1;display:flex;align-items:center;gap:11px;}
-.hdr-logo{height:58px;width:auto;flex-shrink:0;display:block;}
+.hdr-logo{height:76px;width:auto;flex-shrink:0;display:block;}
 .hdr-titles{flex:1;min-width:0;}
 .hdr-title{font-family:var(--font-display);font-weight:900;line-height:.97;letter-spacing:.2px;display:flex;flex-direction:column;}
 .hdr-title .ht-1{font-size:17px;color:var(--on-dark);}
@@ -54,7 +54,7 @@ header{position:relative;z-index:1;background:var(--frame);color:var(--on-dark);
 .hdr-dev{flex-shrink:0;align-self:flex-start;font-family:var(--font-display);font-weight:800;font-size:10px;letter-spacing:1.5px;color:var(--on-dark);border:1px solid rgba(255,255,255,.5);border-radius:6px;padding:2px 7px;}
 .hdr-status{position:relative;z-index:1;font-size:9px;font-weight:600;min-height:11px;margin-top:5px;color:var(--on-dark-muted);}
 @media(min-width:680px){
-  .hdr-logo{height:64px;}
+  .hdr-logo{height:86px;}
   .hdr-title .ht-1,.hdr-title .ht-2{font-size:23px;}
   .hdr-sub{font-size:9px;}
 }
@@ -245,7 +245,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .card.is-turbo .rr-finish.done{background:transparent;border-color:#e0a07f;color:var(--orange);}
 
 /* ─── Ranking & Estatísticas ─── */
-.section-title{display:flex;align-items:center;justify-content:center;gap:7px;font-family:var(--font-display);font-size:13px;font-weight:900;color:var(--ink);letter-spacing:.4px;margin:18px 4px 10px;}
+.section-title{display:flex;align-items:center;justify-content:center;gap:7px;font-family:var(--font-display);font-size:13px;font-weight:900;color:var(--ink);letter-spacing:.4px;margin:26px 4px 12px;}
 .section-title::before{content:"";width:11px;height:11px;background:var(--lime);border-radius:var(--shape-block);flex-shrink:0;}
 .scoring{font-size:10.5px;color:var(--on-dark-muted);background:var(--note-dark);border:1px solid var(--line);border-radius:var(--r-stat);text-align:center;line-height:1.35;margin:14px 4px 0;padding:10px 12px;}
 .scoring b{color:var(--lime);}
@@ -376,7 +376,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .crav-empty{font-size:11px;color:var(--muted);background:var(--surface-2);border-radius:8px;padding:7px 9px;}
 
 /* ── Hero "Jogos de hoje" (compacto) ── */
-.day-hero{background:var(--card-dark);border-radius:var(--r-card);padding:12px 14px;margin-bottom:13px;color:var(--on-dark);box-shadow:var(--shadow-card);}
+.day-hero{background:var(--card-dark);border-radius:var(--r-card);padding:12px 14px;margin-bottom:18px;color:var(--on-dark);box-shadow:var(--shadow-card);}
 .dh-head{font-family:var(--font-display);font-size:11px;font-weight:900;letter-spacing:.5px;color:var(--lime);margin-bottom:9px;display:flex;align-items:center;gap:7px;}
 .dh-list{display:flex;flex-direction:column;gap:2px;}
 .dh-row{display:flex;align-items:center;gap:9px;padding:7px;border-radius:var(--r-field);cursor:pointer;transition:background .15s;}
@@ -394,7 +394,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .dh-soon{font-size:13px;flex-shrink:0;opacity:.6;}
 
 /* ── Barra rolante do ranking (aba Palpites) ── */
-.rank-marquee{background:transparent;border-radius:0;padding:2px 0 4px;margin-bottom:14px;color:var(--ink);overflow:hidden;box-shadow:none;}
+.rank-marquee{background:transparent;border-radius:0;padding:2px 0 4px;margin-bottom:18px;color:var(--ink);overflow:hidden;box-shadow:none;}
 .rm-head{font-family:var(--font-display);font-size:11px;font-weight:900;letter-spacing:.3px;color:var(--ink);margin:0 2px 9px;display:flex;align-items:center;gap:6px;}
 .rm-hint{font-family:var(--font-body);font-weight:600;letter-spacing:0;color:var(--faint);font-size:8.5px;}
 .rm-track-wrap{overflow:hidden;width:100%;}
@@ -486,7 +486,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .pred-cell.ia.mm-cell{background:var(--bg);}
 /* Chave (bracket) do mata-mata — caixas posicionadas + conectores SVG em colchete */
 /* Seção da chave = card único (cabeçalho grudado no topo + chave no mesmo quadro) — 1.2 */
-.mm-sec{border:1px solid var(--line);border-radius:var(--r-card);overflow:hidden;margin-bottom:12px;background:var(--surface);box-shadow:var(--shadow-card);}
+.mm-sec{border:1px solid var(--line);border-radius:var(--r-card);overflow:hidden;margin-bottom:18px;background:var(--surface);box-shadow:var(--shadow-card);}
 .mm-bracket-wrap{margin:0;}
 .mm-bracket-hint{font-size:10px;color:var(--muted);padding:7px 10px 0;}
 .mm-bracket-scroll{overflow-x:auto;overflow-y:hidden;background:var(--surface-2);padding:8px;-webkit-overflow-scrolling:touch;}
@@ -685,7 +685,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .mm-bx-pen{font-size:7px;font-weight:800;color:var(--green-ink);background:rgba(15,174,98,.14);border-radius:3px;padding:0 3px;margin-left:4px;vertical-align:1px;}
 .mm-bx-sc{min-width:12px;text-align:right;}
 /* Blocos do topo do mata-mata (próximos / ranking / como funciona) */
-.mm-block{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:12px 14px;margin-bottom:12px;box-shadow:var(--shadow-card);}
+.mm-block{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:12px 14px;margin-bottom:18px;box-shadow:var(--shadow-card);}
 .mm-block-h{font-family:var(--font-display);font-size:13px;font-weight:900;color:var(--ink);}
 .mm-block-sub{font-size:10.5px;color:var(--mu);margin:3px 0 6px;}
 .mm-next-row{display:flex;flex-direction:column;gap:2px;padding:8px 0;border-top:1px solid var(--brd);cursor:pointer;}
