@@ -542,6 +542,9 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .mm-zebra-img{position:absolute;top:50%;transform:translateY(-50%);height:26px;width:auto;filter:drop-shadow(0 1px 2px rgba(0,0,0,.28));pointer-events:none;z-index:2;}
 .mm-zebra-img.za{left:100%;margin-left:3px;}
 .mm-zebra-img.zb{right:100%;margin-right:3px;}
+/* Imagem da zebra nos PRÓXIMOS JOGOS (linha compacta) e no CHAVEAMENTO (caixinha) — menor que a bandeira */
+.dh-zebra-img{height:16px;width:auto;vertical-align:-3px;margin:0 1px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.3));}
+.mm-bx-zebra{height:11px;width:auto;flex-shrink:0;margin:0 1px 0 0;filter:drop-shadow(0 1px 1px rgba(0,0,0,.25));}
 /* Balão "de onde vêm os pontos" (B): reaproveita o #floating-tip escuro */
 #floating-tip.mm-ptstip{pointer-events:none;}
 .mm-ptstip .mm-tip-l1{color:#fff;}
@@ -2464,7 +2467,9 @@ function mmBracketBox(slotId){
     const adv=fin&&c.real_a===c.real_b&&c.classificado===s;   // passou nos pênaltis
     const won=fin&&w===s, lost=fin&&w&&w!==s;
     // (p) vira tag ao lado do NOME (não no placar) pra não desalinhar a coluna dos números.
-    return `<div class="mm-bx-side${won?' win':''}${lost?' lost':''}">${mmFlag(t.flag)}<span class="mm-bx-nm">${esc(t.name)}${adv?'<span class="mm-bx-pen">pên</span>':''}</span><span class="mm-bx-sc">${fin&&sc!=null?sc:''}</span></div>`;
+    const z=MM_ZEBRA[slotId];   // zebra/zebrão no chaveamento: imagenzinha ao lado da bandeira do azarão
+    const zi=(z&&z.azarao===s)?`<img class="mm-bx-zebra" src="Imagens/${z.tipo==='zebrao'?'Zebra_o':'Zebra'}.png" alt="">`:'';
+    return `<div class="mm-bx-side${won?' win':''}${lost?' lost':''}">${mmFlag(t.flag)}${zi}<span class="mm-bx-nm">${esc(t.name)}${adv?'<span class="mm-bx-pen">pên</span>':''}</span><span class="mm-bx-sc">${fin&&sc!=null?sc:''}</span></div>`;
   };
   const playable=!!(c&&tm.a&&tm.b);   // tem confronto e os dois times conhecidos → clicável (abre na lista)
   return `<div class="mm-bx${playable?'':' nolink'}"${playable?` onclick="mmGotoConfronto('${slotId}')"`:''} title="${esc(((tm.a&&tm.a.name)||'A definir')+' x '+((tm.b&&tm.b.name)||'A definir'))}">${side('A',tm.a)}${side('B',tm.b)}</div>`;
@@ -2620,12 +2625,13 @@ function mmNextGamesHTML(){
   const now=Date.now();
   const up=MM_CONFRONTOS.map(c=>({c,d:mmGameDate(c)})).filter(x=>x.d&&x.d.getTime()>now).sort((a,b)=>a.d-b.d).slice(0,3);
   if(!up.length)return '';
-  const tnm=t=>t?`${t.flag?flagImg(t.flag):''} <b>${esc(t.name)}</b>`:'<b>?</b>';
+  // zebra/zebrão: imagem (com +3/+5) AO LADO da bandeira do azarão (lado pelo dado mmZebra)
+  const tnm=(t,c,s)=>{ if(!t)return '<b>?</b>'; const z=mmZebra(c); const zi=(z&&z.azarao===s)?`<img class="dh-zebra-img" src="Imagens/${z.tipo==='zebrao'?'Zebra_o':'Zebra'}.png" alt="${z.tipo==='zebrao'?'Zebrão':'Zebra'}">`:''; return `${t.flag?flagImg(t.flag):''}${zi} <b>${esc(t.name)}</b>`; };
   const row=({c,d})=>{const i=mmInfo(c),tm=mmTeams(c),t=d.getTime(),miss=mmMissingHuman(c);
     return `<div class="dh-row${mmIsTurbo(c)?' dh-turbo':''}" onclick="mmGotoFromHero('${c.id}')">
       <span class="dh-time">${esc(i.tm||'')}</span>
       ${mmIsTurbo(c)?'<span class="dh-turbobadge">⚡2×</span>':''}
-      <span class="dh-teams"><span class="dh-scroll">${tnm(tm.a)} <i>×</i> ${tnm(tm.b)}${miss?' <span class="dh-miss">• falta palpite</span>':''}</span></span>
+      <span class="dh-teams"><span class="dh-scroll">${tnm(tm.a,c,'A')} <i>×</i> ${tnm(tm.b,c,'B')}${miss?' <span class="dh-miss">• falta palpite</span>':''}</span></span>
       <span class="dh-cd" data-t="${t}">${fmtCountdown(t-now)}</span>
     </div>`;};
   return `<div class="day-hero"><div class="dh-head"><span class="nh-live"></span>PRÓXIMOS JOGOS · MATA-MATA</div><div class="dh-list">${up.map(row).join('')}</div></div>`;
