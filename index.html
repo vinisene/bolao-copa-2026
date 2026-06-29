@@ -500,7 +500,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .mm-bx:active{transform:scale(.99);}
 .mm-bx.nolink{cursor:default;background:var(--surface-2);box-shadow:none;}
 .mm-bx.nolink:hover{box-shadow:none;}
-.mm-bx-side{display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:800;color:var(--ink);min-width:0;line-height:1.2;min-height:16px;}
+.mm-bx-side{position:relative;display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:800;color:var(--ink);min-width:0;line-height:1.2;min-height:16px;}
 .mm-bx-side.win{color:var(--green-ink);}
 .mm-bx-nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .mm-bx-sc{font-weight:800;font-variant-numeric:tabular-nums;flex-shrink:0;}
@@ -545,12 +545,14 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .bl-tag.zebrao{font-size:7.5px;padding:2px 4px;background:var(--pink);color:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.06);}
 /* Imagem do azarão (Zebra.png/Zebra_o.png), um pouco menor que a bandeira, ao lado dela (puxada pro centro) */
 .mm-matchup .team-flag{position:relative;}
-.mm-zebra-img{position:absolute;top:50%;transform:translateY(-50%);height:26px;width:auto;filter:drop-shadow(0 1px 2px rgba(0,0,0,.28));pointer-events:none;z-index:2;}
+.mm-zebra-img{position:absolute;top:50%;transform:translateY(-50%);height:29px;width:auto;filter:drop-shadow(0 1px 2px rgba(0,0,0,.28));pointer-events:none;z-index:2;}
 .mm-zebra-img.za{left:100%;margin-left:3px;}
 .mm-zebra-img.zb{right:100%;margin-right:3px;}
 /* Imagem da zebra nos PRÓXIMOS JOGOS (linha compacta) e no CHAVEAMENTO (caixinha) — menor que a bandeira */
-.dh-zebra-img{height:16px;width:auto;vertical-align:-3px;margin:0 1px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.3));}
-.mm-bx-zebra{height:11px;width:auto;flex-shrink:0;margin:0 1px 0 0;filter:drop-shadow(0 1px 1px rgba(0,0,0,.25));}
+.dh-zebra-img{height:13px;width:auto;vertical-align:-2px;margin:0 1px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.3));}
+/* No chaveamento a célula é estreita: a imagem vira sobreposição na bandeira (absolute), assim
+   NÃO rouba largura do nome (legibilidade primeiro). ~tamanho da bandeira (15px). */
+.mm-bx-zebra{position:absolute;left:12px;bottom:0;height:14px;width:auto;z-index:3;filter:drop-shadow(0 1px 1px rgba(0,0,0,.3));pointer-events:none;}
 /* Balão "de onde vêm os pontos" (B): reaproveita o #floating-tip escuro */
 #floating-tip.mm-ptstip{pointer-events:none;}
 .mm-ptstip .mm-tip-l1{color:#fff;}
@@ -2567,7 +2569,7 @@ let _mmResizeBound=false;
 function mmZebraSeal(c){
   const z=mmZebra(c); if(!z)return '';
   const big=z.tipo==='zebrao';
-  return `<span class="bl-tag ${big?'zebrao':'zebra'}" title="${big?'Zebrão':'Zebra'} — bônus fixo +${big?5:3} se o azarão avançar (quem apontar o azarão pra passar)">🦓 ${big?'ZEBRÃO':'ZEBRA'}</span>`;
+  return `<span class="bl-tag ${big?'zebrao':'zebra'}" title="${big?'Zebrão':'Zebra'} — bônus fixo +${big?5:3} se o azarão avançar (quem apontar o azarão pra passar)">🦓 ${big?'ZEBRÃO +5':'ZEBRA +3'}</span>`;
 }
 function mmListItem(c){
   const open=mmOpen.has(c.id);
