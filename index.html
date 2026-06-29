@@ -35,7 +35,10 @@ body{font-family:var(--font-body);background:var(--sheet);color:var(--txt);min-h
 /* identidade Copa 26: títulos, números e horas em Archivo (só troca a fonte; cores/posições intactas) */
 .hdr-title,.dh-time,.dh-cd,.nh-cd .clock,.nh-label,.card-head .dt-tag,.pc-score,.score-final,.rk-tot b,.rk-place,.pod-base,.pod-pts,.stat-box .val,.vs2-pts,.tr-pts,.mm-bx-sc,.mm-iascore,.mm-next-when,.mm-rk-pos,.mm-rk-pts b,.lh-title,.section-badge,.mm-block-h{font-family:var(--font-display);}
 /* ── Cabeçalho (barra preta, identidade Copa 26) ── */
-header{position:sticky;top:0;z-index:100;background:var(--frame);color:var(--on-dark);padding:9px 14px 8px;border-bottom:1px solid rgba(255,255,255,.07);overflow:hidden;}
+/* Cabeçalho em fluxo normal (NÃO sticky): se ficasse fixo no topo (z-index alto), ele cobria a
+   parte de cima do conteúdo e ENGOLIA os toques no cabeçalho do chaveamento e nas colunas de fase
+   (bug "às vezes não abre"). Sem sticky, nada fica coberto. A navegação fixa é a barra de baixo. */
+header{position:relative;z-index:1;background:var(--frame);color:var(--on-dark);padding:9px 14px 8px;border-bottom:1px solid rgba(255,255,255,.07);overflow:hidden;}
 .hdr-shapes{position:absolute;top:0;right:0;width:120px;height:100%;pointer-events:none;z-index:0;}
 .hsh{position:absolute;display:block;}
 .hsh-blue{top:0;right:0;width:96px;height:96px;background:var(--blue);border-radius:0 0 0 100%;opacity:.2;}
