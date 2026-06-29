@@ -1897,6 +1897,9 @@ function rankingOld(){
 
   html+=`<div class="section-title">📊 ESTATÍSTICAS INDIVIDUAIS</div>`;
   sAll.forEach(p=>{html+=statCard(p);});
+  // Tarefa C: jogos considerados no Bolão JxV — mesma regra do ranking (rankingOld/getStats):
+  // toda a Copa, exceto g01-g03 (GROUP_EXCLUDED) e jogos removidos. São 69 jogos.
+  html+=gamesListHTML('🆚 Jogos do Bolão JxV', GT.map(t=>getGame(t.id)).filter(g=>!g.removed&&!GROUP_EXCLUDED.has(g.id)));
   return html;
 }
 
