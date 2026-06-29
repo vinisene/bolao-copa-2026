@@ -869,6 +869,8 @@ const MATA_EXTRA = [
   {id:'pepe',    name:'Pepe',    type:'human', color:'#d4893b', init:'P',  editable:true, mataOnly:true},
   {id:'du',      name:'Du',      type:'human', color:'#8e44ad', init:'D',  editable:true, mataOnly:true},
   {id:'yuri',    name:'Yuri',    type:'human', color:'#16a085', init:'Y',  editable:true, mataOnly:true},
+  {id:'mano',    name:'Mano',    type:'human', color:'#f39c12', init:'M',  editable:true, mataOnly:true},
+  {id:'gi',      name:'Gi',      type:'human', color:'#2ecc71', init:'G',  editable:true, mataOnly:true},
   {id:'pepe_ia', name:'Pepe IA', type:'ia',    color:'#c0392b', init:'PI',               mataOnly:true},
 ];
 // Lista de participantes do MATA-MATA (os 8 atuais + os mataOnly), na ordem de exibição dos cards:
@@ -1991,7 +1993,7 @@ function rankingMata(){
 
   const byId=id=>sAll.find(p=>p.id===id).total;
   // Tarefa 6: Humanos vs Máquinas POR MÉDIA (total do grupo ÷ nº de palpiteiros), no escopo do mata.
-  // Classifica pelo flag type que já existe: Humanos = 7 (Jeca,Tonius,Leo,Pepe,Du,Yuri,Vini);
+  // Classifica pelo flag type que já existe: Humanos = 9 (Jeca,Tonius,Leo,Pepe,Du,Yuri,Mano,Gi,Vini);
   // Máquinas = 5 (as 4 IAs + Pepe IA). "Pepe" é humano e "Pepe IA" é máquina — vêm do type de cada um.
   const humans=sAll.filter(p=>p.type==='human'), machines=sAll.filter(p=>p.type==='ia');
   const groupAvg=arr=>arr.length?arr.reduce((s,p)=>s+p.total,0)/arr.length:0;
