@@ -534,8 +534,14 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 /* Card do confronto: cabeçalho/bandeiras/rodapé sempre visíveis; só os palpites colapsam (3.1) */
 .mm-litem{border:1px solid var(--brd);border-radius:14px;overflow:hidden;background:var(--card);box-shadow:0 2px 8px rgba(15,68,36,.06);display:flex;flex-direction:column;}
 /* Selo de zebra (C): chip no cabeçalho, junto das tags. Zebrão = dourado. */
-.mm-zebra-seal{display:inline-flex;align-items:center;gap:2px;font-size:9.5px;font-weight:800;background:#eef1ee;color:#3a3a3a;border:1px solid var(--brd);border-radius:6px;padding:1px 5px;margin-left:5px;vertical-align:middle;letter-spacing:.2px;cursor:help;}
-.mm-zebra-seal.zebrao{background:var(--gold);color:#5c4708;border-color:#caa629;box-shadow:0 1px 3px rgba(184,148,31,.45);}
+/* Pílulas ZEBRA/ZEBRÃO no cabeçalho — mesmo formato/lugar da TURBO (convivem na França×Suécia) */
+.bl-tag.zebra{font-size:7.5px;padding:2px 4px;background:var(--red);color:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.06);}
+.bl-tag.zebrao{font-size:7.5px;padding:2px 4px;background:var(--pink);color:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.06);}
+/* Imagem do azarão (Zebra.png/Zebra_o.png), um pouco menor que a bandeira, ao lado dela (puxada pro centro) */
+.mm-matchup .team-flag{position:relative;}
+.mm-zebra-img{position:absolute;top:50%;transform:translateY(-50%);height:26px;width:auto;filter:drop-shadow(0 1px 2px rgba(0,0,0,.28));pointer-events:none;z-index:2;}
+.mm-zebra-img.za{left:100%;margin-left:3px;}
+.mm-zebra-img.zb{right:100%;margin-right:3px;}
 /* Balão "de onde vêm os pontos" (B): reaproveita o #floating-tip escuro */
 #floating-tip.mm-ptstip{pointer-events:none;}
 .mm-ptstip .mm-tip-l1{color:#fff;}
@@ -2366,7 +2372,11 @@ function mmTeams(c){return {a:mmResolveSide(c.id,'A'),b:mmResolveSide(c.id,'B')}
 function mmMatchupHTML(c){
   const hasReal=c.finished&&c.real_a!=null&&c.real_b!=null, tm=mmTeams(c);
   const win=side=>{ if(!hasReal||c.real_a===c.real_b)return 'team'; const aw=c.real_a>c.real_b; return side==='A'?(aw?'team win':'team lose'):(aw?'team lose':'team win'); };
-  const sd=(s,t)=>`<div class="${win(s)}${t?'':' mm-tbd'}"><span class="team-flag">${t?mmFlag(t.flag):'<span class="mm-q">?</span>'}</span><span class="team-name">${esc((t&&t.name)||'')}</span></div>`;
+  const z=mmZebra(c);   // zebra/zebrão: imagem (com +3/+5 embutido) AO LADO da bandeira do azarão (lado data-driven)
+  const sd=(s,t)=>{
+    const zimg=(z&&z.azarao===s&&t)?`<img class="mm-zebra-img ${s==='A'?'za':'zb'}" src="Imagens/${z.tipo==='zebrao'?'Zebra_o':'Zebra'}.png" alt="${z.tipo==='zebrao'?'Zebrão +5':'Zebra +3'}" title="${z.tipo==='zebrao'?'Zebrão (+5)':'Zebra (+3)'}">`:'';
+    return `<div class="${win(s)}${t?'':' mm-tbd'}"><span class="team-flag">${t?mmFlag(t.flag):'<span class="mm-q">?</span>'}${zimg}</span><span class="team-name">${esc((t&&t.name)||'')}</span></div>`;
+  };
   // Centro: bolinha "×" (ou placar) e, logo abaixo, o local (📍) — omitido quando não há (sem inventar).
   const ven=mmInfo(c).ven;
   const venue=ven?`<div class="venue">📍 ${esc(ven)}</div>`:'';
@@ -2527,7 +2537,7 @@ let _mmResizeBound=false;
 function mmZebraSeal(c){
   const z=mmZebra(c); if(!z)return '';
   const big=z.tipo==='zebrao';
-  return `<span class="mm-zebra-seal${big?' zebrao':''}" title="${big?'Zebrão':'Zebra'} — bônus fixo +${big?5:3} se o azarão avançar (quem apontar o azarão pra passar)">🦓 +${big?5:3}</span>`;
+  return `<span class="bl-tag ${big?'zebrao':'zebra'}" title="${big?'Zebrão':'Zebra'} — bônus fixo +${big?5:3} se o azarão avançar (quem apontar o azarão pra passar)">🦓 ${big?'ZEBRÃO':'ZEBRA'}</span>`;
 }
 function mmListItem(c){
   const open=mmOpen.has(c.id);
