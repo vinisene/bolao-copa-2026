@@ -1533,7 +1533,7 @@ function statCard(p){
     : '<div class="crav-empty">Nenhum placar cravado ainda.</div>';
   return `<div class="stat-card">
     <div class="stat-phead"><div class="stat-avatar" style="background:${p.color}">${avInner(p)}</div>
-      <div><div style="font-weight:800;font-size:14px">${p.name} <span style="font-size:10px;color:${team.color};font-weight:700">· ${team.name}</span></div>
+      <div><div style="font-weight:800;font-size:14px">${p.name}${team?` <span style="font-size:10px;color:${team.color};font-weight:700">· ${team.name}</span>`:''}</div>
       <div style="font-size:10.5px;color:var(--mu)">${p.type==='ia'?'🤖 IA':'👤 Humano'} · ${p.played} jogos contabilizados</div></div>
     </div>
     <div class="stat-grid">
@@ -1542,8 +1542,8 @@ function statCard(p){
       <div class="stat-box"><div class="val">${p.rHits}</div><div class="lbl">Acerto ganhador/empate ${q('resultado')}</div></div>
       <div class="stat-box"><div class="val">${p.eHits}</div><div class="lbl">Placares cravados ${q('cravados')}</div></div>
     </div>
-    <div class="stat-line-lbl">Viés de gols ${q('vies')}</div>
-    <div style="font-size:13px;color:${bC};font-weight:800;margin-bottom:11px">${bL} <span style="font-weight:600;color:var(--mu);font-size:11px">(${p.bias>=0?'+':''}${p.bias.toFixed(2)} gols por palpite)</span></div>
+    ${typeof p.bias==='number'?`<div class="stat-line-lbl">Viés de gols ${q('vies')}</div>
+    <div style="font-size:13px;color:${bC};font-weight:800;margin-bottom:11px">${bL} <span style="font-weight:600;color:var(--mu);font-size:11px">(${p.bias>=0?'+':''}${p.bias.toFixed(2)} gols por palpite)</span></div>`:''}
     <div class="stat-line-lbl">🎯 Placares cravados ${q('cravados')}</div>
     <div class="crav-list">${crav}</div>
   </div>`;
@@ -1944,14 +1944,21 @@ function rankingMata(){
   html+=evolutionSection('mata',MATA_PARTS);   // gráfico só do mata-mata (inclui mataOnly), toggle Por Jogos/Por Rodada
 
   const byId=id=>sAll.find(p=>p.id===id).total;
-  const hP=sAll.filter(p=>p.type==='human').reduce((s,p)=>s+p.total,0);
-  const iP=sAll.filter(p=>p.type==='ia').reduce((s,p)=>s+p.total,0);
+  // Tarefa 6: Humanos vs Máquinas POR MÉDIA (total do grupo ÷ nº de palpiteiros), no escopo do mata.
+  // Classifica pelo flag type que já existe: Humanos = 7 (Jeca,Tonius,Leo,Pepe,Du,Yuri,Vini);
+  // Máquinas = 5 (as 4 IAs + Pepe IA). "Pepe" é humano e "Pepe IA" é máquina — vêm do type de cada um.
+  const humans=sAll.filter(p=>p.type==='human'), machines=sAll.filter(p=>p.type==='ia');
+  const groupAvg=arr=>arr.length?arr.reduce((s,p)=>s+p.total,0)/arr.length:0;
+  const hAvg=Math.round(groupAvg(humans)*10)/10, iAvg=Math.round(groupAvg(machines)*10)/10;
   html+=`<div class="section-title">⚔️ COMPARATIVOS (MATA-MATA)</div>`;
-  html+=versus('🤝 Humanos vs Máquinas','👤 Humanos',MATA_PARTS.filter(p=>p.type==='human').map(p=>p.name).join(' + '),hP,'#3d8ef0','🤖 Máquinas',MATA_PARTS.filter(p=>p.type==='ia').map(p=>p.name).join(' + '),iP,'#e8c44a');
+  html+=versus('🤝 Humanos vs Máquinas · média por palpiteiro','👤 Humanos',`${humans.map(p=>p.name).join(', ')} · média de ${humans.length}`,hAvg,'#3d8ef0','🤖 Máquinas',`${machines.map(p=>p.name).join(', ')} · média de ${machines.length}`,iAvg,'#e8c44a');
   html+=teamRace('👥 Times', TEAMS.map(t=>{
     const hu=PARTICIPANTS.find(x=>x.id===t.human), ia=PARTICIPANTS.find(x=>x.id===t.ia);
     return {name:t.name, mem:hu.name+' + '+ia.name, pts:byId(t.human)+byId(t.ia), col:t.color, human:hu, ia:ia};
   }));
+  // Tarefa 6: estatísticas individuais de cada palpiteiro do mata (mesmo componente do Bolão Geral), escopo mata.
+  html+=`<div class="section-title">📊 ESTATÍSTICAS INDIVIDUAIS</div>`;
+  [...humans, ...machines].forEach(p=>{html+=statCard(p);});
   return html;
 }
 
