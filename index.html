@@ -1987,10 +1987,11 @@ const mmDeb={}, mmRemoveConfirm={}, mmEditing={};
 
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function mmIsTest(c){return /\[TESTE\]/i.test((c.team_a||'')+' '+(c.team_b||'')+' '+(c.phase||''));}
-// Turbos (×2) marcados por fase (flag no código): 16avos=6, oitavas=3, quartas=2, semis=1, 3º=0, final=0.
-// Turbos: 16 avos = Brasil×Japão(r32_2) · CostaMarfim×Noruega(r32_5) · França×Suécia(r32_6) ·
-// México×Equador(r32_7) · Bélgica×Senegal(r32_9) · EUA×Bósnia(r32_10). Outras fases inalteradas.
-const MM_TURBO=new Set(['r32_2','r32_5','r32_6','r32_7','r32_9','r32_10','r16_2','r16_5','r16_8','qf_1','qf_3','sf_2']);
+// Turbos (×2) marcados por fase no CÓDIGO (NÃO existe coluna 'turbo' no banco): 16avos=5, oitavas=3, quartas=2, semis=1, 3º=0, final=0.
+// 16 avos SORTEADOS (1 por dia, espalhados em 5 dias distintos): África×Canadá(r32_1·28/06) ·
+// Alemanha×Paraguai(r32_3·29/06) · México×Equador(r32_7·30/06) · Inglaterra×RDCongo(r32_8·01/07) ·
+// Austrália×Egito(r32_14·03/07). Dia sem turbo: 02/07. Oitavas/quartas/semis inalteradas.
+const MM_TURBO=new Set(['r32_1','r32_3','r32_7','r32_8','r32_14','r16_2','r16_5','r16_8','qf_1','qf_3','sf_2']);
 function mmIsTurbo(c){return MM_TURBO.has(c.id);}
 // Multiplicador por FASE sobre a base (5+1+1+3). Turbo dobra em cima. Teto: Final (×4) é o maior — o
 // maior turbo possível é a semi (×1,75 × 2 = ×3,5 < ×4).
