@@ -548,14 +548,16 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .bl-tag.zebrao{font-size:7.5px;padding:2px 4px;background:var(--pink);color:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.06);}
 /* Imagem do azarão (Zebra.png/Zebra_o.png), um pouco menor que a bandeira, ao lado dela (puxada pro centro) */
 .mm-matchup .team-flag{position:relative;}
-.mm-zebra-img{position:absolute;top:50%;transform:translateY(-50%);height:29px;width:auto;filter:drop-shadow(0 1px 2px rgba(0,0,0,.28));pointer-events:none;z-index:2;}
+/* Zebra com SELO BRANCO atrás (lê em qualquer fundo) + maior que a bandeira (Tarefa 3) */
+.mm-zebra-img{position:absolute;top:50%;transform:translateY(-50%);height:38px;width:auto;box-sizing:border-box;padding:3px;background:#fff;border-radius:8px;box-shadow:0 1px 5px rgba(20,20,26,.32);pointer-events:none;z-index:2;}
 .mm-zebra-img.za{left:100%;margin-left:3px;}
 .mm-zebra-img.zb{right:100%;margin-right:3px;}
 /* Imagem da zebra nos PRÓXIMOS JOGOS (linha compacta) e no CHAVEAMENTO (caixinha) — menor que a bandeira */
-.dh-zebra-img{height:13px;width:auto;vertical-align:-2px;margin:0 1px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.3));}
+.dh-zebra-img{height:19px;width:auto;box-sizing:border-box;padding:2px;background:#fff;border-radius:5px;box-shadow:0 1px 3px rgba(20,20,26,.3);vertical-align:-5px;margin:0 2px;}
 /* No chaveamento a célula é estreita: a imagem vira sobreposição na bandeira (absolute), assim
    NÃO rouba largura do nome (legibilidade primeiro). ~tamanho da bandeira (15px). */
-.mm-bx-zebra{position:absolute;left:12px;bottom:0;height:14px;width:auto;z-index:3;filter:drop-shadow(0 1px 1px rgba(0,0,0,.3));pointer-events:none;}
+/* Chaveamento: selo branco overlay SOBRE a bandeira (não cobre o nome — legibilidade primeiro) */
+.mm-bx-zebra{position:absolute;left:6px;bottom:-2px;height:19px;width:auto;box-sizing:border-box;padding:2px;background:#fff;border-radius:5px;box-shadow:0 1px 3px rgba(20,20,26,.32);z-index:3;pointer-events:none;}
 /* Balão "de onde vêm os pontos" (B): reaproveita o #floating-tip escuro */
 #floating-tip.mm-ptstip{pointer-events:none;}
 .mm-ptstip .mm-tip-l1{color:#fff;}
