@@ -479,25 +479,25 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .pred-cell.ia.mm-cell{background:var(--bg);}
 /* Chave (bracket) do mata-mata — caixas posicionadas + conectores SVG em colchete */
 /* Seção da chave = card único (cabeçalho grudado no topo + chave no mesmo quadro) — 1.2 */
-.mm-sec{border:1px solid var(--brd);border-radius:14px;overflow:hidden;margin-bottom:12px;background:var(--card);box-shadow:0 2px 8px rgba(15,68,36,.06);}
+.mm-sec{border:1px solid var(--line);border-radius:var(--r-card);overflow:hidden;margin-bottom:12px;background:var(--surface);box-shadow:var(--shadow-card);}
 .mm-bracket-wrap{margin:0;}
-.mm-bracket-hint{font-size:10px;color:var(--mu);padding:7px 10px 0;}
-.mm-bracket-scroll{overflow-x:auto;overflow-y:hidden;background:var(--bg);padding:8px;-webkit-overflow-scrolling:touch;}
+.mm-bracket-hint{font-size:10px;color:var(--muted);padding:7px 10px 0;}
+.mm-bracket-scroll{overflow-x:auto;overflow-y:hidden;background:var(--surface-2);padding:8px;-webkit-overflow-scrolling:touch;}
 .mm-bracket{position:relative;transform-origin:top left;}
 .mm-cn-svg{position:absolute;left:0;top:0;pointer-events:none;}
 .mm-cn{fill:none;stroke:#6a766a;stroke-width:1.4;stroke-linejoin:round;opacity:.65;}   /* 1.1: fino, cinza escuro suave */
 .mm-cn.c3{stroke:#9aa59a;stroke-dasharray:4 4;stroke-width:1.1;opacity:.5;}
-.mm-coltitle{position:absolute;top:0;text-align:center;font-size:10px;font-weight:800;color:var(--gold);letter-spacing:.5px;text-transform:uppercase;background:linear-gradient(135deg,var(--gd),var(--g));padding:5px 0;border-radius:7px;box-shadow:0 2px 5px rgba(15,68,36,.25);cursor:pointer;user-select:none;}
+.mm-coltitle{position:absolute;top:0;text-align:center;font-family:var(--font-display);font-size:10px;font-weight:800;color:var(--ink);letter-spacing:.5px;text-transform:uppercase;background:var(--lime);padding:5px 0;border-radius:var(--r-btn);box-shadow:0 2px 6px -2px rgba(20,20,26,.3);cursor:pointer;user-select:none;}
 .mm-coltitle:hover{filter:brightness(1.08);}
-.mm-coltitle.col-collapsed{display:flex;align-items:center;justify-content:center;writing-mode:vertical-rl;text-orientation:mixed;font-size:9px;padding:6px 0;opacity:.9;}
+.mm-coltitle.col-collapsed{display:flex;align-items:center;justify-content:center;writing-mode:vertical-rl;text-orientation:mixed;font-size:9px;padding:6px 0;opacity:1;background:var(--surface);color:var(--muted);border:1px solid var(--line);box-shadow:none;}
 .mm-bxpos{position:absolute;}
-.mm-bx{height:100%;box-sizing:border-box;background:var(--card);border:1px solid #c4cdc4;border-radius:9px;padding:5px 9px;cursor:pointer;display:flex;flex-direction:column;justify-content:center;gap:4px;transition:box-shadow .15s,transform .12s;overflow:hidden;box-shadow:0 1px 3px rgba(15,68,36,.06);}   /* 1.1: contorno cinza fino */
-.mm-bx:hover{box-shadow:0 0 0 2px var(--gl);}
+.mm-bx{height:100%;box-sizing:border-box;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-field);padding:5px 9px;cursor:pointer;display:flex;flex-direction:column;justify-content:center;gap:4px;transition:box-shadow .15s,transform .12s;overflow:hidden;box-shadow:var(--shadow-card);}   /* 1.1: contorno cinza fino */
+.mm-bx:hover{box-shadow:0 0 0 2px var(--lime);}
 .mm-bx:active{transform:scale(.99);}
-.mm-bx.nolink{cursor:default;background:#eef2ee;box-shadow:none;}
+.mm-bx.nolink{cursor:default;background:var(--surface-2);box-shadow:none;}
 .mm-bx.nolink:hover{box-shadow:none;}
-.mm-bx-side{display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;color:var(--txt);min-width:0;line-height:1.2;min-height:16px;}
-.mm-bx-side.win{color:var(--g);}
+.mm-bx-side{display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:800;color:var(--ink);min-width:0;line-height:1.2;min-height:16px;}
+.mm-bx-side.win{color:var(--green-ink);}
 .mm-bx-nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .mm-bx-sc{font-weight:800;font-variant-numeric:tabular-nums;flex-shrink:0;}
 .mm-bx-sc small{font-weight:600;color:var(--mu);}
@@ -519,13 +519,13 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 /* Filtro de fases (3.1) */
 /* Filtro: cabe numa linha só, sem rolagem (tabs de largura igual) */
 .mm-filters{display:flex;gap:4px;padding:2px 1px 11px;}
-.mm-fbtn{flex:1 1 0;min-width:0;background:var(--card);border:1.5px solid var(--brd);border-radius:18px;padding:7px 4px;font-size:11px;font-weight:700;color:var(--mu);cursor:pointer;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;}
+.mm-fbtn{flex:1 1 0;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-pill);padding:7px 4px;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;}
 .mm-fbtn sup{font-size:.72em;}
-.mm-fbtn.active{background:var(--gd);border-color:var(--gd);color:var(--gold);}
+.mm-fbtn.active{background:var(--lime);border-color:var(--lime);color:var(--ink);}
 /* Cabeçalho da seção do chaveamento (A1) — grudado no topo do card .mm-sec */
-.mm-sec-head{display:flex;align-items:center;justify-content:space-between;gap:8px;background:linear-gradient(135deg,var(--gd),var(--g));padding:11px 14px;cursor:pointer;}
-.mm-sec-title{font-size:13px;font-weight:800;color:var(--gold);letter-spacing:.3px;}
-.mm-sec-arrow{color:#fff;font-size:13px;font-weight:800;}
+.mm-sec-head{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--card-dark);padding:11px 14px;cursor:pointer;}
+.mm-sec-title{font-family:var(--font-display);font-size:13px;font-weight:900;color:var(--lime);letter-spacing:.3px;}
+.mm-sec-arrow{color:var(--on-dark);font-size:13px;font-weight:800;}
 /* Lista de confrontos: 2 colunas no desktop, 1 no celular (2.1); align-items:start = expandir não empurra o vizinho (5.3) */
 #mm-list{display:grid;grid-template-columns:1fr;gap:11px;align-items:start;}
 @media(min-width:680px){#mm-list{grid-template-columns:repeat(2,minmax(0,1fr));}}
@@ -661,7 +661,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 /* Chave: perdedor em cinza + tag "pên" sem desalinhar placar (Parte 9) */
 .mm-bx-side.lost{opacity:.4;}
 .mm-bx-side.lost .mm-bx-nm{text-decoration:line-through;}
-.mm-bx-pen{font-size:7px;font-weight:800;color:var(--g);background:#e7f3ea;border-radius:3px;padding:0 3px;margin-left:4px;vertical-align:1px;}
+.mm-bx-pen{font-size:7px;font-weight:800;color:var(--green-ink);background:rgba(15,174,98,.14);border-radius:3px;padding:0 3px;margin-left:4px;vertical-align:1px;}
 .mm-bx-sc{min-width:12px;text-align:right;}
 /* Blocos do topo do mata-mata (próximos / ranking / como funciona) */
 .mm-block{background:var(--card);border:1px solid var(--brd);border-radius:14px;padding:12px 14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(15,68,36,.05);}
