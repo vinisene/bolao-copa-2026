@@ -2083,8 +2083,8 @@ function mmReload(){
 }
 
 // ── Escritas ──
-function mmUpsertConfronto(row){return sb.from(MM_TCONF).upsert({...row,updated_at:new Date().toISOString()},{onConflict:'id'});}
-function mmUpsertPalpite(cid,pid,fields){return sb.from(MM_TPAL).upsert({confronto_id:cid,pid,...fields,updated_at:new Date().toISOString()},{onConflict:'confronto_id,pid'});}
+function mmUpsertConfronto(row){const p=sb.from(MM_TCONF).upsert({...row,updated_at:new Date().toISOString()},{onConflict:'id'});p.then(r=>{if(r.error)console.warn('mmConfronto err',r.error);});return p;}
+function mmUpsertPalpite(cid,pid,fields){const p=sb.from(MM_TPAL).upsert({confronto_id:cid,pid,...fields,updated_at:new Date().toISOString()},{onConflict:'confronto_id,pid'});p.then(r=>{if(r.error)console.warn('mmPalpite err',r.error);});return p;}
 
 async function mmAddConfronto(){
   const v=id=>(document.getElementById(id)?.value||'').trim();
