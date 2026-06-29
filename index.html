@@ -85,13 +85,13 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .view-toggle button.active{background:var(--gd);color:var(--gold);}
 .filters{display:flex;gap:5px;overflow-x:auto;padding-bottom:2px;}
 .filters::-webkit-scrollbar{display:none;}
-.pill{padding:5px 12px;border-radius:20px;border:1px solid var(--brd);background:var(--card);font-size:11px;font-weight:600;color:var(--mu);cursor:pointer;white-space:nowrap;flex-shrink:0;}
-.pill.active{background:var(--gd);color:var(--gold);border-color:var(--gd);}
+.pill{padding:6px 14px;border-radius:var(--r-pill);border:1px solid var(--line);background:var(--surface);font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;white-space:nowrap;flex-shrink:0;}
+.pill.active{background:var(--ink);color:#fff;border-color:var(--ink);}
 
 /* Section headers */
 .section-hdr{display:flex;align-items:center;gap:7px;margin:12px 0 6px;}
-.section-badge{background:var(--gd);color:var(--gold);font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.5px;white-space:nowrap;}
-.section-line{flex:1;height:1px;background:var(--brd);}
+.section-badge{background:var(--ink);color:#fff;font-size:10px;font-weight:800;padding:3px 10px;border-radius:var(--r-pill);letter-spacing:.5px;white-space:nowrap;}
+.section-line{flex:1;height:1px;background:var(--line);}
 
 /* Games grid — 1 col mobile, 2 cols on larger screens */
 .games-grid{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:4px;}
@@ -188,6 +188,58 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .hum-avwrap{position:relative;flex-shrink:0;}
 .pts-badge.on-av{position:absolute;bottom:-4px;right:-6px;border:1.6px solid #fff;min-width:16px;height:16px;padding:0 3px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:9px;box-shadow:0 1px 2px rgba(0,0,0,.25);}
 .prev-tag{font-size:8px;font-weight:800;background:rgba(255,255,255,.22);color:#fff;padding:1px 5px;border-radius:6px;margin-left:5px;letter-spacing:.3px;vertical-align:1px;}
+
+/* ── Fase de Grupos: card no visual Copa 26 (ESCOPO .card; o mata usa .mm-litem e NÃO é afetado) ── */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);box-shadow:var(--shadow-card);}
+.card:hover{box-shadow:0 12px 26px -16px rgba(20,20,26,.55);transform:translateY(-1px);}
+.card.is-finished{border-color:var(--line);box-shadow:var(--shadow-card);}
+/* faixa superior preta */
+.card .card-head{background:var(--card-dark);padding:10px 12px;}
+.card .card-head .grp-tag{color:var(--on-dark-muted);}
+.card .card-head .dt-tag{color:var(--on-dark);}
+.card .ch-dot{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;flex-shrink:0;box-shadow:0 0 0 3px rgba(15,174,98,.22);}
+.card .ch-dot.closed{background:var(--faint);box-shadow:none;}
+.card .bl-tag.aberto{background:rgba(15,174,98,.22);color:#86efb4;font-weight:800;font-size:8.5px;letter-spacing:.3px;padding:1px 5px;border-radius:5px;}
+.card .bl-tag.geral{background:rgba(255,255,255,.12);color:rgba(255,255,255,.55);}
+.card .bl-tag.jxv{background:rgba(255,255,255,.08);color:rgba(255,255,255,.42);}
+/* times + VS central */
+.card .team-name{color:var(--ink);}
+.card .vs-badge{background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2);font-family:var(--font-display);font-weight:800;font-size:11px;}
+.card .score-final{background:var(--ink);box-shadow:0 2px 7px rgba(20,20,26,.28);}
+/* campos de palpite escuros */
+.card .pred-cell.human{background:var(--surface);border-color:var(--line);}
+.card .pred-cell.ia{background:var(--surface-2);}
+.card .pc-inputs input{background:var(--input-dark);color:var(--on-dark);border:1.5px solid transparent;}
+.card .pc-inputs input::placeholder{color:var(--on-dark-muted);}
+.card .pc-inputs input:focus{background:var(--input-dark);border-color:var(--lime);box-shadow:0 0 0 3px rgba(194,236,0,.25);}
+.card .pc-score{color:var(--ink);}
+.card .pc-score.empty{color:var(--faint);}
+/* rodapé preto + botão verde */
+.card .real-row{background:var(--card-dark);}
+.card .real-row.pending{background:repeating-linear-gradient(135deg,var(--card-dark),var(--card-dark) 10px,#1d1d24 10px,#1d1d24 20px);}
+.card .real-row .rr-label{color:var(--on-dark-muted);}
+.card .real-row .sep{color:var(--on-dark-muted);}
+.card .real-row input{background:var(--input-dark);color:#fff;border:1.5px solid transparent;}
+.card .real-row input::placeholder{color:var(--on-dark-muted);}
+.card .real-row input:focus{border-color:var(--lime);background:var(--input-dark);box-shadow:0 0 0 3px rgba(194,236,0,.22);}
+.card .rr-finish{background:var(--green);border:1.5px solid var(--green);color:#fff;}
+.card .rr-finish.done{background:transparent;border-color:rgba(255,255,255,.4);color:#fff;}
+/* variante TURBO: cabeçalho laranja, rodapé claro --turbo-foot */
+.card.is-turbo{border-color:var(--orange);box-shadow:0 0 0 2px rgba(255,90,31,.4),var(--shadow-turbo);}
+.card.is-turbo .card-head{background:var(--orange);}
+.card.is-turbo .card-head .grp-tag{color:rgba(255,255,255,.92);}
+.card.is-turbo .card-head .dt-tag{color:#fff;}
+.card.is-turbo .ch-dot{background:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.3);}
+.card.is-turbo .ch-dot.closed{background:rgba(255,255,255,.6);box-shadow:none;}
+.card.is-turbo .bl-tag.turbo{background:#fff;color:var(--orange);box-shadow:none;animation:none;}
+.card.is-turbo .bl-tag.aberto{background:rgba(255,255,255,.25);color:#fff;}
+.card.is-turbo .real-row,.card.is-turbo .real-row.pending{background:var(--turbo-foot);}
+.card.is-turbo .real-row .rr-label{color:var(--orange);}
+.card.is-turbo .real-row .sep{color:#cf8a60;}
+.card.is-turbo .real-row input{background:#fff;color:var(--ink);border:1.5px solid #f3c6ad;}
+.card.is-turbo .real-row input::placeholder{color:#c79b82;}
+.card.is-turbo .rr-finish{background:var(--orange);border-color:var(--orange);color:#fff;}
+.card.is-turbo .rr-finish.done{background:transparent;border-color:#e0a07f;color:var(--orange);}
 
 /* ─── Ranking & Estatísticas ─── */
 .section-title{display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:800;color:var(--gd);letter-spacing:.4px;margin:18px 4px 10px;}
@@ -954,9 +1006,7 @@ function hideLoading(){document.getElementById('loading-screen').classList.add('
 function showErr(msg){const el=document.getElementById('error-banner');el.textContent=msg;el.style.display='block';setTimeout(()=>{el.style.display='none';},5000);}
 
 // ─── VIEW STATE ───────────────────────────────────────────────────────────────
-let filterMode=localStorage.getItem('bf')||'pending';
-if(filterMode==='removed')filterMode='naocons';   // migração de nomes antigos
-if(filterMode==='missing')filterMode='pending';
+let filterMode='all';   // Grupos: filtro único "Todos" (Etapa 3). A lógica dos outros modos segue no código, só não é exposta.
 let activeTab='mata';   // home padrão = Mata-mata (em qualquer ambiente)
 
 function setFilter(f){filterMode=f;localStorage.setItem('bf',f);renderPalpites();}
@@ -1122,13 +1172,9 @@ function renderPalpites(){
 
   let html=heroHTML();
   html+=rankMarquee();
+  // Filtros simplificados (Etapa 3): só "Todos" (padrão). Pendentes/Finalizados/Geral/JxV/Fora removidos da UI.
   html+=`<div class="controls"><div class="filters">
-    ${pill('pending','Pendentes',cPend,'warn')}
     ${pill('all','Todos',cAll)}
-    ${pill('finished','Finalizados',cFin)}
-    ${pill('geral','Bolão Geral',cGeral)}
-    ${pill('jxv','Bolão JxV',cJxv)}
-    ${pill('naocons','Fora',cNao)}
   </div></div>`;
 
   if(!sorted.length){
@@ -1171,16 +1217,17 @@ function renderCard(g){
     :`<span class="bl-tag jxv">BOLÃO JxV</span>`;
   const turboTag=turbo?`<span class="bl-tag turbo">⚡ TURBO 2×</span>`:'';
   const lockTag=(started&&!g.finished)?`<span class="bl-tag lock">🔒 PALPITES FECHADOS</span>`:'';
+  const abertoTag=(!started&&!g.finished&&!g.removed)?`<span class="bl-tag aberto">ABERTO</span>`:'';
 
   let html=`<div class="${cls.join(' ')}" data-id="${g.id}">
     <div class="card-head">
-      <span class="grp-tag">GRUPO ${g.grp} · RODADA ${g.r}${tag}${turboTag}${lockTag}</span>
+      <span class="grp-tag"><span class="ch-dot${(started||g.finished)?' closed':''}"></span>GRUPO ${g.grp} · RODADA ${g.r}${abertoTag}${tag}${turboTag}${lockTag}</span>
       <span class="dt-tag">${weekday(g)}, ${g.dt} · ${g.tm}</span>
     </div>
     <div class="matchup">
       <div class="${winCls(hasReal,g,'A')}"><span class="team-flag">${flagImg(g.fA)}</span><span class="team-name">${g.tA}</span></div>
       <div class="mid">
-        ${hasReal?`<div class="score-final">${g.realA}<small>×</small>${g.realB}</div>`:`<div class="vs-badge">×</div>`}
+        ${hasReal?`<div class="score-final">${g.realA}<small>×</small>${g.realB}</div>`:`<div class="vs-badge">VS</div>`}
         <div class="venue">📍 ${g.ven}</div>
       </div>
       <div class="${winCls(hasReal,g,'B')}"><span class="team-flag">${flagImg(g.fB)}</span><span class="team-name">${g.tB}</span></div>
