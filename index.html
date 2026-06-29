@@ -1006,7 +1006,10 @@ function hideLoading(){document.getElementById('loading-screen').classList.add('
 function showErr(msg){const el=document.getElementById('error-banner');el.textContent=msg;el.style.display='block';setTimeout(()=>{el.style.display='none';},5000);}
 
 // ─── VIEW STATE ───────────────────────────────────────────────────────────────
-let filterMode='all';   // Grupos: filtro único "Todos" (Etapa 3). A lógica dos outros modos segue no código, só não é exposta.
+let filterMode=localStorage.getItem('bf')||'all';   // padrão "Todos"
+// Pendentes/Finalizados foram tirados da UI (Etapa 3/4): se vier um desses valores (ou nomes antigos), cai pra 'all'.
+if(['pending','finished','missing'].includes(filterMode))filterMode='all';
+if(filterMode==='removed')filterMode='naocons';   // migração de nome antigo
 let activeTab='mata';   // home padrão = Mata-mata (em qualquer ambiente)
 
 function setFilter(f){filterMode=f;localStorage.setItem('bf',f);renderPalpites();}
@@ -1172,9 +1175,12 @@ function renderPalpites(){
 
   let html=heroHTML();
   html+=rankMarquee();
-  // Filtros simplificados (Etapa 3): só "Todos" (padrão). Pendentes/Finalizados/Geral/JxV/Fora removidos da UI.
+  // Filtros (Etapa 4): "Todos" (padrão) + Bolão Geral/JxV/Fora. Só "Pendentes" e "Finalizados" ficam de fora.
   html+=`<div class="controls"><div class="filters">
     ${pill('all','Todos',cAll)}
+    ${pill('geral','Bolão Geral',cGeral)}
+    ${pill('jxv','Bolão JxV',cJxv)}
+    ${pill('naocons','Fora',cNao)}
   </div></div>`;
 
   if(!sorted.length){
