@@ -2517,7 +2517,7 @@ function mmHeadHTML(c){
 function mmBracketSectionHTML(){
   // Card único: cabeçalho (com seta) grudado no topo e a chave logo abaixo, mesma borda/cantos.
   const op=mmBracketOpen;
-  let h=`<div class="mm-sec${op?' open':''}"><div class="mm-sec-head" onclick="mmToggleBracket()"><span class="mm-sec-title">⚔️ Chaveamento</span><span class="mm-sec-cta"><span class="mm-sec-cta-lbl">${op?'fechar':'ver chaveamento'}</span><span class="mm-sec-arrow">${op?'▴':'▾'}</span></span></div>`;
+  let h=`<div class="mm-sec${op?' open':''}"><div class="mm-sec-head" onclick="mmToggleBracket()"><span class="mm-sec-title">⚔️ Chaveamento</span><span class="mm-sec-cta"><span class="mm-sec-cta-lbl">${op?'toque para fechar':'toque para abrir'}</span><span class="mm-sec-arrow">${op?'▴':'▾'}</span></span></div>`;
   if(op)h+=mmBracketHTML();
   return h+`</div>`;
 }
