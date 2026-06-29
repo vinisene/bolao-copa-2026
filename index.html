@@ -35,40 +35,48 @@
 body{font-family:var(--font-body);background:var(--sheet);color:var(--txt);min-height:100vh;}
 /* identidade Copa 26: títulos, números e horas em Archivo (só troca a fonte; cores/posições intactas) */
 .hdr-title,.dh-time,.dh-cd,.nh-cd .clock,.nh-label,.card-head .dt-tag,.pc-score,.score-final,.rk-tot b,.rk-place,.pod-base,.pod-pts,.stat-box .val,.vs2-pts,.tr-pts,.mm-bx-sc,.mm-iascore,.mm-next-when,.mm-rk-pos,.mm-rk-pts b,.lh-title,.section-badge,.mm-block-h{font-family:var(--font-display);}
-/* ── Cabeçalho (barra preta, identidade Copa 26) ── */
-/* Cabeçalho em fluxo normal (NÃO sticky): se ficasse fixo no topo (z-index alto), ele cobria a
-   parte de cima do conteúdo e ENGOLIA os toques no cabeçalho do chaveamento e nas colunas de fase
-   (bug "às vezes não abre"). Sem sticky, nada fica coberto. A navegação fixa é a barra de baixo. */
-header{position:relative;z-index:1;background:var(--frame);color:var(--on-dark);padding:15px 14px 13px;border-bottom:1px solid rgba(255,255,255,.07);overflow:hidden;}
-.hdr-shapes{position:absolute;top:0;right:0;width:120px;height:100%;pointer-events:none;z-index:0;}
+/* ── Cabeçalho (barra preta) — NÃO sticky (se fosse fixo, engolia os toques do chaveamento/colunas) ── */
+header{position:relative;z-index:1;background:var(--frame);color:var(--on-dark);padding:11px 0 9px;border-bottom:1px solid rgba(255,255,255,.07);overflow:hidden;}
+.hdr-shapes{position:absolute;top:0;right:0;width:104px;height:100%;pointer-events:none;z-index:0;}
 .hsh{position:absolute;display:block;}
-.hsh-blue{top:0;right:0;width:96px;height:96px;background:var(--blue);border-radius:0 0 0 100%;opacity:.2;}
-.hsh-red{top:0;right:36px;width:52px;height:52px;background:var(--red);border-radius:50% 0 0 0;opacity:.22;}
-.hsh-lime{top:31px;right:13px;width:18px;height:18px;background:var(--lime);border-radius:var(--shape-block);opacity:.5;}
-.hdr-top{position:relative;z-index:1;display:flex;align-items:center;gap:11px;}
-.hdr-logo{height:76px;width:auto;flex-shrink:0;display:block;}
+.hsh-blue{top:0;right:0;width:82px;height:82px;background:var(--blue);border-radius:0 0 0 100%;opacity:.2;}
+.hsh-red{top:0;right:30px;width:46px;height:46px;background:var(--red);border-radius:50% 0 0 0;opacity:.22;}
+.hsh-lime{top:27px;right:11px;width:16px;height:16px;background:var(--lime);border-radius:var(--shape-block);opacity:.5;}
+/* barra do cabeçalho centralizada na MESMA coluna do conteúdo (max-width 920 + 14px) */
+.hdr-bar{position:relative;z-index:1;max-width:920px;margin:0 auto;padding:0 14px;}
+.hdr-top{display:flex;align-items:center;gap:12px;}
+.hdr-logo{height:84px;width:auto;flex-shrink:0;display:block;}
 .hdr-titles{flex:1;min-width:0;}
-.hdr-title{font-family:var(--font-display);font-weight:900;line-height:.97;letter-spacing:.2px;display:flex;flex-direction:column;}
-.hdr-title .ht-1{font-size:17px;color:var(--on-dark);}
-.hdr-title .ht-2{font-size:17px;color:var(--lime);}
-.hdr-sub{font-size:8px;font-weight:700;letter-spacing:2.4px;color:var(--on-dark-muted);text-transform:uppercase;margin-top:4px;}
-.hdr-dev{flex-shrink:0;align-self:flex-start;font-family:var(--font-display);font-weight:800;font-size:10px;letter-spacing:1.5px;color:var(--on-dark);border:1px solid rgba(255,255,255,.5);border-radius:6px;padding:2px 7px;}
-.hdr-status{position:relative;z-index:1;font-size:9px;font-weight:600;min-height:11px;margin-top:5px;color:var(--on-dark-muted);}
-@media(min-width:680px){
-  .hdr-logo{height:86px;}
-  .hdr-title .ht-1,.hdr-title .ht-2{font-size:23px;}
-  .hdr-sub{font-size:9px;}
-}
-/* ── Menu inferior (barra preta fixa na base) ── */
+.hdr-title{font-family:var(--font-display);font-weight:900;line-height:.95;letter-spacing:.2px;display:flex;flex-direction:column;}
+.hdr-title .ht-1{font-size:22px;color:var(--on-dark);}
+.hdr-title .ht-2{font-size:22px;color:var(--lime);}
+.hdr-dev{position:absolute;top:4px;right:14px;font-family:var(--font-display);font-weight:800;font-size:10px;letter-spacing:1.5px;color:var(--on-dark);border:1px solid rgba(255,255,255,.5);border-radius:6px;padding:2px 7px;z-index:2;}
+.hdr-status{position:relative;z-index:1;font-size:9px;font-weight:600;min-height:11px;margin:3px auto 0;max-width:920px;padding:0 14px;color:var(--on-dark-muted);}
+/* ── Menu: CELULAR = barra fixa embaixo · DESKTOP = dentro do cabeçalho, à direita ── */
 nav{position:fixed;left:0;right:0;bottom:0;z-index:300;display:flex;justify-content:center;gap:8px;background:var(--frame);border-top:1px solid rgba(255,255,255,.08);box-shadow:var(--shadow-nav);padding:6px 10px;padding-bottom:calc(6px + env(safe-area-inset-bottom));}
-nav button{position:relative;flex:1 1 0;max-width:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 4px 5px;background:transparent;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent;color:#7C7C85;}
+nav button{position:relative;flex:1 1 0;max-width:170px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 10px 6px;border-radius:13px;background:transparent;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent;color:#7C7C85;transition:background .15s,color .15s;}
 nav button .nav-ico{width:23px;height:23px;display:block;}
 nav button .nav-ico svg{width:100%;height:100%;display:block;}
 nav button .nav-lbl{font-size:10.5px;font-weight:700;line-height:1;white-space:nowrap;color:#9A9AA2;}
-nav button.active{color:var(--lime);}
-nav button.active .nav-lbl{color:var(--lime);}
-nav button.active::before{content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);width:26px;height:3px;border-radius:0 0 3px 3px;background:var(--lime);}
+/* SELECIONADO = fundo --lime, ícone+texto --ink (inverso do não-selecionado) — celular E desktop */
+nav button.active{background:var(--lime);color:var(--ink);}
+nav button.active .nav-lbl{color:var(--ink);}
 main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + env(safe-area-inset-bottom));}
+/* DESKTOP: Ratazana ainda maior; conteúdo na coluna (à esquerda); menu no topo à direita; sem barra de baixo */
+@media(min-width:680px){
+  .hdr-shapes{display:none;}
+  .hdr-bar{display:flex;align-items:center;justify-content:space-between;gap:24px;}
+  .hdr-top{flex:0 1 auto;min-width:0;}
+  .hdr-logo{height:108px;}
+  .hdr-title .ht-1,.hdr-title .ht-2{font-size:32px;}
+  .hdr-dev{position:static;align-self:center;}
+  .hdr-status{text-align:left;}
+  nav{position:static;flex:0 0 auto;justify-content:flex-end;gap:9px;background:transparent;border-top:none;box-shadow:none;padding:0;}
+  nav button{flex:0 0 auto;max-width:none;flex-direction:row;gap:8px;padding:11px 18px;}
+  nav button .nav-ico{width:21px;height:21px;}
+  nav button .nav-lbl{font-size:14px;}
+  main{padding-bottom:28px;}
+}
 .tab{display:none;}.tab.active{display:block;}
 
 /* Loading / Error */
@@ -764,19 +772,21 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 
 <header>
   <div class="hdr-shapes" aria-hidden="true"><span class="hsh hsh-blue"></span><span class="hsh hsh-red"></span><span class="hsh hsh-lime"></span></div>
-  <div class="hdr-top">
-    <img class="hdr-logo" src="Imagens/Ratazana.png" alt="Ratazana" onerror="this.style.display='none'">
-    <div class="hdr-titles">
-      <div class="hdr-title"><span class="ht-1">Bolão Ratazana00</span><span class="ht-2">Copa 2026</span></div>
+  <div class="hdr-bar">
+    <div class="hdr-top">
+      <img class="hdr-logo" src="Imagens/Ratazana.png" alt="Ratazana" onerror="this.style.display='none'">
+      <div class="hdr-titles">
+        <div class="hdr-title"><span class="ht-1">Bolão Ratazana00</span><span class="ht-2">Copa 2026</span></div>
+      </div>
+      <span id="dev-seal" class="hdr-dev" style="display:none">DEV</span>
     </div>
-    <span id="dev-seal" class="hdr-dev" style="display:none">DEV</span>
+    <nav>
+      <button class="active" onclick="showTab('mata')"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5v4h4"/><path d="M5 19v-4h4"/><path d="M9 9v6"/><path d="M9 12h5"/><path d="M14 9.5v5"/><path d="M14 12h5"/></svg></span><span class="nav-lbl">Mata-mata</span></button>
+      <button onclick="showTab('ranking')"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v1a3 3 0 0 0 3 3"/><path d="M17 6h3v1a3 3 0 0 1-3 3"/><path d="M12 14v3"/><path d="M9.5 20.5h5l-.6-3h-3.8z"/></svg></span><span class="nav-lbl">Ranking</span></button>
+    </nav>
   </div>
   <div class="hdr-status"><span id="sync-indicator"></span></div>
 </header>
-<nav>
-  <button class="active" onclick="showTab('mata')"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5v4h4"/><path d="M5 19v-4h4"/><path d="M9 9v6"/><path d="M9 12h5"/><path d="M14 9.5v5"/><path d="M14 12h5"/></svg></span><span class="nav-lbl">Mata-mata</span></button>
-  <button onclick="showTab('ranking')"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v1a3 3 0 0 0 3 3"/><path d="M17 6h3v1a3 3 0 0 1-3 3"/><path d="M12 14v3"/><path d="M9.5 20.5h5l-.6-3h-3.8z"/></svg></span><span class="nav-lbl">Ranking</span></button>
-</nav>
 <main>
   <div id="error-banner" class="error-banner" style="display:none"></div>
   <div id="tab-mata" class="tab active"></div>
