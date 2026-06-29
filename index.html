@@ -43,15 +43,15 @@ header{position:relative;z-index:1;background:var(--frame);color:var(--on-dark);
 .hsh-red{top:0;right:30px;width:46px;height:46px;background:var(--red);border-radius:50% 0 0 0;opacity:.22;}
 .hsh-lime{top:27px;right:11px;width:16px;height:16px;background:var(--lime);border-radius:var(--shape-block);opacity:.5;}
 /* barra do cabeçalho centralizada na MESMA coluna do conteúdo (max-width 920 + 14px) */
-.hdr-bar{position:relative;z-index:1;max-width:920px;margin:0 auto;padding:0 14px;}
+.hdr-bar{position:relative;z-index:1;max-width:920px;margin:0 auto;padding:0 14px;display:flex;justify-content:center;}
 .hdr-top{display:flex;align-items:center;gap:12px;}
 .hdr-logo{height:84px;width:auto;flex-shrink:0;display:block;}
-.hdr-titles{flex:1;min-width:0;}
+.hdr-titles{min-width:0;}
 .hdr-title{font-family:var(--font-display);font-weight:900;line-height:.95;letter-spacing:.2px;display:flex;flex-direction:column;}
 .hdr-title .ht-1{font-size:22px;color:var(--on-dark);}
 .hdr-title .ht-2{font-size:22px;color:var(--lime);}
 .hdr-dev{position:absolute;top:4px;right:14px;font-family:var(--font-display);font-weight:800;font-size:10px;letter-spacing:1.5px;color:var(--on-dark);border:1px solid rgba(255,255,255,.5);border-radius:6px;padding:2px 7px;z-index:2;}
-.hdr-status{position:relative;z-index:1;font-size:9px;font-weight:600;min-height:11px;margin:3px auto 0;max-width:920px;padding:0 14px;color:var(--on-dark-muted);}
+.hdr-status{position:relative;z-index:1;font-size:9px;font-weight:600;min-height:11px;margin:3px auto 0;max-width:920px;padding:0 14px;text-align:center;color:var(--on-dark-muted);}
 /* ── Menu: CELULAR = barra fixa embaixo · DESKTOP = dentro do cabeçalho, à direita ── */
 nav{position:fixed;left:0;right:0;bottom:0;z-index:300;display:flex;justify-content:center;gap:8px;background:var(--frame);border-top:1px solid rgba(255,255,255,.08);box-shadow:var(--shadow-nav);padding:6px 10px;padding-bottom:calc(6px + env(safe-area-inset-bottom));}
 nav button{position:relative;flex:1 1 0;max-width:170px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 10px 6px;border-radius:13px;background:transparent;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent;color:#7C7C85;transition:background .15s,color .15s;}
@@ -65,10 +65,8 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 /* DESKTOP: Ratazana ainda maior; conteúdo na coluna (à esquerda); menu no topo à direita; sem barra de baixo */
 @media(min-width:680px){
   .hdr-shapes{display:none;}
-  .hdr-logo{height:108px;}
-  .hdr-title .ht-1,.hdr-title .ht-2{font-size:32px;}
-  .hdr-dev{position:static;align-self:center;}
-  .hdr-status{text-align:left;}
+  .hdr-logo{height:135px;}
+  .hdr-title .ht-1,.hdr-title .ht-2{font-size:40px;}
   /* menu = trilho (abas) LOGO ABAIXO do cabeçalho, alinhado com a coluna do conteúdo; sem barra de baixo */
   nav{position:static;display:flex;gap:4px;max-width:892px;margin:14px auto 0;padding:4px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-btn);box-shadow:var(--shadow-card);}
   nav button{flex:1 1 0;max-width:none;flex-direction:row;gap:8px;padding:11px 14px;border-radius:9px;color:var(--muted);}
