@@ -350,6 +350,9 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .hist-toggle{display:flex;gap:7px;justify-content:center;margin:0 4px 10px;}
 .hist-toggle button{flex:0 0 auto;padding:6px 16px;border:1px solid var(--line);background:var(--surface);border-radius:999px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;}
 .hist-toggle button.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+/* Filtro de escopo do Bolão Geral (2 segmentos, largura cheia) */
+.scope-toggle{margin:0 4px 14px;}
+.scope-toggle button{flex:1 1 0;min-width:0;padding:9px 6px;font-size:11.5px;border-radius:var(--r-btn);}
 
 /* ── Corrida de times (3 times) ── */
 .tr-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
@@ -1803,14 +1806,17 @@ function rankMarquee(){
   </div>`;
 }
 
+// Escopo do Bolão Geral (Tarefa 4): 'tudo' = grupos + mata · 'grupos' = só fase de grupos.
+let geralScope='tudo';
+function setGeralScope(s){geralScope=s;renderRanking();}
 function rankingNew(){
   const inRank=g=>sortKey(g)>=CUT;
   const fin=GT.map(t=>getGame(t.id)).filter(g=>!g.removed&&g.finished&&g.realA!==''&&inRank(g)).length;
   const tot=GT.map(t=>getGame(t.id)).filter(g=>!g.removed&&inRank(g)).length;
   const sAll=PARTICIPANTS.map(p=>({...p,...getStats(p.id,inRank)}));
-  // Soma os pontos do mata-mata (fase eliminatória) ao total/estatísticas do Bolão Geral.
+  // Soma os pontos do mata-mata ao total/estatísticas — SÓ no escopo "Mata-mata + Grupos" (Tarefa 4).
   let mataTotal=0;
-  sAll.forEach(s=>{
+  if(geralScope==='tudo') sAll.forEach(s=>{
     const m=mataStats(s.id);
     s.total+=m.total; s.rHits+=m.rHits; s.eHits+=m.eHits; s.played+=m.played;
     s.cravadas=s.cravadas.concat(m.cravadas);
@@ -1822,7 +1828,8 @@ function rankingNew(){
   const hist=geralHistory();
   const deltas=geralDeltas(hist);
 
-  let html=podium(ranked);
+  let html=`<div class="hist-toggle scope-toggle"><button class="${geralScope==='tudo'?'active':''}" onclick="setGeralScope('tudo')">Mata-mata + Grupos</button><button class="${geralScope==='grupos'?'active':''}" onclick="setGeralScope('grupos')">Só Fase de Grupos</button></div>`;
+  html+=podium(ranked);
   html+=`<div class="lead-board">
     <div class="lead-head">
       <div class="lh-title">🏆 CLASSIFICAÇÃO GERAL</div>
@@ -1850,7 +1857,9 @@ function rankingNew(){
   const statsOrder=['jessica','tonius','leo','vinicius','chatgpt','claudio','chatgptleo','claude'];
   html+=`<div class="section-title">📊 ESTATÍSTICAS INDIVIDUAIS</div>`;
   statsOrder.forEach(id=>{const p=sAll.find(x=>x.id===id);if(p)html+=statCard(p);});
-  html+=gamesListHTML('📋 Jogos da Fase de Grupos', GT.map(t=>getGame(t.id)));   // Tarefa B: todos os jogos da fase de grupos (g01-03 saem como NÃO CONSIDERADO)
+  // Tarefa 4: lista SÓ os jogos considerados pelo Bolão Geral (mesmo conjunto do ranking: sortKey>=CUT,
+  // não removidos). Isso já exclui g01-g03 (que são de 11/06, antes do corte) e os "fora".
+  html+=gamesListHTML('📋 Jogos da Fase de Grupos', GT.map(t=>getGame(t.id)).filter(g=>!g.removed&&inRank(g)));
   return html;
 }
 
