@@ -624,7 +624,8 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .mm-qplbl.pen{color:#c0392b;}
 .mm-qplbl.won,.mm-qplbl.chosen{color:var(--g);}
 .mm-qplbl.idle{opacity:.55;}
-.mm-lock-lbl{color:var(--mu);font-style:italic;}
+.mm-hcell-locked{opacity:.65;position:relative;}
+.mm-hcell-lock-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:36px;opacity:.18;pointer-events:none;z-index:2;}
 .mm-hc-pred input{width:40px;height:38px;text-align:center;border:1.5px solid var(--brd);border-radius:9px;font-size:18px;font-weight:700;background:var(--bg);color:var(--txt);-moz-appearance:textfield;}
 .mm-hc-pred input::-webkit-outer-spin-button,.mm-hc-pred input::-webkit-inner-spin-button{-webkit-appearance:none;}
 .mm-hc-pred input:focus{outline:none;border-color:var(--gl);background:#fff;box-shadow:0 0 0 3px rgba(45,150,83,.13);}
@@ -2277,8 +2278,7 @@ function mmHumQpLabel(c,pid){
 function mmHumPredHTML(c,pid,pal){
   const locked=mmIsKickoff(c);
   const inp=side=>{const v=pal['gols_'+side]!=null?pal['gols_'+side]:'';return locked?`<input class="mm-n${side}" type="number" min="0" max="99" inputmode="numeric" value="${v}" placeholder="–" disabled>`:`<input class="mm-n${side}" type="number" min="0" max="99" inputmode="numeric" value="${v}" placeholder="–" oninput="mmUpdPalpite('${c.id}','${pid}','gols_${side}',this.value)">`;};
-  const lbl=locked?`<span class="mm-qplbl mm-lock-lbl">🔒 encerrado</span>`:mmHumQpLabel(c,pid);
-  return `${mmHumQpFlag(c,pid,'A',!locked)}${inp('a')}<span class="mm-x">×</span>${inp('b')}${mmHumQpFlag(c,pid,'B',!locked)}${lbl}`;
+  return `${mmHumQpFlag(c,pid,'A',!locked)}${inp('a')}<span class="mm-x">×</span>${inp('b')}${mmHumQpFlag(c,pid,'B',!locked)}${mmHumQpLabel(c,pid)}`;
 }
 // Atualiza só as bandeiras e o rótulo (sem mexer nos inputs → não perde o foco ao digitar).
 function mmUpdHumFlags(grid,c,pid,editable){
@@ -2516,7 +2516,9 @@ function mmCardBody(c){
     if(isHuman){
       // Foto+nome em 1/3 (celular: lado a lado · desktop: empilhado); 2/3 = grade com a bandeira do
       // "quem passa" JUNTO de cada campo de placar (desktop: em cima · celular: à direita).
-      return `<div class="pred-cell human mm-cell mm-hcell${mmHasFullPred(pal)?'':' mm-miss-cell'}" data-pid="${pid}">
+      const locked=mmIsKickoff(c);
+      return `<div class="pred-cell human mm-cell mm-hcell${mmHasFullPred(pal)?'':' mm-miss-cell'}${locked?' mm-hcell-locked':''}" data-pid="${pid}">
+        ${locked?'<div class="mm-hcell-lock-overlay">🔒</div>':''}
         <div class="mm-hc-id">${av}<span class="hum-name">${p.name}</span></div>
         <div class="mm-hc-pred mm-qp" data-pid="${pid}">${mmHumPredHTML(c,pid,pal)}</div>
       </div>`;
