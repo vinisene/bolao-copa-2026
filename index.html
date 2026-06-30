@@ -622,6 +622,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .mm-qplbl{grid-area:lbl;font-size:7.5px;line-height:1;font-weight:800;color:var(--mu);text-transform:uppercase;letter-spacing:0;text-align:center;white-space:nowrap;margin-left:7px;align-self:end;}
 .mm-qplbl.pen{color:#c0392b;}
 .mm-qplbl.idle{opacity:.55;}
+.mm-lock-lbl{color:var(--mu);font-style:italic;}
 .mm-hc-pred input{width:40px;height:38px;text-align:center;border:1.5px solid var(--brd);border-radius:9px;font-size:18px;font-weight:700;background:var(--bg);color:var(--txt);-moz-appearance:textfield;}
 .mm-hc-pred input::-webkit-outer-spin-button,.mm-hc-pred input::-webkit-inner-spin-button{-webkit-appearance:none;}
 .mm-hc-pred input:focus{outline:none;border-color:var(--gl);background:#fff;box-shadow:0 0 0 3px rgba(45,150,83,.13);}
@@ -2138,6 +2139,7 @@ function mmSetFinished(cid){
   if(activeTab==='ranking')renderRanking();
 }
 function mmUpdPalpite(cid,pid,field,val){
+  const c=MM_CONFRONTOS.find(x=>x.id===cid); if(c&&mmIsKickoff(c))return;   // kickoff: palpite travado
   const num=val===''?null:parseInt(val);
   const p=(MM_PALPITES[cid]||(MM_PALPITES[cid]={}))[pid]||(MM_PALPITES[cid][pid]={});
   p[field]=num;
@@ -2147,6 +2149,7 @@ function mmUpdPalpite(cid,pid,field,val){
   mmDeb[cid+pid+field]=setTimeout(()=>mmUpsertPalpite(cid,pid,{[field]:num,quem_passa:p.quem_passa}),700);
 }
 function mmSetQuemPassa(cid,pid,side){
+  const c=MM_CONFRONTOS.find(x=>x.id===cid); if(!c||mmIsKickoff(c))return;   // kickoff: travado
   const p=(MM_PALPITES[cid]||(MM_PALPITES[cid]={}))[pid]||(MM_PALPITES[cid][pid]={});
   p.quem_passa=p.quem_passa===side?null:side;
   mmRenderQuemPassa(cid,pid); mmRefreshPts(cid);
@@ -2260,8 +2263,10 @@ function mmHumQpLabel(c,pid){
 }
 // Grade do palpite do humano: [bandeiraA] [placarA] × [placarB] [bandeiraB] + rótulo (CSS posiciona por fase).
 function mmHumPredHTML(c,pid,pal){
-  const inp=side=>`<input class="mm-n${side}" type="number" min="0" max="99" inputmode="numeric" value="${pal['gols_'+side]!=null?pal['gols_'+side]:''}" placeholder="–" oninput="mmUpdPalpite('${c.id}','${pid}','gols_${side}',this.value)">`;
-  return `${mmHumQpFlag(c,pid,'A',true)}${inp('a')}<span class="mm-x">×</span>${inp('b')}${mmHumQpFlag(c,pid,'B',true)}${mmHumQpLabel(c,pid)}`;
+  const locked=mmIsKickoff(c);
+  const inp=side=>{const v=pal['gols_'+side]!=null?pal['gols_'+side]:'';return locked?`<input class="mm-n${side}" type="number" min="0" max="99" inputmode="numeric" value="${v}" placeholder="–" disabled>`:`<input class="mm-n${side}" type="number" min="0" max="99" inputmode="numeric" value="${v}" placeholder="–" oninput="mmUpdPalpite('${c.id}','${pid}','gols_${side}',this.value)">`;};
+  const lbl=locked?`<span class="mm-qplbl mm-lock-lbl">🔒 encerrado</span>`:mmHumQpLabel(c,pid);
+  return `${mmHumQpFlag(c,pid,'A',!locked)}${inp('a')}<span class="mm-x">×</span>${inp('b')}${mmHumQpFlag(c,pid,'B',!locked)}${lbl}`;
 }
 // Atualiza só as bandeiras e o rótulo (sem mexer nos inputs → não perde o foco ao digitar).
 function mmUpdHumFlags(grid,c,pid,editable){
@@ -2700,6 +2705,7 @@ function mmSetPhase(key){
 }
 // Data/hora de um jogo (pra calcular "próximos" e ordenar).
 function mmGameDate(c){const i=mmInfo(c);if(!i.dt)return null;const [dd,mm]=i.dt.split('/').map(Number);const h=i.tm?parseInt(i.tm)||0:0;const mi=(i.tm&&i.tm.split('h')[1])?parseInt(i.tm.split('h')[1]):0;return new Date(2026,mm-1,dd,h,mi);}
+function mmIsKickoff(c){const d=mmGameDate(c);return !!(d&&d.getTime()<=Date.now());}
 // (1) Próximos 3 jogos do mata-mata — MESMO visual do hero "jogos de hoje" da fase de grupos (com contagem).
 function mmGotoFromHero(cid){mmSetPhase(mmPhaseKeyOf(cid));mmGotoConfronto(cid);}
 function mmNextGamesHTML(){
