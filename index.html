@@ -2507,7 +2507,7 @@ function mmMatchupHTML(c){
   const ven=mmInfo(c).ven;
   const venue=ven?`<div class="venue">📍 ${esc(ven)}</div>`:'';
   return `<div class="matchup mm-matchup">${sd('A',tm.a)}
-      <div class="mid">${hasReal?`<div class="score-final">${c.real_a}<small>×</small>${c.real_b}</div>`:`<div class="vs-badge">VS</div>`}${venue}</div>
+      <div class="mid"><div class="vs-badge">VS</div>${venue}</div>
       ${sd('B',tm.b)}</div>`;
 }
 // Área COLAPSÁVEL: só os palpites (humanos + IAs). Cabeçalho/bandeiras/placar ficam fora (sempre visíveis).
