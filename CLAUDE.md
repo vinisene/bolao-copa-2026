@@ -1,359 +1,335 @@
 # CLAUDE.md
 
-> ## 🚀 LANÇADO — "Bolão Ratazana Copa 26" está em produção (jun/2026)
-> A versão nova (mata-mata + tudo) **já subiu pra `main`**. Produção nova: **`bolao-ratazana-copa26.pages.dev`**
-> (publica a **`main`**). O site antigo **`bolao-copa-sene-piovan.pages.dev`** está **CONGELADO** na
-> fase de grupos, publicando a branch **`congelado-fase-grupos`** — **NÃO mexer nele**.
-> - **Trabalho do dia a dia agora é na branch `ratazana`** (não mais na `dev`).
-> - **Subir pra produção = merge/push na `main`** — só com ordem **explícita** do Vini
->   ("pode subir para produção" / "pode fazer o merge"). Sempre crie um **safepoint (tag)** antes.
+> ## ✅ EM PRODUÇÃO — "Bolão Ratazana00 / Copa 2026" no ar (jun/2026)
+> **AO VIVO:** `bolao-ratazana00.pages.dev` (publica `main`).
+> **DEV/TESTE:** `ratazana.bolao-ratazana00.pages.dev` (publica `ratazana`; hostname `ratazana.` → IS_DEV=true → tabelas `dev_*`, badge DEV, título "TESTES -").
+> - **Trabalho do dia a dia: branch `ratazana`** (código/visual) — merge pra `main` só com ok explícito do Vini.
+> - **Dado direto (palpites/placares):** vai na produção sem passar por `ratazana`.
+> - **Sempre crie safepoint (tag) antes de merge pra `main`**.
 > - Não toque na `congelado-fase-grupos` (museu) nem na `dev` (backup antigo congelado).
 
-Guia de navegação do projeto. O objetivo é que, ao ler este arquivo, você saiba **onde mexer
-sem explorar o código**. Os números de linha **andam** a cada edição — confie nos **nomes de
-função** e nos **comentários de seção** (`// ─── NOME ───` no JS e `/* ── nome ── */` no CSS),
-que são âncoras estáveis. Os números aqui são referência aproximada (estado em ~1377 linhas).
+Guia de navegação do projeto — para saber **onde mexer sem explorar o código**.
+Os números de linha **andam** a cada edição; confie nos **nomes de função** e nos
+**comentários de seção** (`// ─── NOME ───` no JS e `/* ── nome ── */` no CSS).
+Os números aqui são referência aproximada (estado em ~2900 linhas).
 
 ---
 
-## 0. Estado atual e roadmap (atualizado jun/2026)
+## 0. Estado atual (jun/2026)
 
-**Onde estamos (LANÇADO):**
-- **Produção nova = `main` = "Bolão Ratazana Copa 26"** (commit `68517fa`). No ar em
-  **`bolao-ratazana-copa26.pages.dev`**. Tem **fase de grupos + mata-mata completo** (chave visual,
-  lista por fase, cards de palpite, pontuação nova, zebras, turbos, novos participantes).
-- **Site antigo CONGELADO:** `bolao-copa-sene-piovan.pages.dev` publica a branch
-  **`congelado-fase-grupos`** (= fase de grupos, commit `6fdd117`). **Não recebe mais mudanças.**
-- **Branches:** `main` = **produção nova** · `ratazana` = **branch de trabalho** (dia a dia) ·
-  `congelado-fase-grupos` = **museu do site antigo** (não tocar) · `dev` = **backup antigo congelado**
-  (pré-lançamento; não mexer). O **PR #3** ficou obsoleto (a `main` já tem tudo via fast-forward).
-- **Safepoints (tags):** `v2-fim-melhorias` (`fc7a69d`, tudo pronto antes do lançamento) ·
-  `v3-prod-fase-grupos-congelada` (`6fdd117`, estado da fase de grupos). Voltar: `git checkout <tag>`.
-- **Detecção de ambiente:** hostname começando com **`dev.` OU `ratazana.`** = **DEV** (lê `dev_*`);
-  produção (`bolao-ratazana-copa26.pages.dev`, sem esses prefixos) e localhost lêem as tabelas **sem
-  prefixo**. Função `isDevEnv` (§11). O preview da branch é `ratazana.bolao-copa-sene-piovan.pages.dev`.
-- **Detalhes técnicos do mata-mata:** §10. Ambientes/tabelas: §11.
+**App em produção:**
+- `main` → `bolao-ratazana00.pages.dev`. Mata-mata completo + fase de grupos (congelada).
+- Redesign visual Copa 26 **concluído e no ar** (tokens de cor/fonte, identidade Ratazana).
+- Cabeçalho **NÃO é sticky** — foi a correção do bug de clique do chaveamento; não voltar.
+- `ratazana` → branch de trabalho diário; publica em `ratazana.bolao-ratazana00.pages.dev`.
+- Projeto antigo `bolao-ratazana-copa26.pages.dev` ainda existe mas **não é o oficial**.
+- `congelado-fase-grupos` → museu (fase de grupos, congelada). **Não recebe mudanças.**
 
-**Regra de pontuação do MATA-MATA (resumo — SÓ mata-mata; a fase de grupos é CONGELADA e NÃO
-muda/recalcula).** Sobre o **PLACAR FINAL** (com prorrogação). **Componentes que MULTIPLICAM** pela
-fase × turbo: **5** resultado · **1** gol A · **1** gol B · **2** saldo (SÓ quando há vencedor no
-real; em empate não conta) · **3** placar exato · **4** pênaltis (palpitou empate **e** acertou quem
-passa) — **o +4 ENTRA na base e multiplica** (não é mais fixo). **Multiplicador por fase:** 16 avos
-×1 · oitavas ×1,25 · quartas ×1,5 · semis ×1,75 · 3º ×1,75 · **final ×4**; **turbo ×2** em cima.
-**Bônus de ZEBRA (FIXO, somado no fim, NÃO multiplica):** **+3 zebra** · **+5 zebrão** — se a pessoa
-apontou o **azarão** pra avançar **e** ele avançou (azarão ≤25% = zebra; ≤12% = zebrão). O total pode
-ser **fracionário** (ex.: 17,5; `fmtPts` mostra com vírgula). Funções: **`mmScore`** (detalhamento) /
-`calcMataPts` / multiplicadores `MM_PHASE_MULT`·`mmMult` / turbos `MM_TURBO` / zebras `MM_ZEBRA`.
-**Quantidade de turbos por fase:** 16 avos **6** · oitavas **3** · quartas **2** · semis **1** · 3º
-**0** · final **0**. **Turbos dos 16 avos:** Brasil×Japão · CostaMarfim×Noruega · França×Suécia ·
-México×Equador · Bélgica×Senegal · EUA×Bósnia (África×Canadá NÃO). **Regra de ouro do equilíbrio:**
-nenhum jogo passa da **final ×4** (maior fora da final = semis turbo ×3,5). **Balão de pontos**
-(hover/toque no número) mostra a quebra; **selo de zebra** 🦓 no cabeçalho do card (§10).
+**Safepoints (tags):**
+`v4-pre-redesign` · `v5-prod-pre-redesign` · `v6-prod-pre-fix-palpite` · `v7-prod-pre-mano-gi` · `v8-prod-pre-melhorias`
+Voltar: `git checkout <tag>`. Listar: `git tag -n1`.
 
-**Supabase (produção do mata já pronta):** tabelas de produção **`mata_confrontos`** (32 jogos:
-16 avos preenchidos + vagas das fases seguintes) e **`mata_palpites`** já **criadas e populadas**,
-com **RLS ligada** e políticas de **leitura/escrita públicas** (mesmo padrão de `bolao_games`). Mesmo
-projeto Supabase de sempre; dev usa as `dev_*` (espelho). Schema em `supabase_mata_mata.sql` (§11).
+**Detecção de ambiente:** `isDevEnv()` → hostname começa com `dev.` **OU** `ratazana.` = DEV.
+Em DEV: tabelas `dev_*`, badge visual, título "TESTES -". Em produção/localhost: tabelas sem prefixo.
+⚠️ **localhost = produção** (não tem prefixo): ao testar local, lê/escreve dados REAIS.
 
-**Estado visual do mata-mata (no ar na produção nova):** a aba já abre por padrão no ambiente de
-teste, na ordem **Próximos jogos** (hero+contagem, igual à fase de grupos) → **Classificação do Mata-Mata** (barra
-rolante, só pontos do mata) → **Como funciona** → **chave** (colapsável) → **lista por dia** (dias
-passados recolhidos). Cards copiam a fase de grupos; **turbo** pinta cabeçalho+rodapé de laranja
-(texto escuro); **cards-fantasma** das fases futuras com data/local e times "?"; palpite faltando =
-amarelo (só conta com os dois gols, e quem-passa no empate). **Célula do humano:** foto+nome em ~1/3
-(celular: lado a lado numa linha; desktop: empilhado), placar nos ~2/3 com a **bandeira do "quem
-passa" junto de cada campo** (desktop em cima, celular à direita) — funções `mmHumPredHTML`/
-`mmHumQpFlag`/`mmUpdHumFlags`. **Rodapé "placar final":** "quem passou" é **só a bandeira**, embaixo
-de cada número, com Finalizar à direita (`mmResultHTML`, classes `.mm-foot-*`/`.mm-cqp`). **Agenda
-das 6 fases COMPLETA no código** (`MM_AGENDA`): datas, **horários de Brasília** e **sedes** de todos
-os jogos já preenchidos — a anon key não cria colunas, então a agenda vive no código (não no banco).
+**Regra de pontuação do MATA-MATA** (SÓ mata-mata; grupos congelados, não recalculam).
+Placar FINAL (prorrogação inclusa). Componentes que **multiplicam** pela fase×turbo:
+**5** resultado · **1** gol A · **1** gol B · **2** saldo (só vencedor) · **3** placar exato ·
+**4** pênaltis (palpitou empate + acertou quem passa) — o +4 entra na base e multiplica.
+Multiplicadores: 16avos ×1 · oitavas ×1,25 · quartas ×1,5 · semis ×1,75 · 3º ×1,75 · **final ×4** · turbo ×2.
+**Zebra FIXO** (soma no fim, não multiplica): +3 zebra · +5 zebrão (azarão ≤25%/≤12% passa).
+Funções: `mmScore` / `calcMataPts` / `MM_PHASE_MULT` / `mmMult` / `MM_TURBO` / `MM_ZEBRA`.
 
-**Regra de ouro do fluxo:** trabalho do dia a dia na **`ratazana`**; nada vai pra produção
-(merge/push na `main`) sem o Vini pedir **explicitamente**, e sempre com **safepoint (tag) antes**.
+**Turbos do 16 avos (desta rodada — 5 jogos):**
+Alemanha×Paraguai · México×Equador · Inglaterra×RD Congo · Portugal×Croácia · Austrália×Egito.
+(África×Canadá NÃO é turbo. Quantos e quais turbos por fase é decisão do Vini a cada fase.)
 
-**Regras TRAVADAS (continuam valendo):**
-- **Pontuação do mata NÃO é retroativa** e vale **só pro mata-mata**; a **fase de grupos é congelada**
-  (não recalcula, não muda). Bolão Geral = grupos (congelados) **+** mata (regras novas).
-- **Zebra +3 / zebrão +5 FIXO** (soma no fim, não multiplica). **Turbos por fase** (lista nos 16 avos
-  acima). **g01, g02 e g03 NUNCA contam** (em nenhuma aba/tabela/gráfico).
-- **Participantes `Pepe`, `Du`, `Yuri` (humanos) e `Pepe IA` são SÓ-MATA** (`mataOnly:true` em
-  `MATA_EXTRA`/`MATA_PARTS`): aparecem nos cards e no ranking do mata, **não** no Bolão Geral/JxV nem
-  na fase de grupos. `PARTICIPANTS` (os 8) segue intacto pros contextos de grupos/Geral.
+**Regras TRAVADAS:**
+- Pontuação do mata NÃO é retroativa. Fase de grupos CONGELADA (não recalcula, não muda).
+- Bolão Geral = grupos (congelados) + mata (regras novas).
+- **g01, g02 e g03 NUNCA contam** (em nenhuma aba/tabela/gráfico).
+- Só-mata (`mataOnly:true` em `MATA_EXTRA`/`MATA_PARTS`): Pepe, Du, Yuri, Mano, Gi (humanos) + Pepe IA — aparecem só nos cards e ranking do mata, não no Bolão Geral/JxV nem fase de grupos. `PARTICIPANTS` (os 8 originais) segue intacto para grupos/Geral.
 
-**PRÓXIMA FASE — REDESIGN VISUAL (identidade "Bolão Ratazana Copa 26" / Copa 26):**
-Aplicar **na branch `ratazana`, em etapas**, com **safepoint (tag) antes de cada etapa grande**:
-1. **Tokens** de cor/fonte (CSS vars no `:root`) — a base da identidade, sem mexer em layout.
-2. Depois **tela por tela** (header/nav, cards, ranking, chave…), reaproveitando os tokens.
-Só subir pra `main` (produção nova) com ordem explícita do Vini.
+**ARMADILHAS TÉCNICAS — não repetir:**
+
+1. **Supabase JS v2: builder sem `.then()`/`await` não dispara o HTTP.** Toda função de escrita precisa de `.then()` ou `await`. Sem isso o palpite "salva" localmente mas nunca vai ao banco. Padrão obrigatório: `const {error} = await sb.from(...).upsert(...)`.
+
+2. **RLS de `mata_confrontos`:** precisa de `FOR ALL USING(true) WITH CHECK(true)` (igual a `mata_palpites`) ou lançar placar e finalizar dá erro 401. PENDÊNCIA: garantir essa policy no `supabase_mata_mata.sql` e nas tabelas `dev_mata_confrontos`.
+
+3. **Sempre `git push` após o commit.** O Cloudflare publica o remoto (`origin/main`), não o local. Commitar sem pushar = produção não atualiza.
+
+---
 
 ## 1. O que é
 
-**Bolão Copa 2026** — app de palpites da Copa 2026 ("Bolão Sene Piovan"). Cada participante
-palpita o placar dos **72 jogos da fase de grupos**; quando o jogo acontece, preenche-se o
-placar real, o app calcula pontos e monta ranking/estatísticas/gráficos.
+**Bolão Ratazana00 / Copa 2026** — app de palpites de Copa. Fase de grupos (72 jogos, congelada) + mata-mata (32 jogos, em andamento).
 
-**8 palpiteiros em 4 times** (cada time = 1 humano + a IA dele). Conhecimento de domínio que
-**não está óbvio no código** (IDs internos ≠ nomes de tela):
+**Identidade:** "Bolão Ratazana00". Mascote = Ratazana com troféu (`Imagens/Ratazana.png`). Favicon = cabecinha da ratazana. Paleta de tokens no `:root` do CSS.
 
-| Time   | Humano (edita no app) · id interno | IA (palpite fixo no código) · id interno · campo no GT |
-|--------|-------------------------------------|--------------------------------------------------------|
-| Jeca   | Jeca (Jéssica) · `jessica`          | ChatGPT Jeca · `chatgpt` · `g`                         |
-| Tonius | Tonius (Ricardo) · `tonius`         | Claude Tonius · `claudio` · `d`                        |
-| Leo    | Leo · `leo`                         | ChatGPT Leo · `chatgptleo` · `e`                       |
-| Vini   | Vini (Vinicius) · `vinicius`        | Claude Vini · `claude` · `c`                          |
+**Participantes — ATENÇÃO aos pares parecidos:**
 
-**Dois bolões** (mesmos palpites, recortes diferentes):
-- **Bolão Geral** (padrão): só jogos com `sortKey(g) >= CUT` (a partir de **20/06 12h**, quando
-  Tonius e Leo entraram). Todos os 8 participantes.
-- **Bolão JxV** (legado): só os 4 de `OLD_IDS` (Jeca, Vini, ChatGPT Jeca, Claude Vini),
-  contando a Copa inteira.
+| Contexto | Humano (edita no app) · id | IA (leitura) · id · campo GT |
+|----------|---------------------------|------------------------------|
+| Grupos + Mata | Jeca (Jéssica) · `jessica` | ChatGPT Jeca · `chatgpt` · `g` |
+| Grupos + Mata | Tonius (Ricardo) · `tonius` | Claude Tonius · `claudio` · `d` |
+| Grupos + Mata | Leo · `leo` | ChatGPT Leo · `chatgptleo` · `e` |
+| Grupos + Mata | Vini (Vinicius) · `vinicius` | Claude Vini · `claude` · `c` |
+| **SÓ Mata** | Pepe · `pepe` | Pepe IA · `pepe_ia` |
+| **SÓ Mata** | Du · `du` | — |
+| **SÓ Mata** | Yuri · `yuri` | — |
+| **SÓ Mata** | Mano · `mano` | — |
+| **SÓ Mata** | Gi · `gi` | — |
+
+Total mata: **9 humanos / 5 IAs** (14 em `MATA_PARTS`). Time Pepe = Pepe + Pepe IA.
+Pares para não confundir: **Pepe ≠ Pepe IA · Vini ≠ Claude Vini · Tonius ≠ Claude Tonius · Jeca ≠ ChatGPT Jeca · Leo ≠ ChatGPT Leo**.
+
+**Dois bolões de grupos** (mesmos palpites, recortes diferentes):
+- **Bolão Geral** (padrão): jogos com `sortKey >= CUT` (≥ 20/06 12h). 8 participantes originais.
+- **Bolão JxV** (legado): só os 4 de `OLD_IDS` (Jeca, Vini, ChatGPT Jeca, Claude Vini), Copa inteira.
+
+**Navegação (2 abas):**
+- **Mata-mata:** Próximos jogos → Classificação do Mata → Como funciona → Chave → Lista por dia.
+- **Ranking:** Bolão Geral (filtro Mata+Grupos / Só Grupos) · JxV · Estatísticas · Histórico. A seção "Jogos da Fase de Grupos" fica DENTRO de Ranking > Bolão Geral.
+
+---
 
 ## 2. Stack / deploy / dev
 
-- **Frontend:** arquivo único `index.html` — HTML + CSS (`<style>`, linhas ~9–343) + JS vanilla
-  (`<script>`, linhas ~369–1375). Sem framework, sem build, sem `import`, sem `package.json`.
-- **DB/realtime:** Supabase (Postgres), tabela única `bolao_games`. SDK `@supabase/supabase-js@2`
-  via CDN (UMD). RLS público (sem login) + Realtime ligado. `supabase_setup.sql` é o schema inicial.
-- **Bandeiras:** flagcdn.com (emoji não renderiza em Windows). `flagImg`/`flagUrl` derivam o
-  código do país a partir do emoji.
-- **Deploy:** push na `main` → Cloudflare Pages publica sozinho (`bolao-copa-sene-piovan.pages.dev`,
-  repo `vinisene/bolao-copa-2026`). `netlify.toml` é legado. **⚠️ subir pra `main` só com ordem
-  explícita do usuário — ver regra no topo do arquivo.** Trabalho do dia a dia fica na `dev`.
-- **Dev local:** `npx serve` na porta 3333 (`.claude/launch.json`). Verificar no preview: console
-  sem erros + viewport **mobile 375px** (uso principal).
+- **Frontend:** arquivo único `index.html` — HTML + CSS (`<style>`) + JS vanilla (`<script>`). Sem framework, sem build, sem `import`, sem `package.json`. Agora ~2900 linhas.
+- **DB/realtime:** Supabase (Postgres). SDK `@supabase/supabase-js@2` via CDN (UMD). RLS público (sem login) + Realtime.
+- **Tabelas de grupos:** `bolao_games` (prod) / `dev_bolao_games` (dev). Schema: `supabase_setup.sql`.
+- **Tabelas do mata:** `mata_confrontos` + `mata_palpites` (prod) / `dev_mata_*` (dev). Schema: `supabase_mata_mata.sql`.
+- **Bandeiras:** flagcdn.com (emoji não renderiza em Windows). `flagImg`/`flagUrl` pelo emoji.
+- **Deploy:** push na `main` → Cloudflare Pages publica `bolao-ratazana00.pages.dev`. `ratazana` → `ratazana.bolao-ratazana00.pages.dev`. **NÃO pushar main sem ok do Vini.**
+- **Dev local:** `npx serve` na porta 3333 (`.claude/launch.json`). Mas localhost = produção! Para testar isolado use a URL de preview `ratazana.*`.
 
-## 2.5 Ambientes e Backup (rede de segurança)
+## 2.5 Ambientes e Backup
 
-- **Safepoint (tag Git):** `v0-fim-fase-grupos` aponta pro estado de **fim da fase de grupos**
-  (antes do mata-mata). Para voltar a esse ponto: `git checkout v0-fim-fase-grupos` (inspeção)
-  ou, para reverter a produção, `git revert`/`git reset` até a tag e dar push na `main`.
-  Listar tags: `git tag -n1`.
-- **Backups dos dados (Supabase):** ficam em `backups/bolao_games_AAAA-MM-DD.json` (export
-  completo: jogos, palpites dos humanos, placares e flags). Gerar um novo: **`npm run backup`**
-  (script em `scripts/backup-supabase.mjs`, Node 18+, sem dependências; usa a anon key pública).
-  Não sobrescreve um backup do mesmo dia — acrescenta a hora no nome.
+- **Safepoints (tags Git):** criar antes de cada merge pra `main`. `git tag -a vN-desc -m "msg"` + `git push origin vN-desc`. Reverter: `git revert`/`git reset` + push.
+- **Backups dos dados:** `backups/bolao_games_AAAA-MM-DD.json`. Gerar: `npm run backup`.
+- **Botão "🪞 Espelhar prod→dev"** (`mirrorProdToDev`, só em IS_DEV): copia produção para tabelas `dev_*`. Usa só anon key.
 - **Branches / URLs:**
-  - **`main` = produção** → `bolao-copa-sene-piovan.pages.dev` (o que os participantes acessam).
-  - **`dev` = testes** → preview do Cloudflare Pages em `dev.bolao-copa-sene-piovan.pages.dev`
-    (precisa de "Preview deployments" habilitado no projeto do Cloudflare Pages).
-  - ⚠️ **A `dev` compartilha o MESMO banco Supabase da produção** (a URL/anon key estão fixas no
-    `index.html`). Ou seja, o ambiente de código/URL é isolado, mas **escrever palpites/placar na
-    `dev` altera os dados reais**. Para isolar também os dados, é preciso um **projeto Supabase
-    separado** e apontar a config da `dev` pra ele (mudança manual, fora do escopo desta rede de
-    segurança).
+  - `main` → `bolao-ratazana00.pages.dev` (produção, o que os participantes acessam)
+  - `ratazana` → `ratazana.bolao-ratazana00.pages.dev` (DEV/preview de código)
+  - `congelado-fase-grupos` → museu da fase de grupos (não tocar)
+  - `dev` → backup antigo congelado (não tocar)
+
+---
 
 ## 3. Mapa do arquivo `index.html`
 
-### CSS (`<style>`, ~9–343) — uma regra por linha, cores em CSS vars no `:root` (~10)
-`:root` define `--g` (verde), `--gd` (verde escuro), `--gold`, `--mu` (texto fraco), `--brd`
-(borda), `--je/--vi/--ch/--cl` (cores legadas). Blocos por comentário:
-`/* ── Próximo jogo (hero) ── */` 211 · `Placar final + vencedor` 230 · `Animações & destaques`
-237 · `Toggle Geral/Antigo` 245 · `Corrida de times` 250 · `Hero "Jogos de hoje"` 271 ·
-`Barra rolante do ranking` 289 · `Delta de posição` 306 · `Gráfico de evolução` 316 · `Pódio` 328 ·
-`Ranking & Estatísticas` 147.
+### CSS (`<style>`, início do arquivo)
+`:root` tem dois blocos: legado (`--g`, `--gd`, `--gold`, `--mu`, `--brd`, `--je/vi/ch/cl`) +
+tokens Copa 26 (`--frame`, `--card-dark`, `--input-dark`, `--sheet`, `--surface`/`-2`/`-3`,
+`--ink`, `--lime`, `--violet`, `--orange`, `--green`, `--font-display`/`--font-body`, `--r-*`, `--shadow-*`).
 
-### DOM estático (`<body>`, ~345–367)
-Só 3 contêineres preenchidos por JS via `innerHTML`: `#tab-palpites` (365), `#tab-ranking` (366),
-`#error-banner` (364). `#loading-screen` (347), `header`/`nav` com os botões `showTab(...)` (352–362),
-`#sync-indicator` (357).
+### DOM estático (`<body>`)
+`#loading-screen`, `header` (NÃO sticky), `nav` (2 botões: mata / ranking), `#sync-indicator`,
+`#tab-mata`, `#tab-ranking`, `#error-banner`. Todos preenchidos por JS via `innerHTML`.
 
-### JS (`<script>`, ~369–1375) — seções na ordem do arquivo
-| Seção (`// ─── … ───`) | Linha | Conteúdo-chave |
-|---|---|---|
-| CONFIGURAÇÃO SUPABASE | 370 | `SUPABASE_URL` 371, `SUPABASE_KEY` (anon, público) 372, `TABLE` 373, cliente `sb` 376 |
-| PARTICIPANTS/TEAMS/CUT | 379 | `PARTICIPANTS` 379, `TEAMS` 389, `OLD_IDS` 395, `CUT` 396, `avInner` 398, `TAGFLAGS` 401, `flagImg` 402, `flagUrl` 412 |
-| GT (dados dos jogos) | 422 | array dos 72 jogos; `sortKey` 497 |
-| STATE | 504 | `CACHE` 507, `debouncers` 509, `getGame` 514 |
-| SUPABASE OPS | 536 | `setSyncing` 537, `upsert` 543, `loadData` 550 |
-| Realtime (mesma região) | 561 | `DATA_COLS` 561, `sameRow` 563, `isTyping` 569, `subscribeRealtime` 575, `applyRemoteScores` 596 |
-| UI HELPERS | 621 | `hideLoading` 622, `showErr` 623 |
-| VIEW STATE | 625 | `filterMode` 626, `activeTab` 629, `setFilter` 631, `renderAll` 633 |
-| SCORING | 638 | `calcPts` 639, `ptsClass` 651, `turboIdForDate` 655, `isTurbo` 659, `ptsOf` 660 |
-| PRÓXIMO JOGO / CONTAGEM | 662 | `gameDate` 663, `emptyVal` 669, `weekday` 671, `missingPred` 672, `findNextGame` 677, `tickCountdown` 696, `todaySlate` 704, `dayRow` 716, `setupMarquees` 728, `heroHTML` 743, `goToGame` 758 |
-| RENDER PALPITES | 766 | `renderPalpites` 767, `winCls` 820, `renderCard` 828 |
-| ACTIONS | 899 | `toggleFinish` 900, `toggleRemove` 908, `refreshPoints` 930, `updPred` 968, `updReal` 979 |
-| RANKING (stats) | 989 | `getStats` 990 |
-| TOOLTIPS | 1012 | `TIPS` 1013, `showTip` 1025, `q` 1041 |
-| (comparativos/linhas) | 1043 | `versus` 1043, `teamRace` 1061, `statCard` 1084, `rkRow` 1110 |
-| RANKING GERAL | 1125 | `podium` 1127 |
-| HISTÓRICO DE CLASSIFICAÇÃO | 1143 | `geralHistory` 1146, `geralDeltas` 1172, `deltaBadge` 1184, `histChart` 1194 + `histApply/Hover/Click` 1251–1257, `rankMarquee` 1259, `rankingNew` 1276 |
-| RANKING ANTIGO (JxV) | 1318 | `rankingOld` 1319, `rankMode` 1350, `setRank` 1351, `renderRanking` 1353 |
-| TAB NAV | 1361 | `showTab` 1362 |
-| BOOT | 1373 | chama `loadData()` |
+### JS (`<script>`) — seções na ordem do arquivo
+
+| Seção (`// ─── … ───`) | Conteúdo-chave |
+|---|---|
+| CONFIGURAÇÃO SUPABASE | `SUPABASE_URL`, `SUPABASE_KEY` (anon, público), `TABLE`/`MM_TCONF`/`MM_TPAL` (por IS_DEV), `sb` |
+| PARTICIPANTS/TEAMS/CUT | `PARTICIPANTS` (8), `TEAMS`, `OLD_IDS`, `CUT`, `flagImg`, `flagUrl` |
+| GT (dados dos jogos) | array 72 jogos; `sortKey` |
+| STATE | `CACHE`, `debouncers`, `getGame` |
+| SUPABASE OPS | `setSyncing`, `upsert`, `loadData` |
+| Realtime | `DATA_COLS`, `sameRow`, `isTyping`, `subscribeRealtime`, `applyRemoteScores` |
+| UI HELPERS | `hideLoading`, `showErr` |
+| VIEW STATE | `filterMode`, `activeTab`, `setFilter`, `renderAll` |
+| SCORING (grupos) | `calcPts`, `ptsClass`, `turboIdForDate`, `isTurbo`, `ptsOf` |
+| PRÓXIMO JOGO / CONTAGEM | `gameDate`, `findNextGame`, `tickCountdown`, `todaySlate`, `heroHTML`, `goToGame` |
+| RENDER PALPITES | `renderPalpites`, `winCls`, `renderCard` |
+| ACTIONS | `toggleFinish`, `toggleRemove`, `refreshPoints`, `updPred`, `updReal` |
+| RANKING (stats) | `getStats` |
+| TOOLTIPS | `TIPS`, `showTip`, `q` |
+| comparativos/linhas | `versus`, `teamRace`, `statCard`, `rkRow` |
+| RANKING GERAL | `podium`, `geralHistory`, `geralDeltas`, `histChart`, `rankMarquee`, `rankingNew` |
+| RANKING ANTIGO (JxV) | `rankingOld`, `rankMode`, `setRank`, `renderRanking` |
+| MATA-MATA | Ver §10 |
+| TAB NAV | `showTab` |
+| BOOT | `loadData()` |
+
+---
 
 ## 4. Variáveis e arrays centrais
 
-- **`GT`** (422) — fonte da verdade dos jogos (template estático, 72 itens). Campos por jogo:
-  `id` (`g01`–`g72`), `grp`, `r` (rodada 1–3), `dt` (`"DD/MM"`), `tm` (`"16h"`, `"20h30"`, `"1h"`,
-  `"0h"`), `ven`, `tA/fA`, `tB/fB`, e os **palpites das IAs**: `g`/`c`/`d`/`e` (cada um `{a,b}` ou
-  ausente). Ordem A×B importa: `a` = mandante (`tA`), `b` = visitante (`tB`).
-- **`CACHE`** (507) — espelho em memória da tabela: `{ game_id → row }`. Recebido por `loadData`
-  e mantido atualizado pelo realtime. Guarda **só o que vem do banco** (placar real + palpites
-  humanos + flags).
-- **`PARTICIPANTS`** (379) — 8 objetos `{id, name, type:'human'|'ia', color, init, team, editable?, img}`.
-  Ordem do array = ordem visual nos cards e na varredura de pontos. `id` é chave técnica; `name`
-  é o que aparece na tela.
-- **`CUT`** (396) — `20*10000 + 12*100`. Corte do Bolão Geral via `sortKey`.
-- **`DATA_COLS`** (561) — colunas do banco que contam como "mudança real" (usado por `sameRow`
-  para ignorar eco do próprio `upsert`). Precisa listar toda coluna nova de humano.
-- **`filterMode`** (626, `localStorage 'bf'`) e **`rankMode`** (1350, `localStorage 'brm'`) —
-  estado de UI persistido.
-- **`histLocked`** (1193) — pessoa fixada no gráfico de evolução (interação).
+- **`GT`** — fonte da verdade dos 72 jogos de grupos (template estático). Campos: `id` (`g01`–`g72`), `grp`, `r`, `dt`, `tm`, `ven`, `tA/fA`, `tB/fB`, palpites das IAs (`g/c/d/e`, cada um `{a,b}`).
+- **`CACHE`** — espelho em memória da tabela `bolao_games`: `{ game_id → row }`. Atualizado por realtime. Só o que vem do banco (placar real + palpites humanos + flags).
+- **`PARTICIPANTS`** — 8 objetos `{id, name, type, color, init, team, editable?, img}`. Ordem = ordem visual. `id` é chave técnica.
+- **`MATA_EXTRA`/`MATA_PARTS`** — participantes só-mata e lista completa (14) do mata-mata.
+- **`MM_CONFRONTOS`** / **`MM_PALPITES`** — estado do mata (carregado do banco).
+- **`mmOpen`** (Set) — IDs de cards do mata expandidos. Recalculado a cada load por `mmInitOpenCards()`; overrides manuais na sessão; reload zera.
+- **`mmCollapsedDays`** (Set) — dias recolhidos na lista. Inicializado por `mmEnsureDaysInit()` (24h após fim do dia).
+- **`CUT`** — `20*10000 + 12*100`. Corte do Bolão Geral.
+- **`DATA_COLS`** — colunas que contam como "mudança real" no realtime (incluir toda coluna nova de humano).
+- **`filterMode`** (`localStorage 'bf'`) e **`rankMode`** (`localStorage 'brm'`) — UI persistida.
+- **`MM_AGENDA`** — datas/horas/sedes de todos os 32 jogos do mata (no código, pois anon key não cria colunas).
+
+---
 
 ## 5. Fluxo de dados (ponta a ponta)
 
-### Leitura / merge
-`getGame(id)` (514) é o ponto único de leitura: mescla `GT.find(id)` + `CACHE[id]` e monta
-`predictions` por participante — humanos vêm das colunas `<id>_a/<id>_b` do `CACHE`; IAs vêm de
-`t.g/t.c/t.d/t.e` do GT. Quase tudo que renderiza chama `getGame`. **Palpite de IA mora no
-código (GT); palpite de humano mora no banco (CACHE).**
+### Grupos — leitura / merge
+`getGame(id)`: mescla `GT` + `CACHE`. Palpites humanos = colunas `<id>_a/<id>_b` do CACHE; IAs = campos `g/c/d/e` do GT. **Palpite de IA mora no código; palpite de humano mora no banco.**
 
-### Como um palpite humano é salvo
-1. `<input oninput="updPred(gameId,pid,side,this.value)">` gerado em `renderCard` (828).
-2. `updPred` (968): **trava se o jogo já começou** (`gameDate(...).getTime() <= Date.now()` → `return`),
-   atualiza `CACHE[gameId][<pid>_<side>]`, chama `refreshPoints(gameId)` (atualização cirúrgica) e
-   agenda `upsert` com **debounce ~700ms** (`debouncers`).
-3. `upsert` (543): `sb.from(TABLE).upsert({game_id, ...campos, updated_at}, {onConflict:'game_id'})`
-   + `setSyncing` (indicador "salvando/salvo").
-4. Outros dispositivos recebem via `subscribeRealtime` (575) → `applyRemoteScores(gid)` (596)
-   atualiza **só os inputs/selos daquele card**, sem re-render (preserva foco/scroll). `sameRow`
-   (563) descarta o eco da própria escrita; `isTyping` evita reescrever input em foco.
+### Grupos — como um palpite humano é salvo
+1. `<input oninput="updPred(...)">` gerado em `renderCard`.
+2. `updPred`: trava se jogo já começou → atualiza CACHE → `refreshPoints` (cirúrgico) → debounce 700ms → `upsert`.
+3. `upsert`: `sb.from(TABLE).upsert({game_id, ...campos, updated_at}, {onConflict:'game_id'})`.
+4. Outros devices: `subscribeRealtime` → `applyRemoteScores` (só o card, sem re-render). `sameRow` descarta eco; `isTyping` protege input em foco.
 
-Placar real e finalizar seguem o mesmo caminho: `updReal` (979) → coluna `real_a/real_b`;
-`toggleFinish` (900) → coluna `finished` (este re-renderiza a lista inteira, é ação estrutural).
+### Grupos — pontuação
+- `calcPts(pred, rA, rB)`: +5 resultado · +1 gols A · +1 gols B · +3 exato → máx 10. `null` se falta dado.
+- **`ptsOf(g, pred)`**: aplica TURBO (dobra 1 jogo/dia). **Sempre use `ptsOf`, nunca `calcPts` direto.**
+- Prévia: pontos em cinza quando há placar mas não finalizado; só conta no ranking quando `finished`.
 
-### Como a pontuação é calculada
-- `calcPts(pred, rA, rB)` (639): regra **+5 resultado** (vitória A / vitória B / empate),
-  **+1 gols mandante**, **+1 gols visitante**, **+3 bônus se cravar** → máx **10**. Retorna `null`
-  se faltar palpite ou placar.
-- `ptsOf(g, pred)` (660): aplica TURBO — `isTurbo(g)` (659) dobra os pontos de **1 jogo por dia**
-  (≥20/06), escolhido deterministicamente por data em `turboIdForDate` (655, via `hashStr`).
-  **Use `ptsOf`, não `calcPts` direto**, em qualquer lugar que componha ranking/stats.
-- "Prévia": `renderCard`/`refreshPoints` mostram pontos em cinza quando há placar mas o jogo não
-  foi finalizado; só conta no ranking quando `finished` (filtro em `getStats`/`geralHistory`).
+### Mata-mata — palpite humano
+`mmUpdPalpite` → debounce → `mmUpsertPalpite` (PK `confronto_id`+`pid`). Trava pós-kickoff: `mmIsKickoff(c)` bloqueia escrita se `mmGameDate(c) <= Date.now()`.
 
-### Ranking e histórico
-- `getStats(pid, filterFn)` (990): varre `GT→getGame`, filtra finalizados (e `filterFn`, ex.:
-  `inRank` = `sortKey>=CUT`), soma via `ptsOf`, retorna `{total, rHits, eHits, avg, cravadas, ...}`.
-- Ordenação/desempate (em `rankingNew` 1276, `rankingOld` 1319, `geralHistory`): `total` →
-  `eHits` (cravados) → `rHits` (ganhador/empate). **Mude isso em todos os três juntos.**
-- `geralHistory()` (1146): reconta a classificação **após cada jogo finalizado** em ordem
-  cronológica → array `steps[i] = {g, pos:{pid→1..8}, tot:{pid→pontos}}`. Base de:
-  `geralDeltas` (1172, variação dos últimos 3 jogos → setas), `histChart` (1194, gráfico SVG
-  interativo) e `rankMarquee` (1259, barra rolante na aba Palpites).
+---
 
 ## 6. Onde está cada feature
 
 | Feature | Função / âncora |
 |---|---|
-| Card de um jogo (cabeçalho, bandeiras, inputs, prévia) | `renderCard` 828 |
-| **Trava de palpite ao começar o jogo** | flag `started` em `renderCard` (828, desabilita inputs + tag "PALPITES FECHADOS") **e** guarda em `updPred` 968 |
-| Lista/filtros/seções por data | `renderPalpites` 767 (filtros: pending/all/finished/geral/jxv/naocons) |
-| "Jogos de hoje" / próximo jogo + contagem | `heroHTML` 743, `todaySlate` 704, `dayRow` 716, `tickCountdown` 696 |
-| Jogo TURBO ×2 | `isTurbo` 659 / `turboIdForDate` 655 / `ptsOf` 660 |
-| Finalizar / remover jogo | `toggleFinish` 900, `toggleRemove` 908 |
-| Atualização cirúrgica de pontos (sem re-render) | `refreshPoints` 930 (local), `applyRemoteScores` 596 (remoto) |
-| Pódio + leaderboard (8 linhas, setas de variação) | `podium` 1127, `rkRow` 1110 (param `delta`), montados em `rankingNew` 1276 |
-| Comparativos (Humanos×Máquinas, corrida de times) | `versus` 1043, `teamRace` 1061 |
-| Estatísticas individuais + tooltips "?" | `statCard` 1084, `TIPS`/`q` 1013/1041 |
-| Gráfico de evolução (SVG, hover/clique, foto+nome) | `histChart` 1194 + `histApply/Hover/Click` 1251 |
-| Barra rolante do ranking (aba Palpites) | `rankMarquee` 1259 (chamada em `renderPalpites` 767) |
-| Toggle Geral/JxV | `setRank` 1351 / `renderRanking` 1353 |
+| Card de jogo (grupos) | `renderCard` |
+| Trava palpite grupos (kickoff) | `updPred` (guarda `gameDate().getTime()<=Date.now()`) |
+| Lista por data / filtros | `renderPalpites` |
+| Próximo jogo + contagem | `heroHTML`, `todaySlate`, `tickCountdown` |
+| Turbo ×2 (grupos) | `isTurbo` / `turboIdForDate` / `ptsOf` |
+| Finalizar / remover (grupos) | `toggleFinish`, `toggleRemove` |
+| Atualização cirúrgica de pontos | `refreshPoints` (local), `applyRemoteScores` (remoto) |
+| Pódio + leaderboard + setas | `podium`, `rkRow`, `rankingNew` |
+| Comparativos (H×M, corrida times) | `versus`, `teamRace` |
+| Estatísticas + tooltips | `statCard`, `TIPS`, `q` |
+| Gráfico de evolução (SVG) | `histChart` + `histApply/Hover/Click` |
+| Barra rolante do ranking | `rankMarquee` |
+| Toggle Geral/JxV | `setRank` / `renderRanking` |
+| **Mata: trava kickoff** | `mmIsKickoff(c)` · guarda em `mmUpdPalpite` e `mmSetQuemPassa` |
+| **Mata: abertura automática de cards** | `mmInitOpenCards()` — último+em andamento+3 próximos; reload zera |
+| **Mata: colapso de dia (24h)** | `mmEnsureDaysInit()` — colapsa quando now ≥ últimoJogo+3h+24h |
+| **Mata: campo palpite lime/preto** | classe `.filled` nos inputs; `mmUpdPalpite` faz toggle; IA sempre cinza (`--surface-3`) |
+| **Mata: botão Fechado / rótulo** | `mmResultHTML` — "🔒 Fechado" quando finalizado, "PRÉVIA PLACAR" quando não |
+| **Mata: placar topo** | `mmMatchupHTML` — sempre mostra VS (placar só no rodapé via `mmResultHTML`) |
+| **Mata: falta palpite de X,Y,Z** | `mmNextGamesHTML` — inclui humanos E IAs sem palpite completo |
+| **Mata: bandeiras quem passa** | `mmQuemPassaHTML` / `mmFootQpHTML` — sempre visíveis (idle quando sem dado) |
+| **Mata: frases dinâmicas** | `mmHumQpLabel` — "X avança" / "Quem passa?" / vazio |
+| Mata: chave visual (bracket) | `mmBracketHTML`, `MM_BRACKET`, `MM_COLS` — 32 slots fixos |
+| Mata: pontuação | `calcMataPts`, `mmScore`, `mataStats`, `MM_PHASE_MULT`, `mmMult`, `MM_TURBO`, `MM_ZEBRA` |
+| Mata: ranking integrado | `rankingNew` soma `mataStats`; `showTab`/`renderAll` tratam aba mata |
+| Mata: agenda completa | `MM_AGENDA` (no código) — 32 jogos com dt/tm/ven |
+
+---
 
 ## 7. NÃO toque sem cuidado (e por quê)
 
-- **`PARTICIPANTS`, `OLD_IDS`, `GT` (campos `g/c/d/e`):** os IDs e o mapeamento IA→campo são
-  referenciados em dezenas de pontos por string. Renomear quebra `getGame`, `getStats`, etc.
-- **Critério de desempate** (`b.total||b.eHits||b.rHits`): duplicado em `rankingNew`, `rankingOld`
-  e `geralHistory`. Se mudar, mude **os três** ou o gráfico/setas divergem da tabela.
-- **`sameRow`/`DATA_COLS`/`isTyping`:** desligam o eco do realtime e protegem o input em foco.
-  Mexer errado faz o card "piscar"/perder o que está sendo digitado, ou entrar em loop de escrita.
-- **Re-render completo durante digitação:** `renderPalpites` reconstrói o `innerHTML` e **mata foco
-  e scroll**. Em mudança de input use só `refreshPoints`/`applyRemoteScores`. Re-render inteiro só
-  em ação estrutural (filtro, finalizar, trocar aba).
-- **`upsert` sem `onConflict:'game_id'` / sem `updated_at`:** cria linha duplicada ou some o
-  rastro de "salvo". Sempre use o helper `upsert` (543).
-- **Banco é produção real.** Não escreva valores de teste; se precisar testar escrita, reverta.
-  A `anon key` é pública de propósito — não troque nem exponha outras credenciais.
-- **`ptsOf` vs `calcPts`:** usar `calcPts` direto em ranking ignora o TURBO e dá pontuação errada.
-- **Horário:** tudo é horário de **Brasília** (relógio do dispositivo). Jogos de 0h/1h já têm a
-  **data do dia correto** no `GT`. `sortKey = dia*10000 + hora*100 + min`.
+- **`PARTICIPANTS`, `OLD_IDS`, `GT` (campos `g/c/d/e`):** IDs referenciados em dezenas de pontos por string. Renomear quebra `getGame`, `getStats`, etc.
+- **Critério de desempate** (`total` → `eHits` → `rHits`): duplicado em `rankingNew`, `rankingOld` e `geralHistory`. Mude os três juntos.
+- **`sameRow`/`DATA_COLS`/`isTyping`:** protegem contra eco do realtime e perda de foco. Erro aqui faz card piscar ou entrar em loop de escrita.
+- **Re-render completo durante digitação:** `renderPalpites`/`renderMata` matam foco e scroll. Mudança de input = atualização cirúrgica (`refreshPoints`/`applyRemoteScores`/`mmRefreshPts`). Re-render inteiro só em ação estrutural.
+- **`upsert` sem `onConflict` / sem `updated_at`:** cria linha duplicada. Sempre use o helper `upsert`.
+- **`ptsOf` vs `calcPts`:** usar `calcPts` direto ignora turbo. Sempre `ptsOf` em contexto de ranking.
+- **`mmUpdPalpite` / `mmSetQuemPassa`:** verificam `mmIsKickoff(c)` e retornam cedo se travado. Não remover essa guarda.
+- **Chaveamento (bracket):** `MM_BRACKET`/`MM_COLS`/`mmBracketHTML` são estrutura fixa de 32 slots. Não alterar linhas nem estrutura.
+- **Cabeçalho não-sticky:** NÃO voltar para `position:sticky`. Quebra o clique no chaveamento.
+- **`mmOpen`/`mmCollapsedDays` não vão pro localStorage:** reset no reload é comportamento intencional.
+- **Banco é produção real.** Não escreva valores de teste sem revertê-los.
+
+---
 
 ## 8. Padrões para qualquer nova feature
 
-- **Tudo em `index.html`, vanilla.** Funções globais chamadas por `onclick=`/`oninput=` em HTML
-  gerado por template string + `innerHTML`. CSS numa linha por regra, cores via CSS var ou `p.color`.
+- **Tudo em `index.html`, vanilla.** Funções globais via `onclick=`/`oninput=` em template strings + `innerHTML`. CSS numa linha por regra, cores via CSS var.
 - **Idioma:** UI, comentários e domínio em **português**; nomes de função em camelCase.
-- **Render:** ler estado por `getGame`; nunca duplicar a lógica de merge. Ação estrutural →
-  re-render; mudança de valor pontual → atualização cirúrgica.
-- **Escrita:** sempre via `upsert` (com debounce se vier de input). Estado de UI → `localStorage`.
-- **Pontos/ranking:** derive de `getStats`/`ptsOf`/`geralHistory`; não recalcule à mão.
-- **Mobile-first (375px).** Verificar no preview (porta 3333), console limpo, e olhar no mobile.
-  No gráfico/SVG, lembrar que desktop preenche a largura e mobile rola pro lado.
-- **Deploy:** commitar na `dev` (mensagem em português, descritiva). **NÃO** dar push/merge na
-  `main` sem ordem explícita do usuário (ver regra no topo do arquivo). Cloudflare publica a `main`.
+- **Render:** ler estado por `getGame` (grupos) ou `MM_CONFRONTOS`/`MM_PALPITES` (mata). Ação estrutural → re-render; mudança pontual → cirúrgica.
+- **Escrita:** sempre via `upsert`/`mmUpsertPalpite` (com debounce se vier de input). Estado de UI → `localStorage`. **Todo builder Supabase precisa de `await` ou `.then()`** — ver armadilha §0.
+- **Pontos/ranking grupos:** `getStats`/`ptsOf`/`geralHistory`. Mata: `calcMataPts`/`mataStats`.
+- **Mobile-first (375px).** Preview porta 3333, console limpo. Checar viewport mobile.
+- **Deploy:** commitar na `ratazana` (mensagem em português). Pushar. Vini testa em DEV. Merge pra `main` só com ok do Vini + safepoint antes.
+
+---
 
 ## 9. Adicionar um participante humano (checklist)
 
-1. **Supabase:** `ALTER TABLE bolao_games ADD COLUMN <id>_a int, ADD COLUMN <id>_b int;`
-2. `PARTICIPANTS` (379): novo objeto `{id, name, type:'human', color, init, team, editable:true, img}`.
-3. `TEAMS` (389) se formar/alterar time.
-4. `getGame` (514): adicionar `<id>: {a:n(c.<id>_a), b:n(c.<id>_b)}` em `predictions`.
-5. `DATA_COLS` (561): incluir `<id>_a`, `<id>_b`.
-6. `applyRemoteScores` (596): garantir que atualiza o input/selo do novo `pid`.
-7. `missingPred` (672): incluir o palpite se ele deve contar como "falta palpite".
-8. `statsOrder` em `rankingNew` (1276): incluir o `id` na ordem das estatísticas.
-9. Adicionar a foto em `fotos/<id>.jpg`.
+Para grupos (banco `bolao_games`):
+1. `ALTER TABLE bolao_games ADD COLUMN <id>_a int, ADD COLUMN <id>_b int;`
+2. `PARTICIPANTS`: novo objeto.
+3. `TEAMS` se alterar time.
+4. `getGame`: adicionar `<id>: {a:n(c.<id>_a), b:n(c.<id>_b)}`.
+5. `DATA_COLS`: incluir `<id>_a`, `<id>_b`.
+6. `applyRemoteScores`: garantir atualização do novo pid.
+7. `missingPred`: incluir se deve contar como "falta palpite".
+8. `statsOrder` em `rankingNew`: incluir id.
+9. Foto em `fotos/<id>.jpg`.
 
-> Palpite de **IA** não usa banco: entra como campo `g/c/d/e` no objeto do jogo dentro do `GT`,
-> casando por **nome do time + rodada** (os rótulos de grupo de fontes externas podem divergir do `grp`).
+Para mata-mata apenas (`mataOnly:true`):
+- Adicionar em `MATA_EXTRA` (com `mataOnly:true`); `MATA_PARTS` é gerado automaticamente.
+- Não é preciso `PARTICIPANTS` nem colunas no `bolao_games`.
+
+Palpite de IA (grupos): campo `g/c/d/e` no GT. Palpite de IA (mata): inserir via admin/REST no banco.
+
+---
 
 ## 10. Fase Mata-Mata (eliminatórias)
 
-Adição **separada** da fase de grupos — não toca em `GT`, `bolao_games`, `getStats` nem na lógica
-de grupos. **Todos os 8 palpitam** (humanos editam na UI; IAs aparecem como leitura, com palpite
-inserido por fora/admin). O **placar que vale é o FINAL (inclui prorrogação)**, não os 90 min:
-empate só é empate se persistir após a prorrogação → pênaltis.
+Separada dos grupos — não toca em `GT`, `bolao_games`, `getStats` nem pontuação de grupos.
 
-**Tabelas novas (Supabase)** — schema em `supabase_mata_mata.sql` (produção) e `supabase_dev_setup.sql`
-(dev, prefixo `dev_`). Rodar manualmente no SQL Editor; RLS público + realtime:
-- `mata_confrontos`: `id` (text, `mm_<rnd>`), `phase`, `team_a/flag_a`, `team_b/flag_b`,
-  `real_a/real_b` (**placar final, inclui prorrogação**), `classificado` (`'A'`/`'B'` = quem passou;
-  só importa se empatar → pênaltis), `finished` (só conta no ranking quando true), `created_at`.
-- `mata_palpites`: PK (`confronto_id`, `pid`), `gols_a`, `gols_b`, `quem_passa` (`'A'`/`'B'`, usado
-  só quando o palpite é empate). `pid` ∈ os 8 ids de `PARTICIPANTS`.
+**Tabelas Supabase** (schema em `supabase_mata_mata.sql`):
+- `mata_confrontos`: `id` (text, ex.: `r32_1`), `phase`, `team_a/flag_a`, `team_b/flag_b`, `real_a/real_b` (placar final, prorrogação inclusa), `classificado` (`'A'`/`'B'`, só em empate → pênaltis), `finished`, `created_at`.
+- `mata_palpites`: PK (`confronto_id`, `pid`), `gols_a`, `gols_b`, `quem_passa` (`'A'`/`'B'`, só em empate palpitado). `pid` ∈ ids de `MATA_PARTS`.
+- ⚠️ **RLS:** ambas precisam de `FOR ALL USING(true) WITH CHECK(true)` (ver armadilha §0).
 
-**Onde no código (`index.html`)** — seção `// ─── MATA-MATA ───` (antes de TAB NAV):
-- Tabelas por ambiente: `MM_TCONF`/`MM_TPAL` (= `mata_*` em produção, `dev_mata_*` no dev — ver §11).
-- Estado: `MM_CONFRONTOS`, `MM_PALPITES` (map `cid→pid→palpite`), `MM_HUMANS` (quem é editável na UI).
+**Onde no código** — seção `// ─── MATA-MATA ───`:
+- Config: `MM_TCONF`/`MM_TPAL` (nome das tabelas por ambiente), `MM_CONFRONTOS`, `MM_PALPITES`, `mmOpen`, `mmCollapsedDays`, `mmDaysInit`.
+- Agenda (no código): `MM_AGENDA` — 32 slots com dt/tm/ven. `mmInfo(c)` faz fallback para ela.
 - Dados: `loadMata`, `subscribeMata`/`mmReload` (realtime; não re-renderiza enquanto edita).
-- Escritas: `mmUpsertConfronto`/`mmUpsertPalpite`, `mmSetReal`/`mmSetClassificado`/`mmSetFinished`,
-  `mmUpdPalpite`/`mmSetQuemPassa` (debounce ~700ms). **`mmAddConfronto`/`mmRemoveConfronto`/
-  `mmToggleEdit`/`mmSaveEdit` continuam no código mas NÃO têm botão na UI** — criar/editar/remover
-  confronto é feito por fora (admin/Claude Code, via REST/script apontando pro banco de dev).
-- Pontuação: **`calcMataPts(pal,c)`** — placar final igual à fase de grupos (**5** resultado + **1**
-  gol A + **1** gol B + **3** exato) **+ 4 SÓ se o palpite foi empate E acertou o `classificado`**.
-  `mataStats(pid)` agrega para o ranking (ignora `[TESTE]` e não finalizados); roda pros 8.
-- Render: `renderMata` (aba `#tab-mata`, sem controles de admin), `mmCard` (reusa `.card/.matchup/
-  .pred-cell/.real-row`; humanos com inputs, IAs leitura via `.mm-iascore`), `mmQuemPassaHTML`
-  (seletor/leitura "quem passa", **só quando o palpite é empate**), `mmRefreshPts`/`mmRenderQuemPassa`.
-- Integração: `rankingNew` soma `mataStats` ao `total/eHits/rHits/played/cravadas` (recalcula `avg`);
-  nav tem a aba "⚔️ Mata-Mata"; `showTab`/`renderAll` tratam `'mata'`. **Gráfico de evolução, deltas
-  e barra rolante continuam só da fase de grupos.**
+- Escritas: `mmUpsertConfronto`/`mmUpsertPalpite`, `mmSetReal`/`mmSetClassificado`/`mmSetFinished`, `mmUpdPalpite`/`mmSetQuemPassa` (debounce 700ms).
+- Admin (sem botão na UI): `mmAddConfronto`/`mmRemoveConfronto`/`mmToggleEdit`/`mmSaveEdit`.
 
-**Dados de teste** (confrontos com `[TESTE]` no nome; **não contam no ranking**) — escrevem no **dev**:
-- `npm run seed:teste` → cria 2 confrontos `[TESTE]` em `dev_mata_confrontos`. Requer `supabase_dev_setup.sql` rodado.
-- **`npm run clean:teste`** → apaga só os `[TESTE]` (cascade nos palpites). Rodar antes dos 16 reais.
-- Os scripts miram o dev por padrão; `MM_TABLE=mata_confrontos npm run …` aponta pra produção (não usar à toa).
+**Abertura automática de cards (`mmInitOpenCards`)** — roda 1x no load, após `loadMata()`:
+- Passado: `mmGameDate(c)+3h <= now`; em andamento: entre início e início+3h; futuro: após início.
+- Abre: **último passado** + **todos em andamento** + **3 próximos futuros** (menos se não existirem).
+- `mmOpen = new Set()` a cada reload → overrides manuais não persistem entre sessões.
+- Colapso de dia (`mmEnsureDaysInit`): seção do dia recolhida quando `now >= últimoJogo.start + 3h + 24h`.
+
+**Kickoff lock:** `mmIsKickoff(c)` = `mmGameDate(c).getTime() <= Date.now()`. Trava `mmUpdPalpite` e `mmSetQuemPassa`. Inputs ficam `disabled` (fundo cinza `--brd`).
+
+**Campos de palpite:**
+- Humano: fundo **lime** (`--lime`) quando vazio; **preto** (`--input-dark`) quando preenchido (classe `.filled`). Gerenciado por `mmHumPredHTML` (render) + `mmUpdPalpite` (live). Disabled = cinza.
+- IA: sempre **cinza** (`--surface-3`), nunca lime/preto. Box `mm-iascore`.
+
+**Rodapé do card (`mmResultHTML`):**
+- Rótulo: "PLACAR FINAL" se finalizado, "PRÉVIA PLACAR" se não.
+- Botão: "🔒 Fechado" (`.done`) se finalizado, "Finalizar ✓" se não.
+- Placar: só no rodapé. Topo do card (matchup) sempre mostra "VS" (sem número).
+- "Quem passou": bandeiras sempre visíveis (idle quando sem dado).
+
+**"falta palpite de:"** (`mmNextGamesHTML`): inclui **humanos E IAs** sem palpite completo em jogos abertos.
+
+**Render:**
+- `renderMata` (aba `#tab-mata`), `mmListItem`/`mmCardBody` (cards), `mmBracketHTML` (chave).
+- `mmHeadHTML`, `mmMatchupHTML`, `mmResultHTML`, `mmCardBody`, `mmListItem`, `mmGhostCard`, `mmListHTML`.
+- `mmRefreshPts` (cirúrgico, sem re-render), `mmRenderQuemPassa` (bandeiras/rótulo).
+- `mmHumPredHTML`/`mmHumQpFlag`/`mmUpdHumFlags` (célula humana).
+- `mmQuemPassaHTML` (IA) / `mmFootQpHTML` (rodapé).
+
+**Integração ranking:** `rankingNew` soma `mataStats` ao total; gráfico de evolução, deltas e barra rolante continuam só da fase de grupos.
+
+**Dados de teste** (não contam no ranking):
+- `npm run seed:teste` → 2 confrontos `[TESTE]` no dev.
+- `npm run clean:teste` → apaga só os `[TESTE]` (cascade nos palpites).
+
+---
 
 ## 11. Ambientes prod/dev (banco isolado por hostname)
 
-- **Detecção:** `isDevEnv()` (em `index.html`, junto da config) — `IS_DEV = hostname começa com "dev."`.
-  No dev, `TABLE`/`MM_TCONF`/`MM_TPAL` viram `dev_bolao_games`/`dev_mata_confrontos`/`dev_mata_palpites`.
-  Em produção/localhost ficam as tabelas sem prefixo — **produção não muda de comportamento**.
-- **Mesmo projeto Supabase, mesma anon key.** O isolamento é só pelo **nome das tabelas**. O banco de
-  dev é um sandbox (RLS deixa a anon key apagar/escrever). `supabase_dev_setup.sql` cria as `dev_*`.
-- **Botão "🪞 Espelhar prod→dev"** (`mirrorProdToDev`, canto sup. direito, só com `IS_DEV`): lê a
-  produção (somente leitura) e regrava tudo no dev. Usa só a anon key; nunca a service_role.
-- ⚠️ **localhost = produção** (não começa com `dev.`): ao testar local, o app lê/escreve na PRODUÇÃO.
-  Pra mexer em dados de teste sem risco, use a URL de preview `dev.*` (ou os scripts, que miram o dev).
+- **Detecção:** `isDevEnv(h)` → `h.startsWith('dev.') || h.startsWith('ratazana.')`.
+  - IS_DEV=true: tabelas `dev_*`, badge DEV visível, título "TESTES -".
+  - IS_DEV=false (prod/localhost): tabelas sem prefixo, sem badge.
+- **Mesmo projeto Supabase, mesma anon key.** Isolamento é só pelo nome das tabelas.
+- **Botão "🪞 Espelhar prod→dev"** (`mirrorProdToDev`, só IS_DEV): copia produção → dev. Anon key apenas; nunca service_role.
+- **⚠️ localhost = produção.** Para testar dados sem risco, usar `ratazana.bolao-ratazana00.pages.dev`.
