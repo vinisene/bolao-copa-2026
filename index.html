@@ -2744,13 +2744,21 @@ function mmMataRankingHTML(){
   const seq=rows.map(item).join('');
   return `<div class="rank-marquee"><div class="rm-head">🏆 CLASSIFICAÇÃO DO MATA-MATA</div><div class="rm-track-wrap"><div class="rm-track" onclick="this.classList.toggle('paused')">${seq}${seq}</div></div></div>`;
 }
-// (3) Como funciona a pontuação.
+// (3) Regras do Bolão.
 function mmHowItWorksHTML(){
-  return `<details class="mm-block mm-how"><summary class="mm-block-h">📐 Como funciona a pontuação (só mata-mata)</summary><div class="mm-how-body">
-    <p><b>Vale só pro mata-mata</b> — a fase de grupos <b>não muda</b>. Tudo sobre o <b>placar final</b> (com prorrogação).</p>
-    <p><b>Pontos da partida</b> (multiplicam pela fase e pelo turbo): <b>5</b> resultado · <b>+1</b> gols do A · <b>+1</b> gols do B · <b>+2</b> saldo de gols <i>(só quando há vencedor; em empate não conta)</i> · <b>+3</b> cravar o placar · <b>+4</b> pênaltis <i>(palpitou empate e acertou quem passou)</i> — <b>o +4 também multiplica</b>.</p>
-    <p><b>Multiplicador por fase</b>: 16 avos ×1 · Oitavas ×1,25 · Quartas ×1,5 · Semis ×1,75 · 3º lugar ×1,75 · <b>Final ×4</b>. <b>Turbo ⚡ ×2</b> em cima da fase (ex.: turbo na semi = ×3,5). Nenhum jogo passa da Final (×4).</p>
-    <p><b>Bônus de zebra 🦓</b> (soma <b>fixa</b> no fim, <b>não</b> multiplica): <b>+3 zebra</b> · <b>+5 zebrão</b> (dourado). Ganha quem apontou o <b>azarão</b> pra avançar <b>e</b> ele realmente avançou. Azarão com ≤25% de chance de passar = zebra; ≤12% = zebrão.</p>
+  return `<details class="mm-block mm-how"><summary class="mm-block-h">📋 Regras do Bolão</summary><div class="mm-how-body">
+    <p><b>🎯 PONTUAÇÃO POR JOGO</b><br>
+    <b>5</b> — acertou o resultado<br>
+    <b>+1</b> — gols de cada time (<b>+2</b> se acertar os dois)<br>
+    <b>+2</b> — acertou o saldo (só com vencedor)<br>
+    <b>+3</b> — placar exato<br>
+    <b>+4</b> — empatou e acertou quem passa nos pênaltis</p>
+    <p><b>🔥 MULTIPLICADORES</b> (a pontuação cresce a cada fase)<br>
+    16 avos ×1 · Oitavas ×1,25 · Quartas ×1,5 · Semi ×1,75 · 3º ×1,75 · <b>Final ×4</b></p>
+    <p>⚡ <b>TURBO</b> — jogos sorteados que valem ×2.</p>
+    <p>🦓 <b>ZEBRA +3 / ZEBRÃO +5</b> — apostou no azarão pra passar e ele passou, leva bônus (fixo, não multiplica).</p>
+    <p>📜 Nenhum jogo vale mais que a Final.<br>
+    ⏰ Palpite até a hora de cada jogo começar.</p>
   </div></details>`;
 }
 function renderMata(){
