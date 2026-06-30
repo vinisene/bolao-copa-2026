@@ -2741,7 +2741,7 @@ function mmNextGamesHTML(){
   // zebra/zebrão: imagem (com +3/+5) AO LADO da bandeira do azarão (lado pelo dado mmZebra)
   const tnm=(t,c,s)=>{ if(!t)return '<b>?</b>'; const z=mmZebra(c); const zi=(z&&z.azarao===s)?`<img class="dh-zebra-img" src="Imagens/${z.tipo==='zebrao'?'Zebra_o':'Zebra'}.png" alt="${z.tipo==='zebrao'?'Zebrão':'Zebra'}">`:''; return `${t.flag?flagImg(t.flag):''}${zi} <b>${esc(t.name)}</b>`; };
   const row=({c,d})=>{const i=mmInfo(c),tm=mmTeams(c),t=d.getTime();
-    const mp=MATA_PARTS.filter(p=>p.type==='human'&&!mmHasFullPred((MM_PALPITES[c.id]||{})[p.id])).map(p=>p.name);
+    const mp=MATA_PARTS.filter(p=>!mmHasFullPred((MM_PALPITES[c.id]||{})[p.id])).map(p=>p.name);
     const miss=mp.length>0, missText=mp.length===1?mp[0]:mp.slice(0,-1).join(', ')+' e '+mp[mp.length-1];
     return `<div class="dh-row${mmIsTurbo(c)?' dh-turbo':''}${miss?' mm-miss-row':''}" onclick="mmGotoFromHero('${c.id}')">
       <span class="dh-time">${esc(i.tm||'')}</span>
