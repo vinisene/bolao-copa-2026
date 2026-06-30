@@ -2560,10 +2560,10 @@ function mmResultHTML(c){
   const hasScore=c.real_a!=null&&c.real_b!=null;
   const realInp=side=>`<input type="number" min="0" max="99" inputmode="numeric" value="${c['real_'+side]!=null?c['real_'+side]:''}" placeholder="–" oninput="mmSetReal('${c.id}','${side}',this.value)">`;
   return `<div class="real-row mm-footer${c.finished?'':' pending'}">
-      <span class="mm-foot-fl"><span class="rr-label">PLACAR FINAL</span><span class="prev-tag${(!c.finished&&hasScore)?' show':''}">prévia</span></span>
+      <span class="mm-foot-fl"><span class="rr-label">${c.finished?'PLACAR FINAL':'PRÉVIA PLACAR'}</span></span>
       <div class="mm-foot-scores">${realInp('a')}<span class="mm-foot-x">×</span>${realInp('b')}</div>
       ${mmFootQpHTML(c)}
-      <button class="rr-finish${c.finished?' done':''}" onclick="mmSetFinished('${c.id}')">${c.finished?'Finalizado ✅':'Finalizar <span class="chk-off">✓</span>'}</button>
+      <button class="rr-finish${c.finished?' done':''}" onclick="mmSetFinished('${c.id}')">${c.finished?'🔒 Fechado':'Finalizar <span class="chk-off">✓</span>'}</button>
     </div>`;
 }
 
