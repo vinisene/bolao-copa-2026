@@ -630,6 +630,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .mm-hc-pred input::-webkit-outer-spin-button,.mm-hc-pred input::-webkit-inner-spin-button{-webkit-appearance:none;}
 .mm-hc-pred input:focus{outline:none;border-color:var(--gl);background:#fff;box-shadow:0 0 0 3px rgba(45,150,83,.13);}
 /* bandeira do "quem passa" colada no placar */
+.mm-hc-pred .fa,.mm-hc-pred .fb{margin-top:8px;}   /* espaço uniforme frase↔bandeiras (8px) no palpite humano */
 .mm-qpf{background:var(--card);border:1.5px solid var(--brd);border-radius:6px;padding:2px 4px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;line-height:1;}
 .mm-qpf .flagbx{width:24px;height:16px;}
 .mm-qpf.ro{cursor:default;}
@@ -652,10 +653,10 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .mm-iacell-head{display:flex;align-items:center;gap:6px;min-width:0;}
 .mm-iacell .hum-name{font-size:12px;font-weight:800;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .mm-iacell-row{display:flex;align-items:center;gap:8px;}
-.mm-iacell-row .mm-iascore{flex:0 0 auto;white-space:nowrap;padding:3px 8px;font-size:14px;min-width:auto;}
-.mm-iacell-row .mm-hc-passa{margin-left:auto;}
-/* Seletor "Quem passa / Pênaltis" em 2 linhas */
-.mm-passa{display:flex;flex-direction:column;align-items:center;gap:12px;}
+.mm-iacell-row .mm-iascore{flex:0 0 auto;white-space:nowrap;padding:5px 12px;font-size:18px;min-width:68px;}
+.mm-iacell-row .mm-qp{flex:1;display:flex;justify-content:center;}
+/* Seletor "Quem passa" — distância frase↔bandeiras uniforme (8px) nos três contextos */
+.mm-passa{display:flex;flex-direction:column;align-items:center;gap:8px;}
 .mm-passa-lbl{font-size:8px;font-weight:800;font-family:var(--font-body);color:var(--mu);text-transform:uppercase;letter-spacing:.2px;white-space:nowrap;}
 .mm-passa.pen .mm-passa-lbl{color:#c0392b;}
 .mm-passa.won .mm-passa-lbl,.mm-passa.chosen .mm-passa-lbl{color:var(--g);}
@@ -679,7 +680,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .mm-foot-scores input:focus{outline:none;border-color:var(--gl);background:#fff;box-shadow:0 0 0 3px rgba(45,150,83,.13);}
 .mm-foot-x{font-weight:800;color:#fff;opacity:.85;}
 /* "quem passou": rótulo em cima, 2 bandeiras MENORES embaixo, na mesma linha */
-.mm-foot-qp{display:flex;flex-direction:column;align-items:center;gap:8px;}
+.mm-foot-qp{display:flex;flex-direction:column;align-items:flex-start;gap:8px;}
 .mm-foot-qplbl{font-size:8px;font-weight:800;font-family:var(--font-body);color:rgba(255,255,255,.82);text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;}
 .mm-foot-qplbl.pen{color:#ffd9a8;}
 .mm-foot-qplbl.won,.mm-foot-qplbl.chosen{color:#b8ffce;}
