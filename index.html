@@ -2827,7 +2827,7 @@ function showTab(name){
 
 // ─── BOOT ─────────────────────────────────────────────────────────────────────
 if(IS_DEV){   // marca visual + botão de espelho, só no ambiente de dev (hostname dev./ratazana.)
-  document.title='DEV · Bolão Ratazana00 · Copa 2026';   // título da aba só em teste, mesma detecção IS_DEV
+  document.title='TESTES - Bolão Ratazana00';   // título da aba só em teste, mesma detecção IS_DEV
   const seal=document.getElementById('dev-seal'); if(seal)seal.style.display='';   // selo DEV no cabeçalho
   document.body.insertAdjacentHTML('afterbegin','<button id="mirror-btn" onclick="mirrorProdToDev()">🪞 Espelhar prod→dev</button>');
 }
