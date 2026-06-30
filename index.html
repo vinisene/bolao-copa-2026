@@ -417,7 +417,8 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .dh-teams.marq .dh-scroll{animation:marq linear infinite;}
 @keyframes marq{0%,12%{transform:translateX(0);}48%,62%{transform:translateX(var(--shift));}98%,100%{transform:translateX(0);}}
 .dh-teams i{color:var(--on-dark-muted);font-style:normal;font-weight:700;margin:0 2px;}
-.dh-miss{color:var(--lime);font-size:10.5px;font-weight:700;}
+.dh-miss{color:var(--red);font-size:10.5px;font-weight:700;}
+.dh-row.mm-miss-row .dh-scroll b{color:var(--red);}
 .dh-row.dh-turbo{border:1.5px solid var(--orange);background:rgba(255,90,31,.14);box-shadow:none;}
 .dh-turbobadge{background:var(--orange);color:#fff;font-size:9px;font-weight:800;padding:1px 5px;border-radius:4px;white-space:nowrap;}
 .dh-cd{font-size:12px;font-weight:800;background:rgba(255,255,255,.12);border-radius:7px;padding:3px 8px;flex-shrink:0;font-variant-numeric:tabular-nums;color:var(--on-dark);}
@@ -700,9 +701,9 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .mm-litem.is-turbo .mm-cqp{border-color:rgba(0,0,0,.3);background:rgba(255,255,255,.45);}
 .mm-litem.is-turbo .mm-cqp.on{background:var(--gold);border-color:var(--gold);}
 /* PALPITE FALTANDO (7): borda amarela + célula amarela de quem não palpitou */
-.mm-litem.mm-miss{border-color:#e8c44a;box-shadow:0 0 0 2px rgba(232,196,74,.45);}
-.mm-litem.is-turbo.mm-miss{border-color:#e8c44a;box-shadow:0 0 0 2px rgba(232,196,74,.6),0 4px 14px rgba(255,122,0,.18);}
-.mm-hcell.mm-miss-cell{background:#fff8e1;border-color:#e8c44a;}
+.mm-litem.mm-miss{border-color:var(--red);box-shadow:0 0 0 2px rgba(245,49,79,.35);}
+.mm-litem.is-turbo.mm-miss{border-color:var(--red);box-shadow:0 0 0 2px rgba(245,49,79,.5),0 4px 14px rgba(255,122,0,.18);}
+.mm-hcell.mm-miss-cell{background:#fff0f2;border-color:var(--red);}
 /* Card FINALIZADO esmaecido (10.1) */
 .mm-litem.mm-fin{filter:saturate(.55);opacity:.82;}
 /* Card-fantasma + "?" do time indefinido (Parte 5) */
@@ -2727,11 +2728,13 @@ function mmNextGamesHTML(){
   if(!up.length)return '';
   // zebra/zebrão: imagem (com +3/+5) AO LADO da bandeira do azarão (lado pelo dado mmZebra)
   const tnm=(t,c,s)=>{ if(!t)return '<b>?</b>'; const z=mmZebra(c); const zi=(z&&z.azarao===s)?`<img class="dh-zebra-img" src="Imagens/${z.tipo==='zebrao'?'Zebra_o':'Zebra'}.png" alt="${z.tipo==='zebrao'?'Zebrão':'Zebra'}">`:''; return `${t.flag?flagImg(t.flag):''}${zi} <b>${esc(t.name)}</b>`; };
-  const row=({c,d})=>{const i=mmInfo(c),tm=mmTeams(c),t=d.getTime(),miss=mmMissingHuman(c);
-    return `<div class="dh-row${mmIsTurbo(c)?' dh-turbo':''}" onclick="mmGotoFromHero('${c.id}')">
+  const row=({c,d})=>{const i=mmInfo(c),tm=mmTeams(c),t=d.getTime();
+    const mp=MATA_PARTS.filter(p=>p.type==='human'&&!mmHasFullPred((MM_PALPITES[c.id]||{})[p.id])).map(p=>p.name);
+    const miss=mp.length>0, missText=mp.length===1?mp[0]:mp.slice(0,-1).join(', ')+' e '+mp[mp.length-1];
+    return `<div class="dh-row${mmIsTurbo(c)?' dh-turbo':''}${miss?' mm-miss-row':''}" onclick="mmGotoFromHero('${c.id}')">
       <span class="dh-time">${esc(i.tm||'')}</span>
       ${mmIsTurbo(c)?'<span class="dh-turbobadge">⚡2×</span>':''}
-      <span class="dh-teams"><span class="dh-scroll">${tnm(tm.a,c,'A')} <i>×</i> ${tnm(tm.b,c,'B')}${miss?' <span class="dh-miss">• falta palpite</span>':''}</span></span>
+      <span class="dh-teams"><span class="dh-scroll">${tnm(tm.a,c,'A')} <i>×</i> ${tnm(tm.b,c,'B')}${miss?` <span class="dh-miss">• falta palpite de: ${esc(missText)}</span>`:''}</span></span>
       <span class="dh-cd" data-t="${t}">${fmtCountdown(t-now)}</span>
     </div>`;};
   return `<div class="day-hero"><div class="dh-head"><span class="nh-live"></span>PRÓXIMOS JOGOS · MATA-MATA</div><div class="dh-list">${up.map(row).join('')}</div></div>`;
