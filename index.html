@@ -626,9 +626,11 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .mm-qplbl.idle{opacity:.55;}
 .mm-hcell-locked{opacity:.65;position:relative;}
 .mm-hcell-lock-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:36px;opacity:.18;pointer-events:none;z-index:2;}
-.mm-hc-pred input{width:40px;height:38px;text-align:center;border:1.5px solid var(--brd);border-radius:9px;font-size:18px;font-weight:700;background:var(--bg);color:var(--txt);-moz-appearance:textfield;}
+.mm-hc-pred input{width:40px;height:38px;text-align:center;border:1.5px solid var(--brd);border-radius:9px;font-size:18px;font-weight:700;background:var(--lime);color:var(--txt);-moz-appearance:textfield;}
 .mm-hc-pred input::-webkit-outer-spin-button,.mm-hc-pred input::-webkit-inner-spin-button{-webkit-appearance:none;}
-.mm-hc-pred input:focus{outline:none;border-color:var(--gl);background:#fff;box-shadow:0 0 0 3px rgba(45,150,83,.13);}
+.mm-hc-pred input:not(:placeholder-shown){background:var(--input-dark);color:#fff;border-color:transparent;}
+.mm-hc-pred input:focus{outline:none;border-color:var(--gl);background:var(--input-dark);box-shadow:0 0 0 3px rgba(45,150,83,.13);color:#fff;}
+.mm-hc-pred input:disabled{background:var(--brd);color:var(--mu);cursor:default;opacity:1;border-color:transparent;}
 /* bandeira do "quem passa" colada no placar */
 .mm-hc-pred .fa,.mm-hc-pred .fb{margin-top:8px;}   /* espaço uniforme frase↔bandeiras (8px) no palpite humano */
 .mm-qpf{background:var(--card);border:1.5px solid var(--brd);border-radius:6px;padding:2px 4px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;line-height:1;}
