@@ -620,7 +620,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .mm-hc-pred{flex:1;display:grid;align-items:center;gap:0 5px;justify-content:center;grid-template-columns:auto auto auto auto auto;grid-template-areas:"na x nb lbl lbl" "na x nb fa fb";}
 .mm-hc-pred .mm-na{grid-area:na;}.mm-hc-pred .mm-nb{grid-area:nb;}.mm-hc-pred .mm-x{grid-area:x;font-weight:700;opacity:.7;}
 .mm-hc-pred .fa{grid-area:fa;margin-left:7px;align-self:start;}.mm-hc-pred .fb{grid-area:fb;align-self:start;}
-.mm-qplbl{grid-area:lbl;font-size:7.5px;line-height:1;font-weight:800;color:var(--mu);text-transform:uppercase;letter-spacing:0;text-align:center;white-space:nowrap;margin-left:7px;align-self:end;}
+.mm-qplbl{grid-area:lbl;font-size:7.5px;line-height:1;font-weight:800;font-family:var(--font-body);color:var(--mu);text-transform:uppercase;letter-spacing:0;text-align:center;white-space:nowrap;margin-left:7px;align-self:end;}
 .mm-qplbl.pen{color:#c0392b;}
 .mm-qplbl.won,.mm-qplbl.chosen{color:var(--g);}
 .mm-qplbl.idle{opacity:.55;}
@@ -654,8 +654,8 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .mm-iacell-row .mm-iascore{flex:0 0 auto;white-space:nowrap;padding:3px 8px;font-size:14px;min-width:auto;}
 .mm-iacell-row .mm-hc-passa{margin-left:auto;}
 /* Seletor "Quem passa / Pênaltis" em 2 linhas */
-.mm-passa{display:flex;flex-direction:column;align-items:center;gap:8px;}
-.mm-passa-lbl{font-size:8px;font-weight:800;color:var(--mu);text-transform:uppercase;letter-spacing:.2px;white-space:nowrap;}
+.mm-passa{display:flex;flex-direction:column;align-items:center;gap:12px;}
+.mm-passa-lbl{font-size:8px;font-weight:800;font-family:var(--font-body);color:var(--mu);text-transform:uppercase;letter-spacing:.2px;white-space:nowrap;}
 .mm-passa.pen .mm-passa-lbl{color:#c0392b;}
 .mm-passa.won .mm-passa-lbl,.mm-passa.chosen .mm-passa-lbl{color:var(--g);}
 .mm-passa.idle{opacity:.6;}
@@ -678,8 +678,8 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .mm-foot-scores input:focus{outline:none;border-color:var(--gl);background:#fff;box-shadow:0 0 0 3px rgba(45,150,83,.13);}
 .mm-foot-x{font-weight:800;color:#fff;opacity:.85;}
 /* "quem passou": rótulo em cima, 2 bandeiras MENORES embaixo, na mesma linha */
-.mm-foot-qp{display:flex;flex-direction:column;align-items:center;gap:6px;}
-.mm-foot-qplbl{font-size:8px;font-weight:800;color:rgba(255,255,255,.82);text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;}
+.mm-foot-qp{display:flex;flex-direction:column;align-items:center;gap:8px;}
+.mm-foot-qplbl{font-size:8px;font-weight:800;font-family:var(--font-body);color:rgba(255,255,255,.82);text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;}
 .mm-foot-qplbl.pen{color:#ffd9a8;}
 .mm-foot-qplbl.won,.mm-foot-qplbl.chosen{color:#b8ffce;}
 .mm-foot-qplbl.idle{opacity:.6;}
@@ -2229,24 +2229,25 @@ function mataStats(pid){
 }
 
 // ── Render ──
-// Seletor compacto em 2 linhas: rótulo em cima, duas opções (A | B) embaixo.
-// Sem palpite → some. Vencedor → "{Time} avança" sem botões. Empate → "Quem passa?" + botões. Empate+escolha → "{Time} avança".
+// Seletor compacto: rótulo em cima, duas bandeiras SEMPRE visíveis embaixo.
+// Sem palpite → sem rótulo, bandeiras idle. Vencedor → "{Time} avança", bandeiras ro. Empate → "Quem passa?"+clicável. Empate+escolha → "{Time} avança".
 function mmQuemPassaHTML(c,pid,editable){
   const p=(MM_PALPITES[c.id]||{})[pid]||{};
   const tm=mmTeams(c);
   const complete=p.gols_a!=null&&p.gols_b!=null;
-  if(!complete)return '';   // sem palpite → nada
-  const draw=p.gols_a===p.gols_b;
-  const sel=draw?p.quem_passa:(p.gols_a>p.gols_b?'A':'B');
+  const draw=complete&&p.gols_a===p.gols_b;
+  const sel=!complete?null:(draw?p.quem_passa:(p.gols_a>p.gols_b?'A':'B'));
   const selTeam=sel?(sel==='A'?tm.a:tm.b):null;
-  if(!draw){
-    return `<div class="mm-passa won"><span class="mm-passa-lbl">${esc((selTeam&&selTeam.name)||sel)} avança</span></div>`;
-  }
-  const opt=s=>{const t=s==='A'?tm.a:tm.b,on=sel===s,click=editable?` onclick="mmSetQuemPassa('${c.id}','${pid}','${s}')"`:'';return `<button class="mm-po pen${on?' on':''}${editable?'':' ro'}"${click} title="${esc((t&&t.name)||s)}">${mmFlag(t&&t.flag)||('<b>'+s+'</b>')}</button>`;};
-  if(sel){
-    return `<div class="mm-passa pen chosen"><span class="mm-passa-lbl">${esc((selTeam&&selTeam.name)||sel)} avança</span><div class="mm-passa-opts">${opt('A')}${opt('B')}</div></div>`;
-  }
-  return `<div class="mm-passa pen"><span class="mm-passa-lbl pen">Quem passa?</span><div class="mm-passa-opts">${opt('A')}${opt('B')}</div></div>`;
+  const clickable=draw&&editable&&complete;
+  const opt=s=>{const t=s==='A'?tm.a:tm.b,on=sel===s;
+    const cls='mm-po'+(draw?' pen':'')+(on?' on':'')+(clickable?'':' ro')+(complete?'':' idle');
+    const click=clickable?` onclick="mmSetQuemPassa('${c.id}','${pid}','${s}')"`:'';
+    return `<button class="${cls}"${click} title="${esc((t&&t.name)||s)}">${mmFlag(t&&t.flag)||('<b>'+s+'</b>')}</button>`;};
+  let lbl='';
+  if(complete&&!draw)lbl=`<span class="mm-passa-lbl won">${esc((selTeam&&selTeam.name)||sel)} avança</span>`;
+  else if(complete&&draw&&sel)lbl=`<span class="mm-passa-lbl pen chosen">${esc((selTeam&&selTeam.name)||sel)} avança</span>`;
+  else if(complete&&draw)lbl=`<span class="mm-passa-lbl pen">Quem passa?</span>`;
+  return `<div class="mm-passa${draw?' pen':''}${complete?'':' idle'}">${lbl}<div class="mm-passa-opts">${opt('A')}${opt('B')}</div></div>`;
 }
 // Estado do "quem passa": completo? empate? lado selecionado (empate=escolha, vencedor=auto).
 function mmQpState(c,pid){
@@ -2529,21 +2530,22 @@ function mmCardBody(c){
   const ias=MATA_PARTS.filter(p=>p.type==='ia');
   return `<div class="mm-preds-wrap"><div class="mm-humans">${humans.map(cell).join('')}</div><div class="mm-ias">${ias.map(cell).join('')}</div></div>`;
 }
-// Rodapé sempre visível: "quem passou" REAL (só em empate real) + linha PLACAR FINAL.
-// Rodapé (faixa verde/laranja): "Quem passou" + linha PLACAR FINAL, tudo DENTRO do rodapé (Parte 3).
-// Sem placar→nada. Vencedor→"{Time} avança" sem botões. Empate→"Quem passa?"+botões clicáveis (admin). Empate+escolha→"{Time} avança".
+// Rodapé sempre visível: "quem passou" REAL + bandeiras SEMPRE visíveis (idle se sem placar; ro se vencedor; clicáveis se empate).
 function mmFootQpHTML(c){
   const complete=c.real_a!=null&&c.real_b!=null, tmc=mmTeams(c);
-  if(!complete)return `<div class="mm-foot-qp idle"></div>`;
-  const draw=c.real_a===c.real_b, sel=draw?c.classificado:(c.real_a>c.real_b?'A':'B');
+  const draw=complete&&c.real_a===c.real_b;
+  const sel=!complete?null:(draw?c.classificado:(c.real_a>c.real_b?'A':'B'));
   const selTeam=sel?(sel==='A'?tmc.a:tmc.b):null;
-  if(!draw){
-    return `<div class="mm-foot-qp won"><span class="mm-foot-qplbl won">${esc((selTeam&&selTeam.name)||sel)} avança</span></div>`;
-  }
+  const clickable=draw;
   const cflag=side=>{const t=side==='A'?tmc.a:tmc.b,on=sel===side;
-    return `<button class="mm-cqp pen${on?' on':''}" data-side="${side}" onclick="mmSetClassificado('${c.id}','${side}')" title="Passou: ${esc((t&&t.name)||side)}">${t&&t.flag?flagImg(t.flag):'<b>'+side+'</b>'}</button>`;};
-  const lbl=sel?`<span class="mm-foot-qplbl pen chosen">${esc((selTeam&&selTeam.name)||sel)} avança</span>`:`<span class="mm-foot-qplbl pen">Quem passa?</span>`;
-  return `<div class="mm-foot-qp pen">${lbl}<div class="mm-foot-flags">${cflag('A')}${cflag('B')}</div></div>`;
+    const cls='mm-cqp'+(draw?' pen':'')+(on?' on':'')+(clickable?'':' ro')+(complete?'':' idle');
+    const click=clickable?` onclick="mmSetClassificado('${c.id}','${side}')"`:'';
+    return `<button class="${cls}" data-side="${side}"${click} title="Passou: ${esc((t&&t.name)||side)}">${t&&t.flag?flagImg(t.flag):'<b>'+side+'</b>'}</button>`;};
+  let lbl='';
+  if(complete&&!draw)lbl=`<span class="mm-foot-qplbl won">${esc((selTeam&&selTeam.name)||sel)} avança</span>`;
+  else if(complete&&draw&&sel)lbl=`<span class="mm-foot-qplbl pen chosen">${esc((selTeam&&selTeam.name)||sel)} avança</span>`;
+  else if(complete&&draw)lbl=`<span class="mm-foot-qplbl pen">Quem passa?</span>`;
+  return `<div class="mm-foot-qp${draw?' pen':''}${complete?'':' idle'}">${lbl}<div class="mm-foot-flags">${cflag('A')}${cflag('B')}</div></div>`;
 }
 // Rodapé TUDO numa linha (2.1): PLACAR FINAL · placar A × B · rótulo + bandeiras (quem passou) · Finalizar.
 function mmResultHTML(c){
