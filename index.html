@@ -1051,6 +1051,7 @@ async function loadData(){
   CACHE={};
   if(data) data.forEach(row=>{CACHE[row.game_id]=row;});
   await loadMata();              // mata-mata (tabelas novas; ignora se ainda não existirem)
+  mmInitOpenCards();             // abertura automática: último+em andamento+3 próximos (reload zera)
   hideLoading();
   renderAll();
   subscribeRealtime();
@@ -2701,11 +2702,31 @@ function mmGotoConfronto(cid){
 function mmGhostCard(c){
   return `<div class="mm-litem mm-ghost${mmIsTurbo(c)?' is-turbo':''}" data-cid="${c.id}">${mmHeadHTML(c)}<div class="mm-litem-summary mm-ghost-sum">${mmMatchupHTML(c)}</div></div>`;
 }
-// Na 1ª vez, recolhe os dias que JÁ PASSARAM (10.3); dias futuros começam abertos.
+// Abertura automática inteligente dos cards no load da página.
+// "passado"=início+3h<=agora · "em andamento"=início<=agora<início+3h · "futuro"=agora<início.
+// Abre: o ÚLTIMO passado + TODOS em andamento + 3 PRÓXIMOS futuros.
+// Chamada 1x só em loadData(); overrides manuais do usuário ficam em mmOpen na sessão.
+// Reload zera mmOpen (Set recomeça vazio) e recalcula.
+function mmInitOpenCards(){
+  const now=Date.now(), THREE_H=3*3600*1000;
+  const getTs=c=>{const d=mmGameDate(c);return d?d.getTime():null;};
+  const real=MM_CONFRONTOS.filter(c=>!mmIsTest(c));
+  const past=   real.filter(c=>{const t=getTs(c);return t!=null&&now>=t+THREE_H;}).sort((a,b)=>getTs(b)-getTs(a));
+  const ongoing=real.filter(c=>{const t=getTs(c);return t!=null&&now>=t&&now<t+THREE_H;});
+  const future= real.filter(c=>{const t=getTs(c);return t!=null&&now<t;}).sort((a,b)=>getTs(a)-getTs(b));
+  if(past.length)mmOpen.add(past[0].id);
+  ongoing.forEach(c=>mmOpen.add(c.id));
+  future.slice(0,3).forEach(c=>mmOpen.add(c.id));
+  const noDate=real.filter(c=>getTs(c)==null);
+  if(noDate.length)console.warn('[mmInitOpenCards] confrontos sem horário (tratados como colapsados):',noDate.map(c=>c.id));
+}
+// Na 1ª vez, recolhe dias cujo ÚLTIMO jogo terminou há mais de 24h (fim=último início+3h+24h).
 function mmEnsureDaysInit(){
   if(mmDaysInit)return; mmDaysInit=true;
-  const now=new Date(), hoje=new Date(now.getFullYear(),now.getMonth(),now.getDate());
-  MM_CONFRONTOS.forEach(c=>{const d=mmGameDate(c);if(d&&new Date(d.getFullYear(),d.getMonth(),d.getDate())<hoje)mmCollapsedDays.add(mmInfo(c).dt);});
+  const now=Date.now(), THREE_H=3*3600*1000, TWENTY_FOUR_H=24*3600*1000;
+  const byDay={};
+  MM_CONFRONTOS.forEach(c=>{const d=mmGameDate(c),dt=mmInfo(c).dt;if(!d||!dt)return;if(!byDay[dt]||d.getTime()>byDay[dt])byDay[dt]=d.getTime();});
+  Object.entries(byDay).forEach(([dt,lastTs])=>{if(now>=lastTs+THREE_H+TWENTY_FOUR_H)mmCollapsedDays.add(dt);});
 }
 function mmToggleDay(dt){if(mmCollapsedDays.has(dt))mmCollapsedDays.delete(dt);else mmCollapsedDays.add(dt);const l=document.getElementById('mm-list');if(l)l.innerHTML=mmListHTML();}
 // Lista da fase do filtro: TODOS os jogos (fantasmas pras vagas não definidas), por DATA, dia colapsável (7.1/10).
