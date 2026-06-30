@@ -2607,7 +2607,7 @@ function mmToggleCol(key){if(mmCollapsedCols.has(key))mmCollapsedCols.delete(key
 // a coluna expandida mais à esquerda é distribuída uniformemente e as seguintes centralizam entre os
 // feeders, então recolher fases antigas reduz altura E largura, deslocando o foco pra esquerda.
 function mmBracketHTML(){
-  const bw=134, bh=46, gapX=38, gapXc=12, gapY=12, titleH=24, colW0=18, padX=6, padR=8, padB=12, padY=titleH+12;   // caixa um pouco mais larga p/ caber nomes inteiros ("Inglaterra")
+  const bw=134, bh=46, gapX=38, gapXc=12, gapY=22, titleH=24, colW0=18, padX=6, padR=8, padB=12, padY=titleH+12;   // caixa um pouco mais larga p/ caber nomes inteiros ("Inglaterra")
   const colX={}, colWid={}; let x=padX;
   // Colapsada: faixa mais fina (colW0) e gap menor (gapXc) → sobra espaço pra ver as fases à direita (8.1).
   MM_COLS.forEach(col=>{const cl=mmCollapsedCols.has(col.key);const w=cl?colW0:bw;colX[col.key]=x;colWid[col.key]=w;x+=w+(cl?gapXc:gapX);});
