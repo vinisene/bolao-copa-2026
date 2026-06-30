@@ -510,7 +510,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .mm-class{padding:9px 12px;border-top:1px solid var(--brd);background:#fafdfa;display:flex;flex-direction:column;gap:6px;}
 .mm-class-lbl{font-size:10px;font-weight:700;color:var(--mu);}
 .mm-class-btns{display:flex;gap:7px;flex-wrap:wrap;}
-.mm-iascore{background:var(--bg);border:1.5px solid var(--brd);border-radius:9px;padding:6px 10px;font-size:16px;font-weight:800;color:var(--txt);text-align:center;min-width:60px;}
+.mm-iascore{background:var(--lime);border:1.5px solid var(--brd);border-radius:9px;padding:6px 10px;font-size:16px;font-weight:800;color:var(--txt);text-align:center;min-width:60px;}
 .mm-iascore.empty{color:var(--mu);font-weight:600;}
 .mm-qp-static{display:flex;align-items:center;gap:5px;padding-top:4px;border-top:1px dashed var(--brd);font-size:11px;color:var(--mu);font-weight:700;}
 .mm-qp-static .flag-img{height:12px;width:auto;border-radius:2px;}
@@ -626,7 +626,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .mm-qplbl.idle{opacity:.55;}
 .mm-hc-pred input{width:40px;height:38px;text-align:center;border:1.5px solid var(--brd);border-radius:9px;font-size:18px;font-weight:700;background:var(--lime);color:var(--txt);-moz-appearance:textfield;}
 .mm-hc-pred input::-webkit-outer-spin-button,.mm-hc-pred input::-webkit-inner-spin-button{-webkit-appearance:none;}
-.mm-hc-pred input:not(:placeholder-shown){background:var(--input-dark);color:#fff;border-color:transparent;}
+.mm-hc-pred input.filled{background:var(--input-dark);color:#fff;border-color:transparent;}
 .mm-hc-pred input:focus{outline:none;border-color:var(--gl);background:var(--input-dark);box-shadow:0 0 0 3px rgba(45,150,83,.13);color:#fff;}
 .mm-hc-pred input:disabled{background:var(--brd);color:var(--mu);cursor:default;opacity:1;border-color:transparent;}
 /* bandeira do "quem passa" colada no placar */
@@ -759,10 +759,14 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .mm-litem .score-final{background:var(--ink);box-shadow:0 2px 7px rgba(20,20,26,.28);}
 .mm-litem .pred-cell.human{background:var(--surface);border-color:var(--line);}
 .mm-litem .pred-cell.ia{background:var(--surface-2);}
-.mm-litem .mm-hc-pred input,.mm-litem .mm-foot-scores input{background:var(--input-dark);color:var(--on-dark);border:1.5px solid transparent;}
-.mm-litem .mm-hc-pred input::placeholder,.mm-litem .mm-foot-scores input::placeholder{color:var(--on-dark-muted);}
+.mm-litem .mm-hc-pred input{color:var(--on-dark);border:1.5px solid transparent;}
+.mm-litem .mm-hc-pred input:disabled{background:var(--brd);color:var(--mu);}
+.mm-litem .mm-foot-scores input{background:var(--input-dark);color:var(--on-dark);border:1.5px solid transparent;}
+.mm-litem .mm-hc-pred input::placeholder{color:rgba(0,0,0,.4);}
+.mm-litem .mm-foot-scores input::placeholder{color:var(--on-dark-muted);}
 .mm-litem .mm-hc-pred input:focus,.mm-litem .mm-foot-scores input:focus{border-color:var(--lime);background:var(--input-dark);box-shadow:0 0 0 3px rgba(194,236,0,.25);}
-.mm-litem .mm-iascore{background:var(--surface);border-color:var(--line);color:var(--ink);}
+.mm-litem .mm-iascore{background:var(--lime);border-color:var(--line);color:var(--ink);}
+.mm-iascore:not(.empty){background:var(--input-dark);color:#fff;border-color:transparent;}
 .mm-litem .mm-preds-wrap{border-top-color:var(--line);}
 .mm-litem .real-row{background:var(--card-dark);}
 .mm-litem .real-row.pending{background:repeating-linear-gradient(135deg,var(--card-dark),var(--card-dark) 10px,#1d1d24 10px,#1d1d24 20px);}
@@ -2151,6 +2155,9 @@ function mmUpdPalpite(cid,pid,field,val){
   const p=(MM_PALPITES[cid]||(MM_PALPITES[cid]={}))[pid]||(MM_PALPITES[cid][pid]={});
   p[field]=num;
   if(p.gols_a==null||p.gols_b==null||p.gols_a!==p.gols_b)p.quem_passa=null;   // deixou de ser empate → zera "quem passa"
+  const sideC=field.replace('gols_','');
+  const ip=document.querySelector(`#tab-mata [data-cid="${cid}"] .mm-hc-pred[data-pid="${pid}"] .mm-n${sideC}`);
+  if(ip)ip.classList.toggle('filled',val!=='');
   mmRefreshPts(cid); mmRenderQuemPassa(cid,pid);
   clearTimeout(mmDeb[cid+pid+field]);
   mmDeb[cid+pid+field]=setTimeout(()=>mmUpsertPalpite(cid,pid,{[field]:num,quem_passa:p.quem_passa}),700);
@@ -2278,7 +2285,7 @@ function mmHumQpLabel(c,pid){
 // Grade do palpite do humano: [bandeiraA] [placarA] × [placarB] [bandeiraB] + rótulo (CSS posiciona por fase).
 function mmHumPredHTML(c,pid,pal){
   const locked=mmIsKickoff(c);
-  const inp=side=>{const v=pal['gols_'+side]!=null?pal['gols_'+side]:'';return locked?`<input class="mm-n${side}" type="number" min="0" max="99" inputmode="numeric" value="${v}" placeholder="–" disabled>`:`<input class="mm-n${side}" type="number" min="0" max="99" inputmode="numeric" value="${v}" placeholder="–" oninput="mmUpdPalpite('${c.id}','${pid}','gols_${side}',this.value)">`;};
+  const inp=side=>{const v=pal['gols_'+side]!=null?pal['gols_'+side]:'';const fc=v!==''?' filled':'';return locked?`<input class="mm-n${side}${fc}" type="number" min="0" max="99" inputmode="numeric" value="${v}" placeholder="–" disabled>`:`<input class="mm-n${side}${fc}" type="number" min="0" max="99" inputmode="numeric" value="${v}" placeholder="–" oninput="mmUpdPalpite('${c.id}','${pid}','gols_${side}',this.value)">`;};
   return `${mmHumQpFlag(c,pid,'A',!locked)}${inp('a')}<span class="mm-x">×</span>${inp('b')}${mmHumQpFlag(c,pid,'B',!locked)}${mmHumQpLabel(c,pid)}`;
 }
 // Atualiza só as bandeiras e o rótulo (sem mexer nos inputs → não perde o foco ao digitar).
