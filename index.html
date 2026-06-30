@@ -720,6 +720,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .mm-bx-side.lost{opacity:.4;}
 .mm-bx-side.lost .mm-bx-nm{text-decoration:line-through;}
 .mm-bx-pen{font-size:7px;font-weight:800;color:var(--green-ink);background:rgba(15,174,98,.14);border-radius:3px;padding:0 3px;margin-left:4px;vertical-align:1px;}
+.mm-bx-dt{font-size:7px;color:var(--mu);text-align:center;padding:3px 2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1;}
 .mm-bx-sc{min-width:12px;text-align:right;}
 /* Blocos do topo do mata-mata (próximos / ranking / como funciona) */
 .mm-block{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:12px 14px;margin-bottom:18px;box-shadow:var(--shadow-card);}
@@ -2571,7 +2572,9 @@ function mmBracketBox(slotId){
     return `<div class="mm-bx-side${won?' win':''}${lost?' lost':''}">${mmFlag(t.flag)}${zi}<span class="mm-bx-nm">${esc(t.name)}${adv?'<span class="mm-bx-pen">pên</span>':''}</span><span class="mm-bx-sc">${fin&&sc!=null?sc:''}</span></div>`;
   };
   const playable=!!(c&&tm.a&&tm.b);   // tem confronto e os dois times conhecidos → clicável (abre na lista)
-  return `<div class="mm-bx${playable?'':' nolink'}"${playable?` onclick="mmGotoConfronto('${slotId}')"`:''} title="${esc(((tm.a&&tm.a.name)||'A definir')+' x '+((tm.b&&tm.b.name)||'A definir'))}">${side('A',tm.a)}${side('B',tm.b)}</div>`;
+  const mi=c?mmInfo(c):{};
+  const dtLabel=mi.dt?`<div class="mm-bx-dt">${mmWeekday(mi.dt)} ${esc(mi.dt)}${mi.tm?' · '+esc(mi.tm):''}</div>`:'';
+  return `<div class="mm-bx${playable?'':' nolink'}"${playable?` onclick="mmGotoConfronto('${slotId}')"`:''} title="${esc(((tm.a&&tm.a.name)||'A definir')+' x '+((tm.b&&tm.b.name)||'A definir'))}">${side('A',tm.a)}${side('B',tm.b)}</div>${dtLabel}`;
 }
 function mmColLabel(id){const col=MM_COLS.find(c=>c.ids.includes(id));return col?col.label:'';}
 // Bandeira numa caixa de tamanho FIXO, centralizada, sem distorcer (padroniza quadradas e retangulares).
