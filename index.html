@@ -44,73 +44,68 @@ header{position:relative;z-index:1;background:var(--frame);color:var(--on-dark);
 .hsh-lime{top:27px;right:11px;width:16px;height:16px;background:var(--lime);border-radius:var(--shape-block);opacity:.5;}
 /* barra do cabeçalho centralizada na MESMA coluna do conteúdo (max-width 920 + 14px) */
 .hdr-bar{position:relative;z-index:1;max-width:920px;margin:0 auto;padding:0 14px;display:flex;justify-content:center;}
-.hdr-top{display:flex;align-items:center;gap:12px;}
-.hdr-logo{height:84px;width:auto;flex-shrink:0;display:block;}
+.hdr-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}   /* wrap: no celular a pílula quebra pra linha de baixo */
+.hdr-logo{height:96px;width:auto;flex-shrink:0;display:block;}
 .hdr-titles{min-width:0;}
 .hdr-title{font-family:var(--font-display);font-weight:900;line-height:.95;letter-spacing:.2px;display:flex;flex-direction:column;}
-.hdr-title .ht-1{font-size:22px;color:var(--on-dark);}
-.hdr-title .ht-2{font-size:22px;color:var(--lime);}
+.hdr-title .ht-1{font-size:clamp(19px,6.2vw,25px);color:var(--on-dark);}   /* clamp: maior que antes, mas sem quebrar pra baixo do logo */
+.hdr-title .ht-2{font-size:clamp(19px,6.2vw,25px);color:var(--lime);}
 .hdr-dev{position:absolute;top:4px;right:14px;font-family:var(--font-display);font-weight:800;font-size:10px;letter-spacing:1.5px;color:var(--on-dark);border:1px solid rgba(255,255,255,.5);border-radius:6px;padding:2px 7px;z-index:2;}
 .hdr-status{position:relative;z-index:1;font-size:9px;font-weight:600;min-height:11px;margin:3px auto 0;max-width:920px;padding:0 14px;text-align:center;color:var(--on-dark-muted);}
-/* ── Menu: SEGMENTED CONTROL (pílula). CELULAR = barra fixa embaixo (ratazana + pílula) · DESKTOP = dentro do cabeçalho, à direita ── */
+/* ── Menu: SEGMENTED CONTROL (pílula). CELULAR: pílula no TOPO (dentro do cabeçalho, largura total, sem
+   ratazana) e barra fixa embaixo (COM ratazana) só quando o cabeçalho sai da tela · DESKTOP: no cabeçalho, à direita ── */
 .seg{display:flex;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:4px;}
 .seg button{flex:1 1 0;display:flex;align-items:center;justify-content:center;gap:6px;border:none;border-radius:999px;background:transparent;color:#9A9AA2;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .15s,color .15s;}
 .seg button .nav-ico{width:18px;height:18px;display:block;flex-shrink:0;}
 .seg button .nav-ico svg{width:100%;height:100%;display:block;}
 .seg button .nav-lbl{font-size:12px;font-weight:600;line-height:1;white-space:nowrap;color:#9A9AA2;}
-/* SELECIONADO = fundo --lime, ícone+texto --ink (celular via .active; cabeçalho via body[data-tab]) */
-nav .seg button.active{background:var(--lime);color:var(--ink);}
-nav .seg button.active .nav-lbl{color:var(--ink);}
-/* barra inferior (celular): 1/3 ratazana à esquerda + pílula ocupando o resto; toque ≥52px por opção */
-nav{position:fixed;left:0;right:0;bottom:0;z-index:300;display:flex;align-items:center;gap:10px;background:var(--frame);border-top:1px solid rgba(255,255,255,.08);box-shadow:var(--shadow-nav);padding:8px 14px;padding-bottom:calc(8px + env(safe-area-inset-bottom));}
-.nav-rat{flex:0 0 auto;width:calc(33.33% - 10px);max-width:130px;height:60px;object-fit:contain;display:block;}
+/* SELECIONADO = fundo --lime, ícone+texto --ink — regra ÚNICA por body[data-tab], vale pra TODAS as pílulas (topo, cabeçalho, barra de baixo, barra compacta) */
+body[data-tab="mata"] .seg button[data-tab="mata"],body[data-tab="ranking"] .seg button[data-tab="ranking"]{background:var(--lime);color:var(--ink);}
+body[data-tab="mata"] .seg button[data-tab="mata"] .nav-lbl,body[data-tab="ranking"] .seg button[data-tab="ranking"] .nav-lbl{color:var(--ink);}
+/* CELULAR: pílula no topo = dentro do cabeçalho, quebrando pra linha de baixo, largura total */
+.hdr-seg{flex:1 1 100%;margin-top:10px;}
+.hdr-seg button{min-height:46px;padding:6px 8px;}
+/* barra inferior (celular): escondida enquanto o cabeçalho está visível; aparece (com a ratazana no 1/3
+   esquerdo) quando o cabeçalho sai da tela — controle via classe .show no scroll (updBars) */
+nav{position:fixed;left:0;right:0;bottom:0;z-index:300;display:flex;align-items:center;gap:10px;background:var(--frame);border-top:1px solid rgba(255,255,255,.08);box-shadow:var(--shadow-nav);padding:10px 14px;padding-bottom:calc(10px + env(safe-area-inset-bottom));transform:translateY(110%);transition:transform .22s ease;}
+nav.show{transform:translateY(0);}
+.nav-rat{flex:0 0 auto;width:calc(33.33% - 10px);max-width:130px;height:68px;object-fit:contain;display:block;}
 nav .seg{flex:1 1 0;min-width:0;}
-nav .seg button{min-height:52px;padding:6px 8px;}
-/* pílula do cabeçalho: só aparece no desktop */
-.hdr-seg{display:none;}
-main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(104px + env(safe-area-inset-bottom));}
-/* DESKTOP: cabeçalho maior (ratazana + título numa linha) com a pílula na MESMA linha, à direita; sem barra de baixo */
+nav .seg button{min-height:58px;padding:6px 8px;}
+main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px + env(safe-area-inset-bottom));}
+/* DESKTOP: título em DUAS linhas; pílula na linha do título, à direita; sem barra de baixo */
 @media(min-width:680px){
   .hdr-shapes{display:none;}
   header{padding:16px 0 12px;}
-  .hdr-bar{max-width:1160px;}
-  .hdr-top{width:100%;flex-wrap:wrap;gap:16px;}
+  .hdr-top{width:100%;gap:16px;}
   .hdr-logo{height:150px;}
-  /* título em UMA linha, UM tamanho de letra (sem subtítulo) */
-  .hdr-title{flex-direction:row;gap:11px;white-space:nowrap;}
-  .hdr-title .ht-1,.hdr-title .ht-2{font-size:clamp(24px,3.4vw,38px);}
+  .hdr-title .ht-1,.hdr-title .ht-2{font-size:40px;}
   nav{display:none;}
-  .hdr-seg{display:flex;margin-left:auto;padding:5px;}
-  .hdr-seg button{padding:13px 24px;gap:8px;}
+  .hdr-seg{flex:0 0 auto;margin:0 0 0 auto;padding:5px;}
+  .hdr-seg button{padding:13px 24px;gap:8px;min-height:0;}
   .hdr-seg button .nav-ico{width:20px;height:20px;}
   .hdr-seg button .nav-lbl{font-size:15px;}
-  body[data-tab="mata"] .hdr-seg button[data-tab="mata"],
-  body[data-tab="ranking"] .hdr-seg button[data-tab="ranking"]{background:var(--lime);color:var(--ink);}
-  body[data-tab="mata"] .hdr-seg button[data-tab="mata"] .nav-lbl,
-  body[data-tab="ranking"] .hdr-seg button[data-tab="ranking"] .nav-lbl{color:var(--ink);}
   main{padding-top:6px;padding-bottom:28px;}
 }
 /* ── Barra compacta FIXA ao rolar (SÓ desktop). Curta; com scroll-padding/scroll-margin pra que o
    cabeçalho do chaveamento e as colunas nunca fiquem ENGOLIDOS por ela (sem o bug de clique antigo). ── */
 .hdr-compact{display:none;}
 @media(min-width:680px){
+  /* barra compacta 2× mais alta, com o MESMO visual de pílula do menu principal (classe .seg no HTML) */
   .hdr-compact{display:block;position:fixed;top:0;left:0;right:0;z-index:200;background:var(--frame);border-bottom:1px solid rgba(255,255,255,.1);box-shadow:0 8px 20px -12px rgba(0,0,0,.7);transform:translateY(-105%);transition:transform .22s ease;}
   .hdr-compact.show{transform:translateY(0);}
-  .hdr-compact-inner{max-width:920px;margin:0 auto;padding:6px 14px;display:flex;align-items:center;justify-content:space-between;gap:20px;}
-  .hdr-compact-brand{display:flex;align-items:center;gap:10px;min-width:0;}
-  .hdr-compact-logo{height:38px;width:auto;flex-shrink:0;display:block;}
-  .hdr-compact-title{font-family:var(--font-display);font-weight:900;font-size:18px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--on-dark);}
+  .hdr-compact-inner{max-width:920px;margin:0 auto;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:20px;}
+  .hdr-compact-brand{display:flex;align-items:center;gap:12px;min-width:0;}
+  .hdr-compact-logo{height:76px;width:auto;flex-shrink:0;display:block;}
+  .hdr-compact-title{font-family:var(--font-display);font-weight:900;font-size:26px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--on-dark);}
   .hdr-compact-title .hc-lime{color:var(--lime);}
-  .hdr-compact-tabs{display:flex;gap:6px;flex-shrink:0;}
-  .hdr-compact-tabs button{display:flex;align-items:center;gap:7px;padding:8px 15px;border-radius:10px;border:none;background:transparent;color:var(--on-dark-muted);cursor:pointer;}
-  .hdr-compact-tabs button .nav-ico{width:18px;height:18px;display:block;}
-  .hdr-compact-tabs button .nav-ico svg{width:100%;height:100%;display:block;}
-  .hdr-compact-tabs button .nav-lbl{font-size:13.5px;font-weight:700;white-space:nowrap;}
-  body[data-tab="mata"] .hdr-compact-tabs button[data-tab="mata"],
-  body[data-tab="ranking"] .hdr-compact-tabs button[data-tab="ranking"]{background:var(--lime);color:var(--ink);}
-  /* folga pra que rolagens programáticas (scrollIntoView) deixem o conteúdo ABAIXO da barra fixa */
-  html{scroll-padding-top:64px;}
-  .mm-sec,.mm-filters,#mm-list .mm-datehdr{scroll-margin-top:66px;}
+  .hdr-compact-tabs{flex-shrink:0;}
+  .hdr-compact-tabs button{padding:11px 20px;min-height:44px;}
+  .hdr-compact-tabs button .nav-ico{width:19px;height:19px;}
+  .hdr-compact-tabs button .nav-lbl{font-size:14px;font-weight:700;}
+  /* folga pra que rolagens programáticas (scrollIntoView) deixem o conteúdo ABAIXO da barra fixa (agora mais alta) */
+  html{scroll-padding-top:118px;}
+  .mm-sec,.mm-filters,#mm-list .mm-datehdr{scroll-margin-top:120px;}
 }
 .tab{display:none;}.tab.active{display:block;}
 
@@ -874,7 +869,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(104px +
         <div class="hdr-title"><span class="ht-1">Bolão Ratazana00</span><span class="ht-2">Copa 2026</span></div>
       </div>
       <div class="seg hdr-seg" aria-label="Navegação">
-        <button onclick="showTab('mata')" data-tab="mata"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5v4h4"/><path d="M5 19v-4h4"/><path d="M9 9v6"/><path d="M9 12h5"/><path d="M14 9.5v5"/><path d="M14 12h5"/></svg></span><span class="nav-lbl">Mata-mata</span></button>
+        <button onclick="showTab('mata')" data-tab="mata"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h4"/><path d="M3 9h4"/><path d="M7 4v5"/><path d="M7 6.5h4"/><path d="M3 15h4"/><path d="M3 20h4"/><path d="M7 15v5"/><path d="M7 17.5h4"/><path d="M11 6.5v11"/><path d="M11 12h5"/><circle cx="18.5" cy="12" r="2.5"/></svg></span><span class="nav-lbl">Mata-mata</span></button>
         <button onclick="showTab('ranking')" data-tab="ranking"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v1a3 3 0 0 0 3 3"/><path d="M17 6h3v1a3 3 0 0 1-3 3"/><path d="M12 14v3"/><path d="M9.5 20.5h5l-.6-3h-3.8z"/></svg></span><span class="nav-lbl">Ranking</span></button>
       </div>
       <span id="dev-seal" class="hdr-dev" style="display:none">DEV</span>
@@ -888,8 +883,8 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(104px +
       <img class="hdr-compact-logo" src="Imagens/Ratazana.png" alt="" onerror="this.style.display='none'">
       <span class="hdr-compact-title"><b>Bolão Ratazana00</b> <b class="hc-lime">Copa 2026</b></span>
     </span>
-    <div class="hdr-compact-tabs">
-      <button onclick="showTab('mata')" data-tab="mata"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5v4h4"/><path d="M5 19v-4h4"/><path d="M9 9v6"/><path d="M9 12h5"/><path d="M14 9.5v5"/><path d="M14 12h5"/></svg></span><span class="nav-lbl">Mata-mata</span></button>
+    <div class="seg hdr-compact-tabs">
+      <button onclick="showTab('mata')" data-tab="mata"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h4"/><path d="M3 9h4"/><path d="M7 4v5"/><path d="M7 6.5h4"/><path d="M3 15h4"/><path d="M3 20h4"/><path d="M7 15v5"/><path d="M7 17.5h4"/><path d="M11 6.5v11"/><path d="M11 12h5"/><circle cx="18.5" cy="12" r="2.5"/></svg></span><span class="nav-lbl">Mata-mata</span></button>
       <button onclick="showTab('ranking')" data-tab="ranking"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v1a3 3 0 0 0 3 3"/><path d="M17 6h3v1a3 3 0 0 1-3 3"/><path d="M12 14v3"/><path d="M9.5 20.5h5l-.6-3h-3.8z"/></svg></span><span class="nav-lbl">Ranking</span></button>
     </div>
   </div>
@@ -897,7 +892,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(104px +
 <nav>
   <img class="nav-rat" src="Imagens/Ratazana.png" alt="" onerror="this.style.display='none'">
   <div class="seg">
-    <button class="active" onclick="showTab('mata')" data-tab="mata"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5v4h4"/><path d="M5 19v-4h4"/><path d="M9 9v6"/><path d="M9 12h5"/><path d="M14 9.5v5"/><path d="M14 12h5"/></svg></span><span class="nav-lbl">Mata-mata</span></button>
+    <button class="active" onclick="showTab('mata')" data-tab="mata"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h4"/><path d="M3 9h4"/><path d="M7 4v5"/><path d="M7 6.5h4"/><path d="M3 15h4"/><path d="M3 20h4"/><path d="M7 15v5"/><path d="M7 17.5h4"/><path d="M11 6.5v11"/><path d="M11 12h5"/><circle cx="18.5" cy="12" r="2.5"/></svg></span><span class="nav-lbl">Mata-mata</span></button>
     <button onclick="showTab('ranking')" data-tab="ranking"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v1a3 3 0 0 0 3 3"/><path d="M17 6h3v1a3 3 0 0 1-3 3"/><path d="M12 14v3"/><path d="M9.5 20.5h5l-.6-3h-3.8z"/></svg></span><span class="nav-lbl">Ranking</span></button>
   </div>
 </nav>
@@ -3053,18 +3048,23 @@ if(IS_DEV){   // marca visual + botão de espelho, só no ambiente de dev (hostn
   document.body.insertAdjacentHTML('afterbegin','<button id="mirror-btn" onclick="mirrorProdToDev()">🪞 Espelhar prod→dev</button>');
 }
 document.body.setAttribute('data-tab',activeTab);   // estado inicial das abas da barra compacta
-// Barra compacta fixa: aparece SÓ no desktop quando o cabeçalho grande sai de vista (rolagem).
+// Barras que reagem à rolagem: DESKTOP = barra compacta fixa no topo quando o cabeçalho grande sai de
+// vista · CELULAR = menu fixo embaixo (com ratazana) quando o cabeçalho (com a pílula do topo) some.
 (function(){
-  const compact=document.getElementById('hdr-compact');
-  function updCompact(){
-    if(!compact)return;
-    if(window.innerWidth<680){compact.classList.remove('show');return;}
-    const h=document.querySelector('header');
-    compact.classList.toggle('show', window.scrollY > ((h?h.offsetHeight:140)-26));
+  const compact=document.getElementById('hdr-compact'), nav=document.querySelector('nav');
+  function updBars(){
+    const h=document.querySelector('header'), hh=h?h.offsetHeight:140;
+    if(window.innerWidth<680){
+      if(compact)compact.classList.remove('show');
+      if(nav)nav.classList.toggle('show', window.scrollY>=hh);   // cabeçalho saiu POR COMPLETO → barra de baixo
+    }else{
+      if(nav)nav.classList.remove('show');
+      if(compact)compact.classList.toggle('show', window.scrollY > (hh-26));
+    }
   }
-  window.addEventListener('scroll',updCompact,{passive:true});
-  window.addEventListener('resize',updCompact);
-  updCompact();
+  window.addEventListener('scroll',updBars,{passive:true});
+  window.addEventListener('resize',updBars);
+  updBars();
 })();
 loadData();   // home padrão = Mata-mata (definido em activeTab e nas classes .active estáticas)
 </script>
