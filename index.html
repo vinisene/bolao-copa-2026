@@ -561,6 +561,45 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(104px +
 .mm-qpb .flagbx{width:16px;height:11px;}
 .mm-class-btns .flagbx{width:18px;height:12px;}
 .mm-qp-static .flagbx{width:16px;height:11px;}
+/* ── Chaveamento NOVO (Tarefa B): visor em janela estilo Sofascore. Poucas fases por vez, linhas de
+   conexão em destaque. O bracket gigante antigo (mm-bracket*) NÃO foi apagado: é a visão expandida. ── */
+.mmv-nav{display:flex;align-items:center;gap:5px;padding:11px 10px 3px;}
+.mmv-pill{flex:0 1 auto;min-width:0;padding:7px 13px;border-radius:var(--r-pill);border:1px solid var(--line-2);background:transparent;color:var(--muted);font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent;}
+.mmv-pill.active{background:var(--lime);border-color:var(--lime);color:var(--ink);}
+.mmv-expand{margin-left:auto;width:32px;height:32px;flex-shrink:0;border-radius:9px;border:1px solid var(--line-2);background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;}
+.mmv-expand.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+.mmv-expand svg{width:15px;height:15px;display:block;}
+/* palco: colunas absolutas + SVG de conectores (as linhas contam a história do jogo) */
+.mmv-stage{position:relative;margin:10px 10px 14px;}
+.mmv-svg{position:absolute;left:0;top:0;pointer-events:none;}
+.mmv-colhead{position:absolute;top:0;font-family:var(--font-display);font-size:9.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--faint);text-align:center;white-space:nowrap;overflow:hidden;}
+.mmv-colhead.cur{color:var(--ink);}
+.mmv-cardpos{position:absolute;}
+.mmv-card{height:100%;box-sizing:border-box;display:flex;align-items:stretch;gap:5px;background:var(--surface);border:1px solid var(--line-2);border-radius:10px;padding:6px 8px;cursor:pointer;overflow:hidden;box-shadow:var(--shadow-card);transition:box-shadow .15s;}
+.mmv-card.nolink{cursor:default;background:var(--surface-2);box-shadow:none;}
+.mmv-card:not(.nolink):hover{box-shadow:0 0 0 2px var(--lime);}
+.mmv-card:not(.nolink):active{transform:scale(.99);}
+.mmv-cardpos.cur .mmv-card{border-color:var(--ink-2);}   /* fase selecionada em destaque */
+.mmv-teams{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:space-around;gap:3px;}
+.mmv-t{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:800;color:var(--ink);min-width:0;line-height:1.15;min-height:15px;}
+.mmv-t .flagbx{width:20px;height:14px;}
+.mmv-nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mmv-t.win{color:var(--green-ink);}
+.mmv-t.lost{opacity:.4;}
+.mmv-t.lost .mmv-nm{text-decoration:line-through;}   /* eliminado: riscado e acinzentado, igual ao bracket */
+.mmv-sc{font-family:var(--font-display);font-weight:800;font-variant-numeric:tabular-nums;flex-shrink:0;}
+.mmv-ck{color:var(--green-ink);font-weight:900;flex-shrink:0;font-size:12px;}   /* venceu nos pênaltis (nunca mostra o placar dos pênaltis) */
+.mmv-dtbx{flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:3px;font-family:var(--font-display);font-size:9px;font-weight:800;color:var(--muted);line-height:1;white-space:nowrap;}
+.mmv-ph{color:var(--faint);font-weight:700;}   /* placeholder V33/P29 (vaga indefinida) */
+.mmv-shield{width:20px;height:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--faint);}
+.mmv-shield svg{width:11px;height:13px;display:block;}
+.mmv-tag{position:absolute;top:-8px;left:9px;z-index:2;background:var(--ink);color:#fff;font-size:8px;font-weight:800;padding:2px 7px;border-radius:5px;letter-spacing:.4px;text-transform:uppercase;}
+/* espiadinha (estado fechado): começo REAL do bracket, cortado no meio dos cards de propósito */
+.mmv-peek{position:relative;height:96px;overflow:hidden;cursor:pointer;}
+.mmv-peek *{pointer-events:none;}
+.mmv-peek .mmv-stage{margin-top:4px;}
+.mmv-status{display:flex;align-items:center;justify-content:center;gap:7px;padding:9px 12px 12px;font-size:10.5px;font-weight:700;color:var(--muted);cursor:pointer;border-top:1px dashed var(--line);}
+.mmv-status .arr{font-size:12px;line-height:1;}
 /* Tags de status do cabeçalho */
 .bl-tag.abe{background:rgba(255,255,255,.2);color:#fff;font-size:8.5px;}
 .bl-tag.fec{background:#e8c44a;color:#5c4708;font-size:8.5px;}
@@ -2636,12 +2675,126 @@ function mmHeadHTML(c){
   const dt=i.dt?`<span class="dt-tag">${mmWeekday(i.dt)}, ${esc(i.dt)}${i.tm?' · '+esc(i.tm):''}</span>`:'';
   return `<div class="card-head"><span class="grp-tag"><span class="ch-dot${c.finished?' closed':''}"></span>${esc((mmColLabel(c.id)||'MATA-MATA').toUpperCase())} ${status}${turbo}${mmZebraSeal(c)}</span>${dt}${mmMultSeal(mmPhaseKeyOf(c.id),'mm-seal-card')}</div>`;
 }
+// ── CHAVEAMENTO NOVO (Tarefa B): visor em janela. Usa os MESMOS dados do bracket antigo
+// (MM_BRACKET/MM_COLS/mmResolveSide/mmRealWinner/mmInfo). O bracket gigante segue vivo como visão expandida.
+const MMV_PHASES=[{key:'32avos',lbl:'1/16'},{key:'oitavas',lbl:'1/8'},{key:'quartas',lbl:'1/4'},{key:'semis',lbl:'Semis'},{key:'final',lbl:'Final'}];
+let mmvPhase=null;        // fase selecionada no visor (null = calcula a fase atual do torneio no 1º uso)
+let mmvExpanded=false;    // true = mostra o bracket completo antigo (botão expandir)
+// coluna "final" do visor = Final + 3º lugar juntos (cada um com sua tagzinha)
+function mmvColIds(key){return key==='final'?['fin_1','tp_1']:(MM_COLS.find(c=>c.key===key)||{ids:[]}).ids;}
+// fase ATUAL do torneio = fase do jogo em andamento ou do próximo a acontecer; tudo encerrado → Final.
+function mmvCurrentPhaseKey(){
+  const now=Date.now(), TH=3*3600*1000; let best=null;
+  MM_CONFRONTOS.forEach(c=>{
+    if(mmIsTest(c))return; const d=mmGameDate(c); if(!d)return; const t=d.getTime();
+    if(now<t+TH&&(best==null||t<best.t))best={t,key:mmPhaseKeyOf(c.id)};
+  });
+  const k=best?best.key:'final';
+  return k==='3lugar'?'final':k;
+}
+// numeração dos jogos pra placeholder de vaga indefinida (V17 = vencedor do jogo 17, P29 = perdedor)
+function mmvGameNum(id){const [p,n]=id.split('_');return ({r32:0,r16:16,qf:24,sf:28,tp:30,fin:31}[p]||0)+(+n||0);}
+// Card compacto do visor: 2 linhas (uma por time) + placar/data à direita.
+function mmvCardHTML(id){
+  const c=mmConf(id), a=mmResolveSide(id,'A'), b=mmResolveSide(id,'B');
+  const fin=c&&c.finished&&c.real_a!=null&&c.real_b!=null, w=mmRealWinner(c);
+  const pen=fin&&c.real_a===c.real_b&&(c.classificado==='A'||c.classificado==='B');   // decidido nos pênaltis
+  const info=c?mmInfo(c):(MM_AGENDA[id]||{dt:'',tm:''});
+  const shield='<span class="mmv-shield"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l8 3v6c0 5-3.4 8.6-8 11-4.6-2.4-8-6-8-11V5z" opacity=".5"/></svg></span>';
+  const ph=s=>{const f=MM_BRACKET[id]&&MM_BRACKET[id].feeders;if(!f)return 'A definir';const fd=f[s];return (fd.take==='win'?'V':'P')+mmvGameNum(fd.g);};
+  const row=(s,t)=>{
+    if(!t)return `<div class="mmv-t">${shield}<span class="mmv-nm mmv-ph">${ph(s)}</span></div>`;
+    const sc=fin?(s==='A'?c.real_a:c.real_b):null;
+    const won=fin&&w===s, lost=fin&&w&&w!==s;
+    const ck=(pen&&c.classificado===s)?'<span class="mmv-ck">✓</span>':'';   // pênaltis: só o check, NUNCA o placar da disputa
+    return `<div class="mmv-t${won?' win':''}${lost?' lost':''}">${mmFlag(t.flag)}<span class="mmv-nm">${esc(t.name)}</span>${ck}${fin?`<span class="mmv-sc">${sc}</span>`:''}</div>`;
+  };
+  const dtbx=(!fin&&info.dt)?`<div class="mmv-dtbx"><span>${mmWeekday(info.dt)} ${esc(info.dt)}</span><span>${esc(info.tm||'')}</span></div>`:'';
+  const playable=!!(c&&a&&b);   // definido → clicável, abre os palpites na lista (mesmo vínculo de hoje)
+  return `<div class="mmv-card${playable?'':' nolink'}"${playable?` onclick="mmVGoto('${id}')"`:''} title="${esc(((a&&a.name)||ph('A'))+' x '+((b&&b.name)||ph('B')))}"><div class="mmv-teams">${row('A',a)}${row('B',b)}</div>${dtbx}</div>`;
+}
+function mmVGoto(id){mmSetPhase(mmPhaseKeyOf(id));mmGotoConfronto(id);}   // garante que o card está na lista antes de rolar
+// Palco do visor: desktop = 3 colunas (anterior · selecionada · próxima), celular = 2 (selecionada · próxima).
+// Altura acompanha a coluna mais à esquerda (8→4→2→1 jogos): fase adiante = visor mais baixo.
+function mmvViewerHTML(){
+  const order=MMV_PHASES.map(p=>p.key);
+  const sel=mmvPhase||(mmvPhase=mmvCurrentPhaseKey());
+  const si=Math.max(0,order.indexOf(sel));
+  const isMob=window.innerWidth<680, ncol=isMob?2:3;
+  const start=Math.max(0,Math.min(isMob?si:si-1,order.length-ncol));
+  const vis=order.slice(start,start+ncol);
+  const contW=Math.min(920,window.innerWidth)-28-2-20;   // main(920/viewport −28) − bordas mm-sec − margens do palco
+  const gap=isMob?24:30, bh=56, gapY=12, padY=20;
+  const boxW=Math.floor((contW-gap*(vis.length-1))/vis.length);
+  const colX={}; vis.forEach((k,i)=>colX[k]=i*(boxW+gap));
+  const pos={};
+  vis.forEach((k,ci)=>{
+    mmvColIds(k).forEach((id,i)=>{
+      let y;
+      if(ci===0){y=padY+i*(bh+gapY)+(id==='tp_1'?14:0);}   // coluna-base: distribuição uniforme
+      else{
+        const f=MM_BRACKET[id]&&MM_BRACKET[id].feeders;
+        if(id==='tp_1'&&pos['fin_1']!=null){y=pos['fin_1']+bh+36;}   // 3º lugar: logo abaixo da Final
+        else if(f&&pos[f.A.g]!=null&&pos[f.B.g]!=null){y=(pos[f.A.g]+pos[f.B.g])/2;}
+        else{y=padY+i*(bh+gapY);}
+      }
+      pos[id]=y;
+    });
+  });
+  let H=padY; Object.keys(pos).forEach(id=>{H=Math.max(H,pos[id]+bh);}); H+=10;
+  // conectores (colchetes) entre colunas vizinhas — 3º lugar tracejado, como no bracket antigo
+  let paths='';
+  vis.forEach((k,ci)=>{
+    if(ci===0)return;
+    mmvColIds(k).forEach(id=>{
+      const f=MM_BRACKET[id]&&MM_BRACKET[id].feeders; if(!f)return;
+      const bx=colX[k], bym=pos[id]+bh/2, is3=(id==='tp_1');
+      ['A','B'].forEach(s=>{
+        const g=f[s].g; if(pos[g]==null||!mmvColIds(vis[ci-1]).includes(g))return;
+        const fxr=colX[vis[ci-1]]+boxW, fym=pos[g]+bh/2, mx=(fxr+bx)/2;
+        paths+=`<path d="M${fxr} ${fym} H${mx} V${bym} H${bx}" class="mm-cn${is3?' c3':''}"/>`;
+      });
+    });
+  });
+  let heads='',cards='';
+  vis.forEach(k=>{
+    const lbl=k==='final'?'Final':(MM_COLS.find(c=>c.key===k)||{}).label||'';
+    heads+=`<div class="mmv-colhead${k===sel?' cur':''}" style="left:${colX[k]}px;width:${boxW}px">${lbl}</div>`;
+    mmvColIds(k).forEach(id=>{
+      const tag=id==='fin_1'?'<span class="mmv-tag">Final</span>':(id==='tp_1'?'<span class="mmv-tag">3º lugar</span>':'');
+      cards+=`<div class="mmv-cardpos${k===sel?' cur':''}" style="left:${colX[k]}px;top:${pos[id]}px;width:${boxW}px;height:${bh}px">${tag}${mmvCardHTML(id)}</div>`;
+    });
+  });
+  return `<div class="mmv-stage" style="height:${H}px;width:${contW}px">
+    <svg class="mmv-svg" width="${contW}" height="${H}" viewBox="0 0 ${contW} ${H}">${paths}</svg>
+    ${heads}${cards}
+  </div>`;
+}
+// Fileira de navegação do visor: pílulas de fase + botão expandir (abre o bracket completo antigo).
+function mmvNavHTML(){
+  const sel=mmvPhase||(mmvPhase=mmvCurrentPhaseKey());
+  const pills=MMV_PHASES.map(p=>`<button class="mmv-pill${(!mmvExpanded&&p.key===sel)?' active':''}" onclick="mmvSetPhase('${p.key}')">${p.lbl}</button>`).join('');
+  const ic='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H3v6"/><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M15 21h6v-6"/></svg>';
+  return `<div class="mmv-nav">${pills}<button class="mmv-expand${mmvExpanded?' active':''}" onclick="mmvToggleExpand()" title="${mmvExpanded?'Voltar ao visor':'Ver chave completa'}" aria-label="Expandir chave completa">${ic}</button></div>`;
+}
+function mmvSetPhase(k){mmvPhase=k;mmvExpanded=false;mmRerenderBracket();}
+function mmvToggleExpand(){mmvExpanded=!mmvExpanded;mmRerenderBracket();}
+// Linha de status da espiadinha: fase atual + lembrete de que a chave vai até a Final.
+function mmvStatusHTML(){
+  const now=Date.now(), TH=3*3600*1000;
+  const stillGoing=MM_CONFRONTOS.some(c=>{if(mmIsTest(c))return false;const d=mmGameDate(c);return d&&now<d.getTime()+TH;});
+  const k=mmvCurrentPhaseKey();
+  const lbl=k==='final'?'Final':(MM_COLS.find(c=>c.key===k)||{}).label||'';
+  const txt=stillGoing?`${lbl} em andamento · caminho completo até a Final`:'Torneio encerrado · chave completa';
+  return `<div class="mmv-status" onclick="mmToggleBracket()">${txt} <span class="arr">▾</span></div>`;
+}
 // Seção do chaveamento com cabeçalho colapsável (A1).
 function mmBracketSectionHTML(){
-  // Card único: cabeçalho (com seta) grudado no topo e a chave logo abaixo, mesma borda/cantos.
+  // Card único: cabeçalho (com seta) grudado no topo; fechado = espiadinha real cortada + status; aberto = visor (ou bracket completo).
   const op=mmBracketOpen;
   let h=`<div class="mm-sec${op?' open':''}"><div class="mm-sec-head" onclick="mmToggleBracket()"><span class="mm-sec-title">⚔️ Chaveamento</span><span class="mm-sec-cta"><span class="mm-sec-cta-lbl">${op?'toque para fechar':'toque para abrir'}</span><span class="mm-sec-arrow">${op?'▴':'▾'}</span></span></div>`;
-  if(op)h+=mmBracketHTML();
+  if(op){h+=mmvNavHTML()+(mmvExpanded?mmBracketHTML():mmvViewerHTML());}
+  else{h+=`<div class="mmv-peek" onclick="mmToggleBracket()">${mmvViewerHTML()}</div>${mmvStatusHTML()}`;}
   return h+`</div>`;
 }
 function mmRerenderBracket(){const s=document.getElementById('mm-bracket-section');if(s){s.innerHTML=mmBracketSectionHTML();mmFitBracket();}}
@@ -2845,7 +2998,7 @@ function renderMata(){
   setupMarquees();   // faz o texto dos jogos do hero rolar quando não cabe (igual à fase de grupos)
   if(_cdInterval){clearInterval(_cdInterval);_cdInterval=null;}
   if(document.querySelector('#tab-mata .dh-cd'))_cdInterval=setInterval(tickCountdown,1000);   // contagem regressiva
-  if(!_mmResizeBound){_mmResizeBound=true;window.addEventListener('resize',()=>{if(activeTab==='mata')mmFitBracket();});}
+  if(!_mmResizeBound){_mmResizeBound=true;window.addEventListener('resize',()=>{if(activeTab==='mata')mmRerenderBracket();});}   // visor re-calcula colunas/largura; mmRerenderBracket já chama mmFitBracket
 }
 
 // ─── ESPELHO PROD→DEV (só no ambiente de dev) ─────────────────────────────────
