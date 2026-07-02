@@ -547,11 +547,12 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 .mmv-stage{position:relative;margin:10px 10px 14px;}
 .mmv-svg{position:absolute;left:0;top:0;pointer-events:none;}
 .mmv-colhead{position:absolute;top:0;font-family:var(--font-display);font-size:9.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--faint);text-align:center;white-space:nowrap;overflow:hidden;}
-.mmv-colhead.cur{color:var(--lime);}   /* título da fase ativa: lime sobre o painel escuro */
-/* painel escuro contínuo atrás da coluna da fase selecionada (3.4, estilo Sofascore) */
-.mmv-colpanel{position:absolute;background:var(--card-dark);border-radius:14px;}
-/* wrapper do visor: referências pras setas + área de arrasto (pan-y deixa a rolagem vertical viva) */
-.mmv-wrap{position:relative;touch-action:pan-y;overflow:hidden;}
+.mmv-colhead.cur{color:var(--ink);}   /* título da fase ativa (o painel agora é sutil e claro) */
+/* painel de destaque da fase selecionada: BEM sutil (1.2), só um tom a mais que o fundo */
+.mmv-colpanel{position:absolute;top:-6px;background:rgba(21,21,26,.13);border-radius:14px;transition:left .28s ease,width .28s ease,height .28s ease;}
+/* janela do visor: altura anima no encaixe; esteira desliza por translateX (pan-y mantém rolagem vertical) */
+.mmv-wrap{position:relative;touch-action:pan-y;overflow:hidden;transition:height .28s ease;}
+.mmv-track{position:relative;width:max-content;will-change:transform;}
 .mmv-arr{position:absolute;top:50%;transform:translateY(-50%);z-index:5;width:30px;height:30px;border-radius:50%;border:none;background:var(--ink);color:#fff;opacity:.85;font-size:17px;font-weight:800;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0 0 2px;box-shadow:0 2px 8px rgba(0,0,0,.35);}
 .mmv-arr.prev{left:3px;}
 .mmv-arr.next{right:3px;}
@@ -563,12 +564,13 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 .mmv-card:not(.nolink):active{transform:scale(.99);}
 .mmv-cardpos.focus .mmv-card{box-shadow:0 0 0 2px var(--lime);border-color:var(--lime);}   /* espiadinha: próximo jogo realçado */
 .mmv-teams{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:space-around;gap:3px;}
-.mmv-t{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:800;color:var(--ink);min-width:0;line-height:1.15;min-height:15px;}
+.mmv-t{position:relative;display:flex;align-items:center;gap:5px;font-size:11px;font-weight:800;color:var(--ink);min-width:0;line-height:1.15;min-height:15px;}
 .mmv-t .flagbx{width:20px;height:14px;}
 .mmv-nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .mmv-t.win{color:var(--green-ink);}
+/* eliminado: acinzentado + UM risco contínuo de ponta a ponta da linha (nome→placar), não por texto (1.4) */
 .mmv-t.lost{opacity:.4;}
-.mmv-t.lost .mmv-nm{text-decoration:line-through;}   /* eliminado: riscado e acinzentado, igual ao bracket */
+.mmv-t.lost::after{content:"";position:absolute;left:0;right:0;top:50%;height:1.5px;background:currentColor;pointer-events:none;}
 .mmv-sc{font-family:var(--font-display);font-weight:800;font-variant-numeric:tabular-nums;flex-shrink:0;}
 .mmv-ck{color:var(--green-ink);font-weight:900;flex-shrink:0;font-size:12px;}   /* venceu nos pênaltis (nunca mostra o placar dos pênaltis) */
 .mmv-dtbx{flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:3px;font-family:var(--font-display);font-size:9px;font-weight:800;color:var(--muted);line-height:1;white-space:nowrap;}
@@ -2653,8 +2655,6 @@ function mmvCurrentPhaseKey(){
   const k=best?best.key:'final';
   return k==='3lugar'?'final':k;
 }
-// numeração dos jogos pra placeholder de vaga indefinida (V17 = vencedor do jogo 17, P29 = perdedor)
-function mmvGameNum(id){const [p,n]=id.split('_');return ({r32:0,r16:16,qf:24,sf:28,tp:30,fin:31}[p]||0)+(+n||0);}
 // Card compacto do visor: 2 linhas (uma por time) + placar/data à direita.
 function mmvCardHTML(id){
   const c=mmConf(id), a=mmResolveSide(id,'A'), b=mmResolveSide(id,'B');
@@ -2662,7 +2662,7 @@ function mmvCardHTML(id){
   const pen=fin&&c.real_a===c.real_b&&(c.classificado==='A'||c.classificado==='B');   // decidido nos pênaltis
   const info=c?mmInfo(c):(MM_AGENDA[id]||{dt:'',tm:''});
   const shield='<span class="mmv-shield"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l8 3v6c0 5-3.4 8.6-8 11-4.6-2.4-8-6-8-11V5z" opacity=".5"/></svg></span>';
-  const ph=s=>{const f=MM_BRACKET[id]&&MM_BRACKET[id].feeders;if(!f)return 'A definir';const fd=f[s];return (fd.take==='win'?'V':'P')+mmvGameNum(fd.g);};
+  const ph=()=>'?';   // vaga indefinida: só "?" (sem códigos V16/W83)
   const row=(s,t)=>{
     if(!t)return `<div class="mmv-t">${shield}<span class="mmv-nm mmv-ph">${ph(s)}</span></div>`;
     const sc=fin?(s==='A'?c.real_a:c.real_b):null;
@@ -2678,28 +2678,37 @@ function mmvCardHTML(id){
 function mmVGoto(id){mmvCloseFull();mmSetPhase(mmPhaseKeyOf(id));mmGotoConfronto(id);}   // fecha o overlay (se aberto) e garante que o card está na lista antes de rolar
 // ── Geometria do visor (compartilhada por visor aberto, espiadinha e tela cheia) ──
 const MMV_BH=56, MMV_GAPY=12, MMV_PADY=20;   // altura do card, espaço vertical, folga pro título da coluna
-function mmvGeom(selOverride){
+// A ESTEIRA renderiza TODAS as fases de uma vez; a janela (mmv-wrap) mostra 2 (celular) ou 3 (desktop)
+// colunas e desliza por translateX — arrastar é fluido porque o conteúdo vizinho já existe (1.5).
+function mmvGeom(){
   const order=MMV_PHASES.map(p=>p.key);
-  const sel=selOverride||mmvPhase||(mmvPhase=mmvCurrentPhaseKey());
-  const si=Math.max(0,order.indexOf(sel));
-  const isMob=window.innerWidth<680, ncol=isMob?2:3;   // desktop 3 colunas (anterior·selecionada·próxima), celular 2
-  const start=Math.max(0,Math.min(isMob?si:si-1,order.length-ncol));
-  const vis=order.slice(start,start+ncol);
+  const isMob=window.innerWidth<680, ncol=isMob?2:3;
   const contW=Math.min(920,window.innerWidth)-28-2-20;   // main(920/viewport −28) − bordas mm-sec − margens do palco
   const gap=isMob?24:30;
-  const boxW=Math.floor((contW-gap*(vis.length-1))/vis.length);
-  return {order,sel,si,vis,gap,boxW};
+  const boxW=Math.floor((contW-gap*(ncol-1))/ncol);
+  return {order,isMob,ncol,gap,boxW};
 }
-// Posições: coluna-base distribuída por igual; seguintes no ponto médio dos alimentadores.
-// Altura acompanha a coluna mais alta visível (8→4→2→1 jogos): fase adiante = visor mais baixo.
-function mmvLayout(vis,boxW,gap){
-  const bh=MMV_BH, gapY=MMV_GAPY, padY=MMV_PADY;
+// primeira coluna da janela pra uma fase selecionada (desktop tenta deixá-la no centro)
+function mmvStartFor(si,g){return Math.max(0,Math.min(g.ncol===3?si-1:si,g.order.length-g.ncol));}
+// altura da janela = coluna mais alta DENTRO da janela (recalculada só no encaixe)
+function mmvViewH(L,st,g){
+  let m=MMV_PADY;
+  g.order.slice(st,st+g.ncol).forEach(k=>mmvColIds(k).forEach(id=>{if(L.pos[id]!=null)m=Math.max(m,L.pos[id]+MMV_BH);}));
+  return m+10;
+}
+// Posições — dois modos:
+// 'compact' (esteira/visor/espiadinha): cada coluna EMPILHADA no topo (estilo Sofascore) → a janela
+//   de fases adiantadas fica baixa (8→4→2→1 jogos) mesmo com a esteira contínua; conectores em
+//   cotovelos mais longos ligam as colunas.
+// 'tree' (tela cheia): formato clássico de árvore — cada vaga no ponto médio dos alimentadores.
+function mmvLayout(vis,boxW,gap,mode){
+  const bh=MMV_BH, gapY=MMV_GAPY, padY=MMV_PADY, tree=mode==='tree';
   const colX={}; vis.forEach((k,i)=>colX[k]=i*(boxW+gap));
   const pos={};
   vis.forEach((k,ci)=>{
     mmvColIds(k).forEach((id,i)=>{
       let y;
-      if(ci===0){y=padY+i*(bh+gapY)+(id==='tp_1'?14:0);}
+      if(!tree||ci===0){y=padY+i*(bh+gapY)+(id==='tp_1'?14:0);}
       else{
         const f=MM_BRACKET[id]&&MM_BRACKET[id].feeders;
         if(id==='tp_1'&&pos['fin_1']!=null){y=pos['fin_1']+bh+36;}   // 3º lugar: logo abaixo da Final
@@ -2723,7 +2732,8 @@ function mmvStageHTML(vis,sel,boxW,gap,L,focusId){
       const bx=colX[k], bym=pos[id]+bh/2, is3=(id==='tp_1');
       ['A','B'].forEach(s=>{
         const g=f[s].g; if(pos[g]==null||!mmvColIds(vis[ci-1]).includes(g))return;
-        const fxr=colX[vis[ci-1]]+boxW, fym=pos[g]+bh/2, mx=(fxr+bx)/2;
+        const fxr=colX[vis[ci-1]]+boxW, fym=pos[g]+bh/2;
+        const mx=is3?fxr+(bx-fxr)*0.72:(fxr+bx)/2;   // 3º lugar: cotovelo deslocado pra não sobrepor o da Final
         paths+=`<path d="M${fxr} ${fym} H${mx} V${bym} H${bx}" class="mm-cn${is3?' c3':''}"/>`;
       });
     });
@@ -2736,10 +2746,10 @@ function mmvStageHTML(vis,sel,boxW,gap,L,focusId){
   let heads='',cards='';
   vis.forEach(k=>{
     const lbl=k==='final'?'Final':(MM_COLS.find(c=>c.key===k)||{}).label||'';
-    heads+=`<div class="mmv-colhead${k===sel?' cur':''}" style="left:${colX[k]}px;width:${boxW}px">${lbl}</div>`;
+    heads+=`<div class="mmv-colhead${k===sel?' cur':''}" data-k="${k}" style="left:${colX[k]}px;width:${boxW}px">${lbl}</div>`;
     mmvColIds(k).forEach(id=>{
       const tag=id==='fin_1'?'<span class="mmv-tag">Final</span>':(id==='tp_1'?'<span class="mmv-tag">3º lugar</span>':'');
-      cards+=`<div class="mmv-cardpos${id===focusId?' focus':''}" style="left:${colX[k]}px;top:${pos[id]}px;width:${boxW}px;height:${bh}px">${tag}${mmvCardHTML(id)}</div>`;
+      cards+=`<div class="mmv-cardpos${id===focusId?' focus':''}" data-k="${k}" style="left:${colX[k]}px;top:${pos[id]}px;width:${boxW}px;height:${bh}px">${tag}${mmvCardHTML(id)}</div>`;
     });
   });
   return `<div class="mmv-stage" style="height:${H}px;width:${W}px">
@@ -2747,37 +2757,70 @@ function mmvStageHTML(vis,sel,boxW,gap,L,focusId){
     ${panel}${heads}${cards}
   </div>`;
 }
-// Visor aberto: palco + setas laterais (3.6) centralizadas na vertical; some na primeira/última fase.
+// Visor aberto: janela (altura da fase atual) + ESTEIRA com todas as fases + setas laterais.
 function mmvViewerHTML(){
-  const g=mmvGeom(), L=mmvLayout(g.vis,g.boxW,g.gap);
-  const arrL=g.si>0?`<button class="mmv-arr prev" onclick="mmvSetPhase('${g.order[g.si-1]}')" aria-label="Fase anterior">‹</button>`:'';
-  const arrR=g.si<g.order.length-1?`<button class="mmv-arr next" onclick="mmvSetPhase('${g.order[g.si+1]}')" aria-label="Próxima fase">›</button>`:'';
-  return `<div class="mmv-wrap" id="mmv-wrap">${mmvStageHTML(g.vis,g.sel,g.boxW,g.gap,L,null)}${arrL}${arrR}</div>`;
+  const g=mmvGeom();
+  const sel=mmvPhase||(mmvPhase=mmvCurrentPhaseKey());
+  const si=Math.max(0,g.order.indexOf(sel));
+  const L=mmvLayout(g.order,g.boxW,g.gap);
+  const st=mmvStartFor(si,g);
+  return `<div class="mmv-wrap" id="mmv-wrap" style="height:${mmvViewH(L,st,g)+24}px">
+    <div class="mmv-track" id="mmv-track" style="transform:translateX(${-st*(g.boxW+g.gap)}px)">${mmvStageHTML(g.order,sel,g.boxW,g.gap,L,null)}</div>
+    <button class="mmv-arr prev" onclick="mmvStep(-1)" aria-label="Fase anterior" style="${si===0?'display:none':''}">‹</button>
+    <button class="mmv-arr next" onclick="mmvStep(1)" aria-label="Próxima fase" style="${si===g.order.length-1?'display:none':''}">›</button>
+  </div>`;
 }
 // Espiadinha (3.3): destaca o PRÓXIMO jogo (kickoff futuro mais próximo) — card inteiro visível e
-// realçado, resto do bracket cortado ao redor (deslocamento vertical até o card).
+// realçado, resto do bracket cortado ao redor (deslocamento até a janela da fase dele).
 function mmvPeekHTML(){
   const now=Date.now(); let nxt=null;
   MM_CONFRONTOS.forEach(c=>{if(mmIsTest(c))return;const d=mmGameDate(c);if(d&&d.getTime()>now&&(!nxt||d.getTime()<nxt.t))nxt={t:d.getTime(),id:c.id};});
   let sel=nxt?mmPhaseKeyOf(nxt.id):mmvCurrentPhaseKey(); if(sel==='3lugar')sel='final';
-  const g=mmvGeom(sel), L=mmvLayout(g.vis,g.boxW,g.gap);
-  const off=(nxt&&L.pos[nxt.id]!=null)?Math.max(0,L.pos[nxt.id]-24):0;
-  return `<div class="mmv-peek" onclick="mmToggleBracket()"><div style="margin-top:-${off}px">${mmvStageHTML(g.vis,g.sel,g.boxW,g.gap,L,nxt?nxt.id:null)}</div></div>`;
+  const g=mmvGeom(), L=mmvLayout(g.order,g.boxW,g.gap);
+  const st=mmvStartFor(Math.max(0,g.order.indexOf(sel)),g);
+  const offX=st*(g.boxW+g.gap);
+  const offY=(nxt&&L.pos[nxt.id]!=null)?Math.max(0,L.pos[nxt.id]-24):0;
+  return `<div class="mmv-peek" onclick="mmToggleBracket()"><div style="transform:translate(${-offX}px,${-offY}px)">${mmvStageHTML(g.order,sel,g.boxW,g.gap,L,nxt?nxt.id:null)}</div></div>`;
 }
 // Navegação do visor: pílulas com os MESMOS nomes das pílulas da lista (16av/8as/4as/Semis/Final,
 // sem selo de multiplicador aqui) + botão expandir (tela cheia).
 function mmvNavHTML(){
   const sel=mmvPhase||(mmvPhase=mmvCurrentPhaseKey());
-  const pills=MMV_PHASES.map(p=>`<button class="mmv-pill${p.key===sel?' active':''}" onclick="mmvSetPhase('${p.key}')">${p.lbl}</button>`).join('');
+  const pills=MMV_PHASES.map(p=>`<button class="mmv-pill${p.key===sel?' active':''}" data-k="${p.key}" onclick="mmvSetPhase('${p.key}')">${p.lbl}</button>`).join('');
   const ic='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H3v6"/><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M15 21h6v-6"/></svg>';
   return `<div class="mmv-nav">${pills}<button class="mmv-expand" onclick="mmvOpenFull()" title="Ver chave completa" aria-label="Chave completa em tela cheia">${ic}</button></div>`;
 }
-function mmvSetPhase(k){mmvPhase=k;mmRerenderBracket();}
+// Troca de fase SEM re-render: desliza a esteira, recalcula altura da janela, move o painel de
+// destaque e atualiza pílulas/títulos/setas — usada por pílulas, setas, swipe e clique em coluna vizinha.
+function mmvApplyView(si,animate){
+  const g=mmvGeom();
+  si=Math.max(0,Math.min(g.order.length-1,si));
+  mmvPhase=g.order[si];
+  document.querySelectorAll('#mm-bracket-section .mmv-pill').forEach(b=>b.classList.toggle('active',b.dataset.k===mmvPhase));
+  const wrap=document.getElementById('mmv-wrap'), track=document.getElementById('mmv-track');
+  if(!wrap||!track)return;
+  const L=mmvLayout(g.order,g.boxW,g.gap);
+  const st=mmvStartFor(si,g);
+  track.style.transition=animate?'transform .28s ease':'none';
+  track.style.transform=`translateX(${-st*(g.boxW+g.gap)}px)`;
+  wrap.style.height=(mmvViewH(L,st,g)+24)+'px';
+  const panel=track.querySelector('.mmv-colpanel');
+  if(panel){
+    let bot=0; mmvColIds(mmvPhase).forEach(id=>{if(L.pos[id]!=null)bot=Math.max(bot,L.pos[id]+MMV_BH);});
+    panel.style.left=(L.colX[mmvPhase]-8)+'px'; panel.style.width=(g.boxW+16)+'px'; panel.style.height=(bot+16)+'px';
+  }
+  track.querySelectorAll('.mmv-colhead').forEach(h=>h.classList.toggle('cur',h.dataset.k===mmvPhase));
+  const aL=wrap.querySelector('.mmv-arr.prev'), aR=wrap.querySelector('.mmv-arr.next');
+  if(aL)aL.style.display=si===0?'none':'';
+  if(aR)aR.style.display=si===g.order.length-1?'none':'';
+}
+function mmvSetPhase(k){const g=mmvGeom();mmvApplyView(g.order.indexOf(k),true);}
+function mmvStep(d){const g=mmvGeom();mmvApplyView(Math.max(0,g.order.indexOf(mmvPhase||mmvCurrentPhaseKey()))+d,true);}
 // Tela cheia (3.7): overlay com TODAS as fases lado a lado no visual novo, rolagem livre, X pra fechar.
 function mmvOpenFull(){
   if(document.getElementById('mmv-full'))return;
   const vis=MMV_PHASES.map(p=>p.key), boxW=170, gap=34;
-  const L=mmvLayout(vis,boxW,gap), sel=mmvPhase||mmvCurrentPhaseKey();
+  const L=mmvLayout(vis,boxW,gap,'tree'), sel=mmvPhase||mmvCurrentPhaseKey();   // tela cheia: árvore clássica
   document.body.insertAdjacentHTML('beforeend',`<div class="mmv-full" id="mmv-full">
     <div class="mmv-full-head"><span class="mm-sec-title">⚔️ Chaveamento completo</span><button class="mmv-full-x" onclick="mmvCloseFull()" aria-label="Fechar">✕</button></div>
     <div class="mmv-full-scroll">${mmvStageHTML(vis,sel,boxW,gap,L,null)}</div>
@@ -2785,28 +2828,41 @@ function mmvOpenFull(){
   document.body.style.overflow='hidden';
 }
 function mmvCloseFull(){const el=document.getElementById('mmv-full');if(el)el.remove();document.body.style.overflow='';}
-// Arrastar/swipe (3.5): o palco acompanha o dedo/mouse; ao soltar, encaixa na fase mais próxima
-// (mesmo efeito de tocar na pílula: colunas realinham e a altura recalcula). Toque E mouse (pointer events).
+// Arrastar/swipe (1.5): a ESTEIRA acompanha o dedo/mouse livremente (o conteúdo de todas as fases já
+// está renderizado); ao soltar, encaixa na fase mais próxima e SÓ ENTÃO recalcula altura/destaque.
+// Clique ≠ arraste: só vira arraste depois de ~10px de deslocamento (1.6). Toque E mouse (pointer events).
 function mmvBindDrag(){
-  const w=document.getElementById('mmv-wrap'); if(!w)return;
-  const stage=w.querySelector('.mmv-stage'); if(!stage)return;
-  let x0=null,dx=0,drag=false;
-  w.addEventListener('pointerdown',e=>{x0=e.clientX;dx=0;drag=true;stage.style.transition='none';try{w.setPointerCapture(e.pointerId);}catch(_){}});
-  w.addEventListener('pointermove',e=>{if(!drag)return;dx=e.clientX-x0;if(Math.abs(dx)>6)stage.style.transform=`translateX(${dx}px)`;});
+  const wrap=document.getElementById('mmv-wrap'); if(!wrap)return;
+  const track=document.getElementById('mmv-track'); if(!track)return;
+  let x0=0,dx=0,down=false,dragging=false,baseX=0,sup=false;
+  const baseOf=()=>{const g=mmvGeom();const si=Math.max(0,g.order.indexOf(mmvPhase));return -mmvStartFor(si,g)*(g.boxW+g.gap);};
+  wrap.addEventListener('pointerdown',e=>{down=true;dragging=false;x0=e.clientX;dx=0;baseX=baseOf();});
+  wrap.addEventListener('pointermove',e=>{
+    if(!down)return; dx=e.clientX-x0;
+    if(!dragging&&Math.abs(dx)>10){dragging=true;try{wrap.setPointerCapture(e.pointerId);}catch(_){ } track.style.transition='none';}
+    if(dragging)track.style.transform=`translateX(${baseX+dx}px)`;
+  });
   const end=()=>{
-    if(!drag)return; drag=false;
+    if(!down)return; down=false;
+    if(!dragging){dx=0;return;}   // foi um clique — deixa o clique seguir o fluxo normal
+    dragging=false;
+    sup=true; setTimeout(()=>{sup=false;},80);   // suprime o clique fantasma pós-arraste
     const g=mmvGeom(), unit=g.boxW+g.gap;
-    let steps=Math.trunc(-dx/unit); const rem=-dx-steps*unit;
-    if(Math.abs(rem)>unit/3)steps+=(rem>0?1:-1);
-    const ni=Math.max(0,Math.min(g.order.length-1,g.si+steps));
-    if(Math.abs(dx)>6){w.dataset.sup='1';setTimeout(()=>{delete w.dataset.sup;},60);}   // arrastou → não conta como clique no card
-    if(ni!==g.si)mmvSetPhase(g.order[ni]);
-    else{stage.style.transition='transform .18s ease';stage.style.transform='translateX(0)';}
+    const si=Math.max(0,g.order.indexOf(mmvPhase));
+    mmvApplyView(si+Math.round(-dx/unit),true);   // encaixa na fase mais próxima do deslocamento
     dx=0;
   };
-  w.addEventListener('pointerup',end);
-  w.addEventListener('pointercancel',end);
-  w.addEventListener('click',e=>{if(w.dataset.sup){e.stopPropagation();e.preventDefault();}},true);
+  wrap.addEventListener('pointerup',end);
+  wrap.addEventListener('pointercancel',end);
+  wrap.addEventListener('click',e=>{if(sup){e.stopPropagation();e.preventDefault();}},true);
+  // 1.6: clique em COLUNA VIZINHA (título ou qualquer card dela) navega até aquela fase, em vez de
+  // abrir palpites — capture bloqueia o onclick inline do card das colunas não-ativas.
+  track.addEventListener('click',e=>{
+    const el=e.target.closest('[data-k]'); if(!el)return;
+    const k=el.dataset.k; if(!k||k===mmvPhase)return;
+    e.stopPropagation(); e.preventDefault();
+    mmvSetPhase(k);
+  },true);
 }
 // Linha de status da espiadinha: fase atual + lembrete de que a chave vai até a Final.
 function mmvStatusHTML(){
@@ -2854,7 +2910,15 @@ function mmToggleItem(cid){
   if(item.classList.toggle('open'))mmOpen.add(cid); else mmOpen.delete(cid);
 }
 function mmGotoConfronto(cid){
-  const item=document.querySelector(`#tab-mata .mm-litem[data-cid="${cid}"]`);
+  let item=document.querySelector(`#tab-mata .mm-litem[data-cid="${cid}"]`);
+  if(!item){   // card dentro de um DIA recolhido → expande o dia e tenta de novo
+    const c=mmConf(cid), dt=c?mmInfo(c).dt:'';
+    if(dt&&mmCollapsedDays.has(dt)){
+      mmCollapsedDays.delete(dt);
+      const l=document.getElementById('mm-list'); if(l)l.innerHTML=mmListHTML();
+      item=document.querySelector(`#tab-mata .mm-litem[data-cid="${cid}"]`);
+    }
+  }
   if(!item)return;
   if(!item.classList.contains('open')){item.classList.add('open');mmOpen.add(cid);}
   item.scrollIntoView({behavior:'smooth',block:'center'});
