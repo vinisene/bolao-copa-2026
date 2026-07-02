@@ -13,19 +13,21 @@
 <meta name="theme-color" content="#0C0C0E">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,500&display=swap');
 /* ── Tokens de design (identidade "Bolão Ratazana Copa 26") ── */
 :root{--g:#1a6b3a;--gl:#2d9653;--gd:#0f4424;--gold:#e8c44a;--bg:#f4f7f4;--card:#fff;--txt:#1a1a1a;--mu:#666;--brd:#dde6dd;--je:#e05c8b;--vi:#3d8ef0;--ch:#19c37d;--cl:#cc6b2c;}
 :root{
   --frame:#0C0C0E; --card-dark:#15151A; --input-dark:#26262C; --note-dark:#16161B;
   --sheet:#EDEAE3; --surface:#FFFFFF; --surface-2:#F3F1EA; --surface-3:#E7E4DA; --turbo-foot:#FFF3EE;
   --ink:#16161B; --ink-2:#43434B; --muted:#6E6E77; --faint:#A2A2AA; --on-dark:#F6F6F7; --on-dark-muted:#8A8A94;
-  --lime:#C2EC00; --lime-deep:#7D9B00; --blue:#2F63F6; --red:#F5314F; --cyan:#0FA3BD; --violet:#6D3BF5;
+  --lime:#AFEA00; --lime-deep:#7D9B00; --blue:#2F63F6; --red:#F5314F; --cyan:#0FA3BD; --violet:#6D3BF5;
   --orange:#FF5A1F; --green:#0FAE62; --green-ink:#0A8F4F; --yellow:#D99500; --pink:#EC3C7E; --mint:#10B894;
   --gold:#E0A82E; --silver:#8B95A1; --bronze:#B06D35;
   --line:rgba(20,20,26,.10); --line-2:rgba(20,20,26,.16);
-  --font-display:'Archivo',sans-serif; --font-body:'Noto Sans',system-ui,sans-serif;
+  --font-display:'Anton',sans-serif; --font-body:'Noto Sans',system-ui,sans-serif;
   --r-card:18px; --r-stat:16px; --r-mini:14px; --r-btn:11px; --r-field:9px; --r-pill:20px;
+  /* identidade Copa 26: "um canto bem arredondado, três quase retos" (não usar em bandeiras/avatares) */
+  --r-q-lg:4px 24px 4px 4px; --r-q-md:4px 18px 4px 4px; --r-q-sm:3px 12px 3px 3px;
   --shape-block:5px 1px 5px 1px;
   --shadow-card:0 8px 22px -16px rgba(20,20,26,.5);
   --shadow-turbo:0 12px 28px -16px rgba(255,90,31,.55);
@@ -34,7 +36,10 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:var(--font-body);background:var(--sheet);color:var(--txt);min-height:100vh;}
 /* identidade Copa 26: títulos, números e horas em Archivo (só troca a fonte; cores/posições intactas) */
-.hdr-title,.dh-time,.dh-cd,.nh-cd .clock,.nh-label,.card-head .dt-tag,.pc-score,.score-final,.rk-tot b,.rk-place,.pod-base,.pod-pts,.stat-box .val,.vs2-pts,.tr-pts,.mm-bx-sc,.mm-iascore,.mm-next-when,.mm-rk-pos,.mm-rk-pts b,.lh-title,.section-badge,.mm-block-h{font-family:var(--font-display);}
+/* identidade Copa 26 — HIERARQUIA: Anton SÓ em títulos de seção + título do app; todo o resto em Noto Sans.
+   Regra única dos TÍTULOS DE SEÇÃO (referência de tamanho: "CHAVEAMENTO"): Anton, CAIXA ALTA, 17px. */
+.mm-sec-title,.section-title,.lh-title,.rm-head,.dh-head,.mm-block-h{font-family:var(--font-display);font-size:17px;font-weight:900;letter-spacing:.3px;line-height:1.05;text-transform:uppercase;}
+.rm-hint{text-transform:none;letter-spacing:0;}   /* a notinha do letreiro não vira caixa alta */
 /* ── Cabeçalho (barra preta) — NÃO sticky (se fosse fixo, engolia os toques do chaveamento/colunas) ── */
 header{position:relative;z-index:1;background:var(--frame);color:var(--on-dark);padding:11px 0 9px;border-bottom:1px solid rgba(255,255,255,.07);overflow:hidden;}
 .hdr-shapes{position:absolute;top:0;right:0;width:104px;height:100%;pointer-events:none;z-index:0;}
@@ -44,67 +49,83 @@ header{position:relative;z-index:1;background:var(--frame);color:var(--on-dark);
 .hsh-lime{top:27px;right:11px;width:16px;height:16px;background:var(--lime);border-radius:var(--shape-block);opacity:.5;}
 /* barra do cabeçalho centralizada na MESMA coluna do conteúdo (max-width 920 + 14px) */
 .hdr-bar{position:relative;z-index:1;max-width:920px;margin:0 auto;padding:0 14px;display:flex;justify-content:center;}
-.hdr-top{display:flex;align-items:center;gap:12px;}
-.hdr-logo{height:84px;width:auto;flex-shrink:0;display:block;}
+.hdr-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}   /* wrap: no celular a pílula quebra pra linha de baixo */
+.hdr-logo{height:96px;width:auto;flex-shrink:0;display:block;}
 .hdr-titles{min-width:0;}
-.hdr-title{font-family:var(--font-display);font-weight:900;line-height:.95;letter-spacing:.2px;display:flex;flex-direction:column;}
-.hdr-title .ht-1{font-size:22px;color:var(--on-dark);}
-.hdr-title .ht-2{font-size:22px;color:var(--lime);}
-.hdr-dev{position:absolute;top:4px;right:14px;font-family:var(--font-display);font-weight:800;font-size:10px;letter-spacing:1.5px;color:var(--on-dark);border:1px solid rgba(255,255,255,.5);border-radius:6px;padding:2px 7px;z-index:2;}
+.hdr-title{font-family:var(--font-display);font-weight:900;line-height:1;letter-spacing:.4px;display:flex;flex-direction:column;align-items:flex-start;}
+.hdr-title .ht-1{font-size:clamp(19px,6.2vw,25px);color:var(--on-dark);}   /* clamp: maior que antes, mas sem quebrar pra baixo do logo */
+/* "Copa 2026" em bloco chapado verde-escuro com texto lime (tag da identidade Copa 26) */
+.hdr-title .ht-2{font-size:clamp(19px,6.2vw,25px);color:var(--lime);background:#004D3F;padding:3px 10px 4px;border-radius:2px 12px 2px 2px;margin-top:4px;width:max-content;}
+.hdr-dev{position:absolute;top:4px;right:14px;font-weight:800;font-size:10px;letter-spacing:1.5px;color:var(--on-dark);border:1px solid rgba(255,255,255,.5);border-radius:6px;padding:2px 7px;z-index:2;}
 .hdr-status{position:relative;z-index:1;font-size:9px;font-weight:600;min-height:11px;margin:3px auto 0;max-width:920px;padding:0 14px;text-align:center;color:var(--on-dark-muted);}
-/* ── Menu: CELULAR = barra fixa embaixo · DESKTOP = dentro do cabeçalho, à direita ── */
-nav{position:fixed;left:0;right:0;bottom:0;z-index:300;display:flex;justify-content:center;gap:8px;background:var(--frame);border-top:1px solid rgba(255,255,255,.08);box-shadow:var(--shadow-nav);padding:6px 10px;padding-bottom:calc(6px + env(safe-area-inset-bottom));}
-nav button{position:relative;flex:1 1 0;max-width:170px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 10px 6px;border-radius:13px;background:transparent;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent;color:#7C7C85;transition:background .15s,color .15s;}
-nav button .nav-ico{width:23px;height:23px;display:block;}
-nav button .nav-ico svg{width:100%;height:100%;display:block;}
-nav button .nav-lbl{font-size:10.5px;font-weight:700;line-height:1;white-space:nowrap;color:#9A9AA2;}
-/* SELECIONADO = fundo --lime, ícone+texto --ink (inverso do não-selecionado) — celular E desktop */
-nav button.active{background:var(--lime);color:var(--ink);}
-nav button.active .nav-lbl{color:var(--ink);}
-main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + env(safe-area-inset-bottom));}
-/* DESKTOP: Ratazana ainda maior; conteúdo na coluna (à esquerda); menu no topo à direita; sem barra de baixo */
+/* ── Menu: SEGMENTED CONTROL (pílula). CELULAR: pílula no TOPO (dentro do cabeçalho, largura total, sem
+   ratazana) e barra fixa embaixo (COM ratazana) só quando o cabeçalho sai da tela · DESKTOP: no cabeçalho, à direita ── */
+.seg{display:flex;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:4px;}
+.seg button{flex:1 1 0;display:flex;align-items:center;justify-content:center;gap:6px;border:none;border-radius:999px;background:transparent;color:#9A9AA2;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .15s,color .15s;}
+.seg button .nav-ico{width:18px;height:18px;display:block;flex-shrink:0;}
+.seg button .nav-ico svg{width:100%;height:100%;display:block;}
+.seg button .nav-lbl{font-size:12px;font-weight:600;line-height:1;white-space:nowrap;color:#9A9AA2;}
+/* SELECIONADO = fundo --lime, ícone+texto --ink — regra ÚNICA por body[data-tab], vale pra TODAS as pílulas (topo, cabeçalho, barra de baixo, barra compacta) */
+body[data-tab="mata"] .seg button[data-tab="mata"],body[data-tab="ranking"] .seg button[data-tab="ranking"]{background:var(--lime);color:var(--ink);}
+body[data-tab="mata"] .seg button[data-tab="mata"] .nav-lbl,body[data-tab="ranking"] .seg button[data-tab="ranking"] .nav-lbl{color:var(--ink);}
+/* CELULAR: pílula no topo = dentro do cabeçalho, quebrando pra linha de baixo, largura total */
+.hdr-seg{flex:1 1 100%;margin-top:10px;}
+.hdr-seg button{min-height:46px;padding:6px 8px;}
+/* barra inferior (celular): escondida enquanto o cabeçalho está visível; aparece (com a ratazana no 1/3
+   esquerdo) quando o cabeçalho sai da tela — controle via classe .show no scroll (updBars) */
+nav{position:fixed;left:0;right:0;bottom:0;z-index:300;display:flex;align-items:center;gap:10px;background:var(--frame);border-top:1px solid rgba(255,255,255,.08);box-shadow:var(--shadow-nav);padding:10px 14px;padding-bottom:calc(10px + env(safe-area-inset-bottom));transform:translateY(110%);transition:transform .22s ease;}
+nav.show{transform:translateY(0);}
+.nav-rat{flex:0 0 auto;width:calc(33.33% - 10px);max-width:130px;height:68px;object-fit:contain;display:block;}
+nav .seg{flex:1 1 0;min-width:0;}
+nav .seg button{min-height:58px;padding:6px 8px;}
+main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px + env(safe-area-inset-bottom));}
+/* DESKTOP: título em DUAS linhas; pílula na linha do título, à direita; sem barra de baixo */
 @media(min-width:680px){
   .hdr-shapes{display:none;}
-  .hdr-logo{height:135px;}
+  header{padding:16px 0 12px;}
+  .hdr-top{width:100%;gap:16px;}
+  .hdr-logo{height:150px;}
   .hdr-title .ht-1,.hdr-title .ht-2{font-size:40px;}
-  /* menu = trilho (abas) LOGO ABAIXO do cabeçalho, alinhado com a coluna do conteúdo; sem barra de baixo */
-  nav{position:static;display:flex;gap:4px;max-width:892px;margin:14px auto 0;padding:4px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-btn);box-shadow:var(--shadow-card);}
-  nav button{flex:1 1 0;max-width:none;flex-direction:row;gap:8px;padding:11px 14px;border-radius:9px;color:var(--muted);}
-  nav button .nav-ico{width:20px;height:20px;}
-  nav button .nav-lbl{font-size:14px;color:var(--muted);}
-  nav button.active{background:var(--lime);color:var(--ink);}
-  nav button.active .nav-lbl{color:var(--ink);}
+  nav{display:none;}
+  .hdr-seg{flex:0 0 auto;margin:0 0 0 auto;padding:5px;}
+  .hdr-seg button{padding:13px 24px;gap:8px;min-height:0;}
+  .hdr-seg button .nav-ico{width:20px;height:20px;}
+  .hdr-seg button .nav-lbl{font-size:15px;}
   main{padding-top:6px;padding-bottom:28px;}
 }
 /* ── Barra compacta FIXA ao rolar (SÓ desktop). Curta; com scroll-padding/scroll-margin pra que o
    cabeçalho do chaveamento e as colunas nunca fiquem ENGOLIDOS por ela (sem o bug de clique antigo). ── */
 .hdr-compact{display:none;}
 @media(min-width:680px){
+  /* barra compacta 2× mais alta, com o MESMO visual de pílula do menu principal (classe .seg no HTML) */
   .hdr-compact{display:block;position:fixed;top:0;left:0;right:0;z-index:200;background:var(--frame);border-bottom:1px solid rgba(255,255,255,.1);box-shadow:0 8px 20px -12px rgba(0,0,0,.7);transform:translateY(-105%);transition:transform .22s ease;}
   .hdr-compact.show{transform:translateY(0);}
-  .hdr-compact-inner{max-width:920px;margin:0 auto;padding:6px 14px;display:flex;align-items:center;justify-content:space-between;gap:20px;}
-  .hdr-compact-brand{display:flex;align-items:center;gap:10px;min-width:0;}
-  .hdr-compact-logo{height:38px;width:auto;flex-shrink:0;display:block;}
-  .hdr-compact-title{font-family:var(--font-display);font-weight:900;font-size:18px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--on-dark);}
-  .hdr-compact-title .hc-lime{color:var(--lime);}
-  .hdr-compact-tabs{display:flex;gap:6px;flex-shrink:0;}
-  .hdr-compact-tabs button{display:flex;align-items:center;gap:7px;padding:8px 15px;border-radius:10px;border:none;background:transparent;color:var(--on-dark-muted);cursor:pointer;}
-  .hdr-compact-tabs button .nav-ico{width:18px;height:18px;display:block;}
-  .hdr-compact-tabs button .nav-ico svg{width:100%;height:100%;display:block;}
-  .hdr-compact-tabs button .nav-lbl{font-size:13.5px;font-weight:700;white-space:nowrap;}
-  body[data-tab="mata"] .hdr-compact-tabs button[data-tab="mata"],
-  body[data-tab="ranking"] .hdr-compact-tabs button[data-tab="ranking"]{background:var(--lime);color:var(--ink);}
-  /* folga pra que rolagens programáticas (scrollIntoView) deixem o conteúdo ABAIXO da barra fixa */
-  html{scroll-padding-top:64px;}
-  .mm-sec,.mm-filters,#mm-list .mm-datehdr{scroll-margin-top:66px;}
+  .hdr-compact-inner{max-width:920px;margin:0 auto;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:20px;}
+  .hdr-compact-brand{display:flex;align-items:center;gap:12px;min-width:0;}
+  .hdr-compact-logo{height:76px;width:auto;flex-shrink:0;display:block;}
+  .hdr-compact-title{font-family:var(--font-display);font-weight:900;font-size:26px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--on-dark);}
+  .hdr-compact-title .hc-lime{color:var(--lime);background:#004D3F;padding:2px 8px 3px;border-radius:2px 10px 2px 2px;display:inline-block;line-height:1.05;}
+  .hdr-compact-tabs{flex-shrink:0;}
+  .hdr-compact-tabs button{padding:11px 20px;min-height:44px;}
+  .hdr-compact-tabs button .nav-ico{width:19px;height:19px;}
+  .hdr-compact-tabs button .nav-lbl{font-size:14px;font-weight:700;}
+  /* folga pra que rolagens programáticas (scrollIntoView) deixem o conteúdo ABAIXO da barra fixa (agora mais alta) */
+  html{scroll-padding-top:118px;}
+  .mm-sec,.mm-filters,#mm-list .mm-datehdr{scroll-margin-top:120px;}
 }
 .tab{display:none;}.tab.active{display:block;}
 
 /* Loading / Error */
 #loading-screen{position:fixed;inset:0;background:var(--frame);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;color:#fff;gap:12px;}
 #loading-screen.hidden{display:none;}
-.spinner{width:36px;height:36px;border:3px solid rgba(255,255,255,.18);border-top-color:var(--lime);border-radius:50%;animation:spin .8s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg);}}
+/* Ratazana animada no lugar do círculo: balanço suave + pulso de escala (só keyframes CSS) */
+.load-rat{height:150px;width:auto;display:block;animation:ratLoad 1.8s ease-in-out infinite;transform-origin:50% 85%;}
+@keyframes ratLoad{
+  0%,100%{transform:rotate(-6deg) scale(1);}
+  25%{transform:rotate(0deg) scale(1.05);}
+  50%{transform:rotate(6deg) scale(1);}
+  75%{transform:rotate(0deg) scale(1.05);}
+}
 #loading-screen p{font-size:13px;color:rgba(255,255,255,.7);}
 .error-banner{background:#c00;color:#fff;text-align:center;padding:10px 16px;font-size:12px;font-weight:600;}
 .sync-dot{width:7px;height:7px;border-radius:50%;background:var(--gl);display:inline-block;margin-right:4px;}
@@ -118,7 +139,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .view-toggle button.active{background:var(--gd);color:var(--gold);}
 .filters{display:flex;gap:5px;overflow-x:auto;padding-bottom:2px;}
 .filters::-webkit-scrollbar{display:none;}
-.pill{padding:6px 14px;border-radius:var(--r-pill);border:1px solid var(--line);background:var(--surface);font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;white-space:nowrap;flex-shrink:0;}
+.pill{padding:6px 14px;border-radius:var(--r-q-sm);border:1px solid var(--line);background:var(--surface);font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;white-space:nowrap;flex-shrink:0;}
 .pill.active{background:var(--ink);color:#fff;border-color:var(--ink);}
 
 /* Section headers */
@@ -136,7 +157,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .card.is-finished{border-color:var(--gl);box-shadow:0 2px 12px rgba(45,150,83,.18);}
 .card.is-naocons{opacity:.62;}
 
-.card-head{display:flex;justify-content:space-between;align-items:center;padding:11px 10px;background:linear-gradient(135deg,var(--gd),var(--g));gap:3px;flex-wrap:wrap;}
+.card-head{position:relative;display:flex;justify-content:space-between;align-items:center;padding:11px 10px;background:linear-gradient(135deg,var(--gd),var(--g));gap:3px;flex-wrap:wrap;}
 .card-head .grp-tag{font-size:9.5px;font-weight:800;color:var(--gold);letter-spacing:0;display:flex;align-items:center;gap:3px;flex-wrap:nowrap;white-space:nowrap;}
 .card-head .dt-tag{font-size:11px;font-weight:800;color:#fff;white-space:nowrap;}
 .bl-tag{font-size:6px;font-weight:800;letter-spacing:.2px;padding:1px 3px;border-radius:4px;}
@@ -152,10 +173,10 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .matchup{display:flex;align-items:flex-start;justify-content:center;padding:16px 8px 11px;gap:6px;}
 .team{flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;min-width:0;}
 .team-flag{font-size:44px;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,.12));}
-.team-flag .flag-img{height:34px;width:auto;border-radius:3px;display:block;box-shadow:0 1px 3px rgba(0,0,0,.2);}
-.flag-img{vertical-align:-2px;}
-.dh-teams .flag-img{height:13px;border-radius:2px;}
-.crav-item .flag-img{height:11px;border-radius:2px;}
+.team-flag .flag-img{height:34px;width:auto;border-radius:2px 10px 2px 2px;display:block;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+.flag-img{vertical-align:-2px;border-radius:1px 6px 1px 1px;}   /* identidade: canto sup. direito arredondado em TODAS as bandeiras */
+.dh-teams .flag-img{height:13px;border-radius:1px 6px 1px 1px;}
+.crav-item .flag-img{height:11px;border-radius:1px 5px 1px 1px;}
 .team-name{font-size:14.5px;font-weight:800;color:var(--txt);text-align:center;line-height:1.15;}
 .mid{display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;padding-top:4px;}
 .vs-badge{font-size:11px;font-weight:800;color:var(--g);background:var(--bg);border:2px solid var(--brd);border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -174,7 +195,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .pred-cell.human{background:#fff;border-color:var(--brd);padding:7px 6px;display:flex;align-items:center;gap:5px;}
 .hum-av{width:30px;height:30px;border-radius:50%;flex-shrink:0;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:12px;}
 .hum-name{font-size:14px;font-weight:800;color:var(--txt);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.pred-cell.human .pts-badge{font-size:9px;padding:1px 4px;}
+.pred-cell.human .pts-badge:not(.on-av){font-size:9px;padding:1px 4px;}   /* :not(.on-av): não encolher o selo da foto */
 .av-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
 .rk-av,.pod-av,.stat-avatar{position:relative;overflow:hidden;}
 .pc-top{display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:5px;min-height:14px;}
@@ -197,7 +218,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .real-row{display:flex;flex-direction:row;align-items:stretch;gap:9px;background:linear-gradient(135deg,var(--gd),var(--g));padding:11px 12px;}
 .real-row .rr-line{flex:3;display:flex;align-items:center;justify-content:center;gap:8px;}
 .real-row .rr-label{font-size:11px;font-weight:800;color:var(--gold);letter-spacing:.5px;}
-.rr-finish{flex:0 0 auto;padding:8px 12px;border-radius:9px;border:1.5px solid rgba(255,255,255,.45);background:rgba(255,255,255,.12);color:#fff;font-size:12px;font-weight:800;white-space:nowrap;cursor:pointer;transition:background .15s;}
+.rr-finish{flex:0 0 auto;padding:8px 12px;border-radius:var(--r-q-sm);border:1.5px solid rgba(255,255,255,.45);background:rgba(255,255,255,.12);color:#fff;font-size:12px;font-weight:800;white-space:nowrap;cursor:pointer;transition:background .15s;}
 .rr-finish:active{background:rgba(255,255,255,.22);}
 .rr-finish.done{background:var(--gold);color:#5c4708;border-color:var(--gold);}
 .rr-finish .chk-off{color:rgba(255,255,255,.55);font-weight:900;}
@@ -219,11 +240,20 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .pts-badge{font-size:10px;font-weight:700;padding:1px 5px;border-radius:10px;}
 .pts-badge.preview{background:#dfe4df;color:#7a857a;}
 .hum-avwrap{position:relative;flex-shrink:0;}
-.pts-badge.on-av{position:absolute;bottom:-4px;right:-6px;border:1.6px solid #fff;min-width:16px;height:16px;padding:0 3px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:9px;box-shadow:0 1px 2px rgba(0,0,0,.25);}
+/* Selo de pontos NA FOTO (Tarefa 1): círculo escuro sobreposto ao canto inferior direito do avatar,
+   número em lime, borda de 2px na cor da página (recorta o selo da foto). MESMO selo na prévia e no
+   final; vira pílula quando o número é fracionário (ex.: 12,5). Pontuação 0 = número cinza apagado. */
+.pts-badge.on-av{position:absolute;bottom:-6px;right:-7px;min-width:22px;height:22px;width:auto;padding:0 4px;border-radius:999px;border:2px solid var(--sheet);background:var(--frame);color:var(--lime);font-size:10.5px;font-weight:800;letter-spacing:0;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.35);box-sizing:border-box;}
+.pts-badge.on-av.zero{color:var(--faint);}
+/* Estado do jogo (mesma condição do badge "Fechado": classe .preview = ainda não finalizado):
+   ABERTO/prévia = selo cinza discreto (tom do selo antigo, pontuação provisória) · FECHADO = preto+lime acima */
+.pts-badge.on-av.preview{background:#dfe4df;color:#7a857a;box-shadow:0 1px 4px rgba(0,0,0,.18);}
+.pts-badge.on-av.preview.zero{color:#adb6ad;}   /* 0 na prévia: mais apagado, ainda legível no cinza */
+.mm-litem .pts-badge.on-av{min-width:26px;height:26px;font-size:12px;bottom:-7px;right:-8px;}   /* avatares maiores do mata */
 .prev-tag{font-size:8px;font-weight:800;background:rgba(255,255,255,.22);color:#fff;padding:1px 5px;border-radius:6px;margin-left:5px;letter-spacing:.3px;vertical-align:1px;}
 
 /* ── Fase de Grupos: card no visual Copa 26 (ESCOPO .card; o mata usa .mm-litem e NÃO é afetado) ── */
-.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);box-shadow:var(--shadow-card);}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-q-lg);box-shadow:var(--shadow-card);}
 .card:hover{box-shadow:0 12px 26px -16px rgba(20,20,26,.55);transform:translateY(-1px);}
 .card.is-finished{border-color:var(--line);box-shadow:var(--shadow-card);}
 /* faixa superior preta */
@@ -237,7 +267,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .card .bl-tag.jxv{background:rgba(255,255,255,.08);color:rgba(255,255,255,.42);}
 /* times + VS central */
 .card .team-name{color:var(--ink);}
-.card .vs-badge{background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2);font-family:var(--font-display);font-weight:800;font-size:11px;}
+.card .vs-badge{background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2);font-weight:800;font-size:11px;}
 .card .score-final{background:var(--ink);box-shadow:0 2px 7px rgba(20,20,26,.28);}
 /* campos de palpite escuros */
 .card .pred-cell.human{background:var(--surface);border-color:var(--line);}
@@ -275,16 +305,16 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .card.is-turbo .rr-finish.done{background:transparent;border-color:#e0a07f;color:var(--orange);}
 
 /* ─── Ranking & Estatísticas ─── */
-.section-title{display:flex;align-items:center;justify-content:center;gap:7px;font-family:var(--font-display);font-size:13px;font-weight:900;color:var(--ink);letter-spacing:.4px;margin:26px 4px 12px;}
+.section-title{display:flex;align-items:center;justify-content:center;gap:7px;color:var(--ink);margin:26px 4px 12px;}
 .section-title::before{content:"";width:11px;height:11px;background:var(--lime);border-radius:var(--shape-block);flex-shrink:0;}
 .scoring{font-size:10.5px;color:var(--on-dark-muted);background:var(--note-dark);border:1px solid var(--line);border-radius:var(--r-stat);text-align:center;line-height:1.35;margin:14px 4px 0;padding:10px 12px;}
 .scoring b{color:var(--lime);}
 .tiebreak{font-size:10px;color:var(--mu);text-align:center;line-height:1.3;margin:8px 8px -2px;}
 
 /* Leaderboard */
-.lead-board{background:var(--surface);border-radius:var(--r-card);border:1px solid var(--line);overflow:hidden;box-shadow:var(--shadow-card);}
+.lead-board{background:var(--surface);border-radius:var(--r-q-lg);border:1px solid var(--line);overflow:hidden;box-shadow:var(--shadow-card);}
 .lead-head{background:var(--surface-2);padding:13px 16px;text-align:center;border-bottom:1px solid var(--line);}
-.lead-head .lh-title{font-family:var(--font-display);font-size:14px;font-weight:900;color:var(--ink);letter-spacing:.3px;}
+.lead-head .lh-title{color:var(--ink);}
 .lead-head .lh-sub{font-size:11px;color:var(--muted);margin-top:3px;display:flex;align-items:center;justify-content:center;gap:5px;}
 .rk-row{display:flex;align-items:center;gap:11px;padding:12px 14px;border-bottom:1px solid var(--line);}
 .rk-row:last-child{border-bottom:none;}
@@ -298,7 +328,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .rk-bar{height:6px;background:var(--surface-3);border-radius:3px;overflow:hidden;}
 .rk-bar i{display:block;height:100%;border-radius:3px;transition:width .5s ease;}
 .rk-tot{text-align:right;flex-shrink:0;}
-.rk-tot b{font-family:var(--font-display);font-size:23px;font-weight:900;color:var(--ink);line-height:1;}
+.rk-tot b{font-size:23px;font-weight:900;color:var(--ink);line-height:1;}
 .rk-tot span{display:block;font-size:9px;color:var(--muted);margin-top:1px;}
 .tag-ia{font-size:9px;background:rgba(109,59,245,.13);color:var(--violet);border-radius:5px;padding:1px 6px;font-weight:800;}
 .tag-human{font-size:9px;background:rgba(15,174,98,.14);color:var(--green-ink);border-radius:5px;padding:1px 6px;font-weight:800;}
@@ -306,7 +336,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 /* Versus battle cards */
 .vs2{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:13px 15px;box-shadow:var(--shadow-card);}
 .vs2+.vs2{margin-top:9px;}
-.vs2-title{font-family:var(--font-display);font-size:12px;font-weight:900;color:var(--ink);text-align:center;margin-bottom:11px;}
+.vs2-title{font-size:12px;font-weight:900;color:var(--ink);text-align:center;margin-bottom:11px;}
 .vs2-row{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px;}
 .vs2-side{min-width:0;}.vs2-side.r{text-align:right;}
 .vs2-nm{font-size:12.5px;font-weight:800;}
@@ -322,6 +352,12 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .stat-phead{display:flex;align-items:center;gap:10px;margin-bottom:11px;}
 .stat-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:#fff;flex-shrink:0;box-shadow:0 2px 5px rgba(0,0,0,.13);}
 .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:11px;}
+/* Popup de estatísticas individuais (2.2): modal centralizado, fundo escurecido, X e clique-fora fecham */
+.stats-modal{position:fixed;inset:0;z-index:600;background:rgba(12,12,14,.6);display:flex;align-items:center;justify-content:center;padding:16px;}
+.stats-modal-box{position:relative;width:100%;max-width:520px;max-height:86vh;overflow:auto;background:var(--sheet);border-radius:var(--r-card);padding:12px;box-shadow:0 18px 60px -18px rgba(0,0,0,.65);-webkit-overflow-scrolling:touch;}
+.stats-modal-box .stat-card{margin:0;}
+.stats-modal-x{position:absolute;top:10px;right:10px;z-index:2;width:32px;height:32px;border-radius:50%;border:none;background:var(--ink);color:#fff;font-size:14px;font-weight:900;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.rk-row,.pod{cursor:pointer;}
 .stat-box{background:var(--surface-2);border-radius:var(--r-mini);padding:9px 8px;text-align:center;}
 .stat-box .val{font-size:21px;font-weight:900;color:var(--ink);line-height:1;}
 .stat-box .lbl{font-size:10px;color:var(--mu);margin-top:4px;display:flex;align-items:center;justify-content:center;gap:3px;}
@@ -375,7 +411,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 
 /* ── Sub-abas do ranking (trilho branco; ativa preta) ── */
 .rank-toggle{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-btn);padding:4px;margin-bottom:14px;box-shadow:var(--shadow-card);}
-.rank-toggle button{flex:1;padding:9px 6px;border:none;border-radius:8px;background:transparent;font-family:var(--font-display);font-size:12.5px;font-weight:700;color:var(--muted);cursor:pointer;transition:background .15s,color .15s;}
+.rank-toggle button{flex:1;padding:9px 6px;border:none;border-radius:8px;background:transparent;font-size:12.5px;font-weight:700;color:var(--muted);cursor:pointer;transition:background .15s,color .15s;}
 .rank-toggle button.active{background:var(--ink);color:#fff;}
 .hist-toggle{display:flex;gap:7px;justify-content:center;margin:0 4px 10px;}
 .hist-toggle button{flex:0 0 auto;padding:6px 16px;border:1px solid var(--line);background:var(--surface);border-radius:999px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;}
@@ -406,8 +442,8 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .crav-empty{font-size:11px;color:var(--muted);background:var(--surface-2);border-radius:8px;padding:7px 9px;}
 
 /* ── Hero "Jogos de hoje" (compacto) ── */
-.day-hero{background:var(--card-dark);border-radius:var(--r-card);padding:12px 14px;margin-bottom:18px;color:var(--on-dark);box-shadow:var(--shadow-card);}
-.dh-head{font-family:var(--font-display);font-size:11px;font-weight:900;letter-spacing:.5px;color:var(--lime);margin-bottom:9px;display:flex;align-items:center;gap:7px;}
+.day-hero{background:var(--card-dark);border-radius:var(--r-q-lg);padding:12px 14px;margin-bottom:18px;color:var(--on-dark);box-shadow:var(--shadow-card);}
+.dh-head{color:var(--lime);margin-bottom:9px;display:flex;align-items:center;gap:7px;}
 .dh-list{display:flex;flex-direction:column;gap:2px;}
 .dh-row{display:flex;align-items:center;gap:9px;padding:7px;border-radius:var(--r-field);cursor:pointer;transition:background .15s;}
 .dh-row:active{background:rgba(255,255,255,.08);}
@@ -425,15 +461,19 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .dh-soon{font-size:13px;flex-shrink:0;opacity:.6;}
 
 /* ── Barra rolante do ranking (aba Palpites) ── */
-.rank-marquee{background:transparent;border-radius:0;padding:2px 0 4px;margin-bottom:18px;color:var(--ink);overflow:hidden;box-shadow:none;}
-.rm-head{font-family:var(--font-display);font-size:11px;font-weight:900;letter-spacing:.3px;color:var(--ink);margin:0 2px 9px;display:flex;align-items:center;gap:6px;}
+/* Ranking rápido (letreiro): fundo CLARO em card, rolagem LENTA, pausa no hover/toque */
+.rank-marquee{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-q-lg);padding:10px 12px 12px;margin-bottom:18px;color:var(--ink);overflow:hidden;box-shadow:var(--shadow-card);}
+.rm-head{color:var(--ink);margin:0 2px 9px;display:flex;align-items:center;gap:6px;}
 .rm-hint{font-family:var(--font-body);font-weight:600;letter-spacing:0;color:var(--faint);font-size:8.5px;}
 .rm-track-wrap{overflow:hidden;width:100%;}
-.rm-track{display:flex;width:max-content;animation:rmscroll 38s linear infinite;cursor:pointer;}
+.rm-track{display:flex;width:max-content;animation:rmscroll 90s linear infinite;cursor:pointer;}
 .rm-track:hover,.rm-track.paused{animation-play-state:paused;}
+.rm-pos.p1{color:var(--gold);}
+.rm-pos.p2{color:var(--silver);}
+.rm-pos.p3{color:var(--bronze);}
 @keyframes rmscroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}
-.rm-item{display:flex;align-items:center;gap:7px;padding:8px 12px;margin-right:8px;border-right:none;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-mini);box-shadow:var(--shadow-card);white-space:nowrap;}
-.rm-pos{font-family:var(--font-display);font-size:14px;font-weight:900;color:var(--faint);min-width:20px;text-align:center;font-variant-numeric:tabular-nums;}
+.rm-item{display:flex;align-items:center;gap:7px;padding:8px 12px;margin-right:8px;border-right:none;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-mini);box-shadow:none;white-space:nowrap;}
+.rm-pos{font-size:14px;font-weight:900;color:var(--faint);min-width:20px;text-align:center;font-variant-numeric:tabular-nums;}
 .rm-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;color:#fff;position:relative;overflow:hidden;flex-shrink:0;}
 .rm-nm{font-size:12.5px;font-weight:800;color:var(--ink);}
 .rm-pts{font-size:10.5px;color:var(--muted);}
@@ -444,15 +484,16 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 /* ── Delta de posição no ranking ── */
 .rk-medal{display:flex;flex-direction:column;align-items:center;gap:1px;}
 .rk-place{line-height:1;}
-.rk-delta{font-size:9px;font-weight:800;line-height:1;letter-spacing:-.3px;}
-.rk-delta.up{color:#1aa34a;}
-.rk-delta.down{color:#d33;}
-.rk-delta.flat{color:var(--mu);opacity:.55;}
+/* Chips de variação (só o ranking detalhado; o letreiro usa rm-up/rm-down e fica como está) */
+.rk-delta{font-size:10px;font-weight:800;line-height:1;letter-spacing:-.2px;padding:2.5px 6px;border-radius:999px;}
+.rk-delta.up{background:rgba(15,174,98,.15);color:var(--green-ink);}
+.rk-delta.down{background:rgba(245,49,79,.13);color:#C21834;}
+.rk-delta.flat{background:rgba(20,20,26,.08);color:var(--ink-2);}
 .rk-legend{font-size:10px;color:var(--mu);padding:8px 14px;border-bottom:1px solid var(--brd);background:#fafdfa;line-height:1.4;}
 .rk-legend b.up{color:#1aa34a;}.rk-legend b.down{color:#d33;}
 
 /* ── Gráfico de evolução da classificação ── */
-.hist-wrap{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:10px 0 12px;overflow:hidden;}
+.hist-wrap{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-q-lg);padding:10px 0 12px;overflow:hidden;}
 .hist-scrollhint{font-size:9.5px;color:var(--mu);text-align:center;margin-bottom:4px;opacity:.7;}
 .hist-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;padding:0 6px;}
 .hist-svg{display:block;}
@@ -476,7 +517,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .pod-name{font-size:12px;font-weight:800;margin-top:9px;text-align:center;line-height:1.1;color:var(--ink);}
 .pod-pts{font-size:14px;font-weight:800;color:var(--ink-2);}
 .pod-pts span{font-size:9px;color:var(--muted);font-weight:600;}
-.pod-base{width:100%;margin-top:7px;border-radius:10px 10px 0 0;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:900;line-height:1;color:#fff;}
+.pod-base{width:100%;margin-top:7px;border-radius:10px 10px 0 0;display:flex;align-items:center;justify-content:center;font-weight:900;line-height:1;color:#fff;}
 .pod-1 .pod-base{height:78px;background:var(--gold);font-size:30px;box-shadow:inset 0 2px 0 rgba(255,255,255,.28);}
 .pod-2 .pod-base{height:58px;background:var(--silver);font-size:23px;box-shadow:inset 0 2px 0 rgba(255,255,255,.22);}
 .pod-3 .pod-base{height:44px;background:var(--bronze);font-size:18px;box-shadow:inset 0 2px 0 rgba(255,255,255,.2);}
@@ -505,7 +546,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .mm-qp-lbl{font-size:10px;font-weight:700;color:var(--mu);}
 .mm-qpb{background:var(--bg);border:1.5px solid var(--brd);border-radius:8px;padding:5px 8px;font-size:11.5px;font-weight:700;color:var(--txt);cursor:pointer;display:inline-flex;align-items:center;gap:4px;}
 .mm-qpb.sm{padding:3px 6px;font-size:10.5px;}
-.mm-qpb .flag-img{height:13px;width:auto;border-radius:2px;}
+.mm-qpb .flag-img{height:13px;width:auto;border-radius:1px 6px 1px 1px;}
 .mm-qpb.on{background:var(--g);border-color:var(--g);color:#fff;}
 .mm-class{padding:9px 12px;border-top:1px solid var(--brd);background:#fafdfa;display:flex;flex-direction:column;gap:6px;}
 .mm-class-lbl{font-size:10px;font-weight:700;color:var(--mu);}
@@ -513,40 +554,78 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .mm-iascore{background:var(--surface-3);border:1.5px solid transparent;border-radius:9px;padding:6px 10px;font-size:16px;font-weight:800;color:var(--ink);text-align:center;min-width:60px;}
 .mm-iascore.empty{color:var(--mu);font-weight:600;}
 .mm-qp-static{display:flex;align-items:center;gap:5px;padding-top:4px;border-top:1px dashed var(--brd);font-size:11px;color:var(--mu);font-weight:700;}
-.mm-qp-static .flag-img{height:12px;width:auto;border-radius:2px;}
+.mm-qp-static .flag-img{height:12px;width:auto;border-radius:1px 5px 1px 1px;}
 .pred-cell.ia.mm-cell{background:var(--bg);}
-/* Chave (bracket) do mata-mata — caixas posicionadas + conectores SVG em colchete */
-/* Seção da chave = card único (cabeçalho grudado no topo + chave no mesmo quadro) — 1.2 */
-.mm-sec{border:1px solid var(--line);border-radius:var(--r-card);overflow:hidden;margin-bottom:18px;background:var(--surface);box-shadow:var(--shadow-card);}
-.mm-bracket-wrap{margin:0;}
-.mm-bracket-hint{font-size:10px;color:var(--muted);padding:7px 10px 0;}
-.mm-bracket-scroll{overflow-x:auto;overflow-y:hidden;background:var(--surface-2);padding:8px;-webkit-overflow-scrolling:touch;}
-.mm-bracket{position:relative;transform-origin:top left;}
-.mm-cn-svg{position:absolute;left:0;top:0;pointer-events:none;}
-.mm-cn{fill:none;stroke:#6a766a;stroke-width:1.4;stroke-linejoin:round;opacity:.65;}   /* 1.1: fino, cinza escuro suave */
+/* Seção da chave = card único (cabeçalho grudado no topo + visor no mesmo quadro) — 1.2 */
+.mm-sec{border:1px solid var(--line);border-radius:var(--r-q-lg);overflow:hidden;margin-bottom:18px;background:var(--surface);box-shadow:var(--shadow-card);}
+/* conectores do visor (as linhas que contam a história do jogo) */
+.mm-cn{fill:none;stroke:#6a766a;stroke-width:1.4;stroke-linejoin:round;opacity:.65;}
 .mm-cn.c3{stroke:#9aa59a;stroke-dasharray:4 4;stroke-width:1.1;opacity:.5;}
-.mm-coltitle{position:absolute;top:0;text-align:center;font-family:var(--font-display);font-size:10px;font-weight:800;color:var(--ink);letter-spacing:.5px;text-transform:uppercase;background:var(--lime);padding:5px 0;border-radius:var(--r-btn);box-shadow:0 2px 6px -2px rgba(20,20,26,.3);cursor:pointer;user-select:none;}
-.mm-coltitle:hover{filter:brightness(1.08);}
-.mm-coltitle.col-collapsed{display:flex;align-items:center;justify-content:center;writing-mode:vertical-rl;text-orientation:mixed;font-size:9px;padding:6px 0;opacity:1;background:var(--surface);color:var(--muted);border:1px solid var(--line);box-shadow:none;}
-.mm-bxpos{position:absolute;}
-.mm-bx{height:100%;box-sizing:border-box;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-field);padding:5px 9px;cursor:pointer;display:flex;flex-direction:column;justify-content:center;gap:4px;transition:box-shadow .15s,transform .12s;overflow:hidden;box-shadow:var(--shadow-card);}   /* 1.1: contorno cinza fino */
-.mm-bx:hover{box-shadow:0 0 0 2px var(--lime);}
-.mm-bx:active{transform:scale(.99);}
-.mm-bx.nolink{cursor:default;background:var(--surface-2);box-shadow:none;}
-.mm-bx.nolink:hover{box-shadow:none;}
-.mm-bx-side{position:relative;display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:800;color:var(--ink);min-width:0;line-height:1.2;min-height:16px;}
-.mm-bx-side.win{color:var(--green-ink);}
-.mm-bx-nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.mm-bx-sc{font-weight:800;font-variant-numeric:tabular-nums;flex-shrink:0;}
-.mm-bx-sc small{font-weight:600;color:var(--mu);}
 /* Bandeira padronizada: caixa de tamanho fixo, centralizada, sem distorcer */
 .flagbx{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;}
-.flagbx .flag-img{max-width:100%;max-height:100%;width:auto;height:auto;border-radius:2px;display:block;box-shadow:0 1px 2px rgba(0,0,0,.18);}
+.flagbx .flag-img{max-width:100%;max-height:100%;width:auto;height:auto;border-radius:1px 6px 1px 1px;display:block;box-shadow:0 1px 2px rgba(0,0,0,.18);}
+.mm-matchup .team-flag .flagbx .flag-img{border-radius:2px 10px 2px 2px;}   /* bandeirão do matchup: raio proporcional */
 .mm-matchup .team-flag .flagbx{width:46px;height:31px;}
-.mm-bx-side .flagbx{width:22px;height:15px;}
 .mm-qpb .flagbx{width:16px;height:11px;}
 .mm-class-btns .flagbx{width:18px;height:12px;}
 .mm-qp-static .flagbx{width:16px;height:11px;}
+/* ── Chaveamento: visor em janela estilo Sofascore. Poucas fases por vez, linhas de conexão em
+   destaque; expandir = overlay em tela cheia com o mesmo visual. ── */
+.mmv-nav{display:flex;align-items:center;gap:5px;padding:11px 10px 3px;}
+.mmv-pill{flex:0 1 auto;min-width:0;padding:7px 13px;border-radius:var(--r-q-sm);border:1px solid var(--line-2);background:transparent;color:var(--muted);font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent;}
+.mmv-pill.active{background:var(--lime);border-color:var(--lime);color:var(--ink);}
+.mmv-expand{margin-left:auto;width:32px;height:32px;flex-shrink:0;border-radius:var(--r-q-sm);border:1px solid var(--line-2);background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;}
+.mmv-expand svg{width:15px;height:15px;display:block;}
+/* palco: colunas absolutas + SVG de conectores (as linhas contam a história do jogo) */
+.mmv-stage{position:relative;margin:10px 10px 14px;}
+.mmv-svg{position:absolute;left:0;top:0;pointer-events:none;}
+.mmv-colhead{position:absolute;top:0;font-size:9.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--faint);text-align:center;white-space:nowrap;overflow:hidden;}
+.mmv-colhead.cur{color:var(--ink);}   /* título da fase ativa (o painel agora é sutil e claro) */
+/* painel de destaque da fase selecionada: BEM sutil (1.2), só um tom a mais que o fundo */
+.mmv-colpanel{position:absolute;top:-6px;background:rgba(21,21,26,.13);border-radius:14px;transition:left .28s ease,width .28s ease,height .28s ease;}
+/* janela do visor: altura anima no encaixe; esteira desliza por translateX (pan-y mantém rolagem vertical) */
+.mmv-wrap{position:relative;touch-action:pan-y;overflow:hidden;transition:height .28s ease;}
+.mmv-track{position:relative;width:max-content;will-change:transform;}
+/* setas simples (1.3): só o chevron fino em cinza escuro, sem círculo; área de toque ≥40px */
+.mmv-arr{position:absolute;top:50%;transform:translateY(-50%);z-index:5;width:40px;height:48px;border:none;background:none;color:var(--ink-2);opacity:.75;font-size:32px;font-weight:600;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0 0 3px;-webkit-tap-highlight-color:transparent;text-shadow:0 0 6px rgba(255,255,255,.9);}
+.mmv-arr.prev{left:0;}
+.mmv-arr.next{right:0;}
+.mmv-arr:hover{opacity:1;}
+.mmv-cardpos{position:absolute;}
+.mmv-card{height:100%;box-sizing:border-box;display:flex;align-items:stretch;gap:5px;background:var(--surface);border:1px solid var(--line-2);border-radius:var(--r-q-sm);padding:6px 8px;cursor:pointer;overflow:hidden;box-shadow:var(--shadow-card);transition:box-shadow .15s;}
+.mmv-card.nolink{cursor:default;background:var(--surface-2);box-shadow:none;}
+.mmv-card:not(.nolink):hover{box-shadow:0 0 0 2px var(--lime);}
+.mmv-card:not(.nolink):active{transform:scale(.99);}
+.mmv-cardpos.focus .mmv-card{box-shadow:0 0 0 2px var(--lime);border-color:var(--lime);}   /* espiadinha: próximo jogo realçado */
+.mmv-teams{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:space-around;gap:3px;}
+.mmv-t{position:relative;display:flex;align-items:center;gap:5px;font-size:11px;font-weight:800;color:var(--ink);min-width:0;line-height:1.15;min-height:15px;}
+.mmv-t .flagbx{width:20px;height:14px;}
+.mmv-nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mmv-t.win{color:var(--green-ink);}
+/* eliminado: acinzentado, risco no nome e risco separado no placar (1.2 — formato anterior) */
+.mmv-t.lost{color:#751312;opacity:.55;}
+.mmv-t.lost .mmv-nm,.mmv-t.lost .mmv-sc{text-decoration:line-through;}
+.mmv-sc{font-weight:800;font-variant-numeric:tabular-nums;flex-shrink:0;}
+.mmv-ck{color:var(--green-ink);font-weight:900;flex-shrink:0;font-size:12px;}   /* venceu nos pênaltis (nunca mostra o placar dos pênaltis) */
+.mmv-dtbx{flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:3px;font-size:9px;font-weight:800;color:var(--muted);line-height:1;white-space:nowrap;}
+.mmv-ph{color:var(--faint);font-weight:700;}   /* placeholder V33/P29 (vaga indefinida) */
+.mmv-shield{width:20px;height:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--faint);}
+.mmv-shield svg{width:11px;height:13px;display:block;}
+.mmv-tag{position:absolute;top:-8px;left:9px;z-index:2;background:var(--ink);color:#fff;font-size:8px;font-weight:800;padding:2px 7px;border-radius:5px;letter-spacing:.4px;text-transform:uppercase;}
+/* espiadinha (estado fechado): começo REAL do bracket, MAIOR (1.5), cortado no meio dos cards embaixo */
+.mmv-peek{position:relative;height:152px;overflow:hidden;cursor:pointer;}
+.mmv-peek *{pointer-events:none;}
+.mmv-peek .mmv-stage{margin-top:4px;}
+.mmv-status{display:flex;align-items:center;justify-content:center;gap:7px;padding:9px 12px 12px;font-size:10.5px;font-weight:700;color:var(--muted);cursor:pointer;border-top:1px dashed var(--line);}
+.mmv-status .arr{font-size:12px;line-height:1;}
+/* tela cheia (3.7): chaveamento completo no visual novo, com rolagem e X pra fechar */
+.mmv-full{position:fixed;inset:0;z-index:500;background:var(--sheet);display:flex;flex-direction:column;}
+.mmv-full-head{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--card-dark);padding:14px 16px;padding-top:calc(14px + env(safe-area-inset-top));flex-shrink:0;}
+.mmv-full-x{width:36px;height:36px;flex-shrink:0;border-radius:50%;border:none;background:var(--lime);color:var(--ink);font-size:15px;font-weight:900;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 11px -2px rgba(194,236,0,.7);}
+.mmv-full-scroll{flex:1;overflow:auto;padding:12px 14px calc(14px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch;background:var(--surface);}   /* mesmo fundo branco do visor (1.4) */
+.mmv-full-scroll .mmv-stage{margin:4px 2px;}
+/* título da seção de palpites (3.8): mesmo estilo do cabeçalho "Chaveamento", sem ser clicável */
+.mm-list-title{border-radius:var(--r-q-lg);cursor:default;margin:16px 0 4px;box-shadow:var(--shadow-card);}
 /* Tags de status do cabeçalho */
 .bl-tag.abe{background:rgba(255,255,255,.2);color:#fff;font-size:8.5px;}
 .bl-tag.fec{background:#e8c44a;color:#5c4708;font-size:8.5px;}
@@ -556,14 +635,23 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .mm-qp:empty{display:none;}
 /* Filtro de fases (3.1) */
 /* Filtro: cabe numa linha só, sem rolagem (tabs de largura igual) */
-.mm-filters{display:flex;gap:4px;padding:2px 1px 11px;}
-.mm-fbtn{flex:1 1 0;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-pill);padding:7px 4px;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;}
+.mm-filters{display:flex;gap:4px;padding:10px 1px 11px;}
+.mm-fbtn{flex:1 1 0;min-width:0;position:relative;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-q-sm);padding:7px 4px;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;text-align:center;line-height:1.2;}
+.mm-fbtn .fb-lbl{display:block;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .mm-fbtn sup{font-size:.72em;}
 .mm-fbtn.active{background:var(--lime);border-color:var(--lime);color:var(--ink);}
+/* Selo do multiplicador de fase (×1 · ×1,25 · ×1,5 · ×1,75 · ×4) — etiqueta inclinada "saltando" do canto
+   superior direito. Puramente visual: pointer-events:none (não rouba o toque da pílula/card). */
+.mm-mult-seal{position:absolute;top:-8px;right:-3px;transform:rotate(-6deg);background:var(--frame);color:var(--lime);font-family:var(--font-body);font-size:9px;font-weight:800;line-height:1;padding:3px 6px;border-radius:6px;pointer-events:none;z-index:2;letter-spacing:.2px;box-shadow:0 2px 6px -2px rgba(0,0,0,.55);white-space:nowrap;}
+.mm-mult-seal.m1{color:var(--faint);}
+.mm-mult-seal.mfin{color:var(--lime);}
+.mm-mult-seal.mturbo{background:#FF3D00;color:#fff;box-shadow:0 0 0 1.5px rgba(255,255,255,.85),0 2px 6px -2px rgba(0,0,0,.55);}   /* turbo: laranja da identidade, valor já ×2 */
+/* no card do confronto: um pouco pra dentro pra NÃO cobrir a data/hora do cabeçalho */
+.mm-mult-seal.mm-seal-card{top:-7px;right:12px;}
 /* Cabeçalho da seção do chaveamento (A1) — grudado no topo do card .mm-sec */
 .mm-sec-head{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--card-dark);padding:15px 16px;cursor:pointer;min-height:62px;-webkit-tap-highlight-color:transparent;}
 .mm-sec-head:active{background:#1d1d24;}
-.mm-sec-title{font-family:var(--font-display);font-size:17px;font-weight:900;color:var(--lime);letter-spacing:.3px;line-height:1.05;}
+.mm-sec-title{color:var(--lime);}
 .mm-sec-cta{display:flex;align-items:center;gap:9px;flex-shrink:0;}
 .mm-sec-cta-lbl{font-size:10.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--lime);white-space:nowrap;}
 .mm-sec-arrow{width:33px;height:33px;border-radius:50%;background:var(--lime);color:var(--ink);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:900;line-height:1;flex-shrink:0;box-shadow:0 3px 11px -2px rgba(194,236,0,.7);}
@@ -572,7 +660,9 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 @media(min-width:680px){#mm-list{grid-template-columns:repeat(2,minmax(0,1fr));}}
 #mm-list .mm-datehdr{grid-column:1/-1;margin:5px 0 1px;}   /* quebra de data ocupa a linha toda (7.1) */
 /* Card do confronto: cabeçalho/bandeiras/rodapé sempre visíveis; só os palpites colapsam (3.1) */
-.mm-litem{border:1px solid var(--brd);border-radius:14px;overflow:hidden;background:var(--card);box-shadow:0 2px 8px rgba(15,68,36,.06);display:flex;flex-direction:column;}
+/* overflow VISIBLE (era hidden) pro selo de multiplicador saltar da borda; cantos dos filhos arredondados à mão abaixo */
+.mm-litem{border:1px solid var(--brd);border-radius:var(--r-q-lg);overflow:visible;background:var(--card);box-shadow:0 2px 8px rgba(15,68,36,.06);display:flex;flex-direction:column;}
+.mm-litem>:last-child{border-radius:0 0 4px 4px;}
 /* Selo de zebra (C): chip no cabeçalho, junto das tags. Zebrão = dourado. */
 /* Pílulas ZEBRA/ZEBRÃO no cabeçalho — mesmo formato/lugar da TURBO (convivem na França×Suécia) */
 .bl-tag.zebra{font-size:7.5px;padding:2px 4px;background:var(--red);color:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.06);}
@@ -585,17 +675,13 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .mm-zebra-img.zb{right:100%;margin-right:3px;}
 /* Imagem da zebra nos PRÓXIMOS JOGOS (linha compacta) e no CHAVEAMENTO (caixinha) — menor que a bandeira */
 .dh-zebra-img{height:18px;width:auto;vertical-align:-5px;margin:0 2px;}
-/* No chaveamento a célula é estreita: a imagem vira sobreposição na bandeira (absolute), assim
-   NÃO rouba largura do nome (legibilidade primeiro). ~tamanho da bandeira (15px). */
-/* Chaveamento: PNG sem selo, overlay no canto da bandeira (absolute) — não entra no fluxo, não corta o nome */
-.mm-bx-zebra{position:absolute;left:4px;bottom:-3px;height:18px;width:auto;z-index:3;pointer-events:none;}
 /* Balão "de onde vêm os pontos" (B): reaproveita o #floating-tip escuro */
 #floating-tip.mm-ptstip{pointer-events:none;}
 .mm-ptstip .mm-tip-l1{color:#fff;}
 .mm-ptstip .mm-tip-l2{color:#ffd9a8;margin-top:3px;font-weight:700;}
 .mm-ptstip .mm-tip-zeb{color:#9be7a0;margin-top:3px;font-weight:800;}
 .mm-ptstip .mm-tip-tot{margin-top:5px;font-weight:800;font-size:13px;border-top:1px solid rgba(255,255,255,.2);padding-top:4px;}
-.mm-litem .card-head{border-radius:0;}
+.mm-litem .card-head{border-radius:3px 23px 0 0;}   /* segue o quarto de círculo do card (mm-litem tem overflow:visible) */
 .mm-litem-summary{display:flex;align-items:center;gap:6px;padding:10px 12px;cursor:pointer;}
 .mm-litem-summary .matchup{flex:1;padding:0;}
 .mm-matchup{gap:16px;}
@@ -687,7 +773,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .mm-foot-qplbl.idle{opacity:.6;}
 .mm-foot-flags{display:flex;gap:4px;}
 .mm-cqp{background:rgba(255,255,255,.16);border:1.5px solid rgba(255,255,255,.45);border-radius:5px;padding:2px 5px;cursor:pointer;display:inline-flex;align-items:center;line-height:1;}
-.mm-cqp .flag-img{height:11px;border-radius:2px;}
+.mm-cqp .flag-img{height:11px;border-radius:1px 5px 1px 1px;}
 .mm-cqp.ro{cursor:default;}
 .mm-cqp.idle{opacity:.5;}
 .mm-cqp.on{background:var(--gold);border-color:var(--gold);box-shadow:0 0 0 1px var(--gold);}
@@ -718,15 +804,9 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 /* Quebra de dia colapsável (10.2) */
 .mm-datehdr{cursor:pointer;user-select:none;}
 .mm-day-arrow{font-size:11px;color:var(--mu);font-weight:800;flex-shrink:0;}
-/* Chave: perdedor em cinza + tag "pên" sem desalinhar placar (Parte 9) */
-.mm-bx-side.lost{opacity:.4;}
-.mm-bx-side.lost .mm-bx-nm{text-decoration:line-through;}
-.mm-bx-pen{font-size:7px;font-weight:800;color:var(--green-ink);background:rgba(15,174,98,.14);border-radius:3px;padding:0 3px;margin-left:4px;vertical-align:1px;}
-.mm-bx-dt{font-size:7px;color:var(--mu);text-align:center;padding:3px 2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1;}
-.mm-bx-sc{min-width:12px;text-align:right;}
 /* Blocos do topo do mata-mata (próximos / ranking / como funciona) */
 .mm-block{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:12px 14px;margin-bottom:18px;box-shadow:var(--shadow-card);}
-.mm-block-h{font-family:var(--font-display);font-size:13px;font-weight:900;color:var(--ink);}
+.mm-block-h{color:var(--ink);}
 .mm-block-sub{font-size:10.5px;color:var(--mu);margin:3px 0 6px;}
 .mm-next-row{display:flex;flex-direction:column;gap:2px;padding:8px 0;border-top:1px solid var(--brd);cursor:pointer;}
 .mm-next .mm-block-h{margin-bottom:4px;}
@@ -746,7 +826,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .mm-rk-pts b{color:var(--g);font-size:14px;}
 
 /* ── Mata-mata: cartão de confronto no visual Copa 26 (ESCOPO .mm-litem/.mm-ghost; não afeta Grupos) ── */
-.mm-litem,.mm-ghost{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);box-shadow:var(--shadow-card);}
+.mm-litem,.mm-ghost{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-q-lg);box-shadow:var(--shadow-card);}
 .mm-litem .card-head,.mm-ghost .card-head{background:var(--card-dark);}
 .mm-litem .card-head .grp-tag,.mm-ghost .card-head .grp-tag{color:var(--on-dark-muted);}
 .mm-litem .card-head .dt-tag,.mm-ghost .card-head .dt-tag{color:var(--on-dark);}
@@ -755,7 +835,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 .mm-litem .bl-tag.abe,.mm-ghost .bl-tag.abe{background:rgba(15,174,98,.22);color:#86efb4;font-weight:800;}
 .mm-litem .bl-tag.fec,.mm-ghost .bl-tag.fec{background:rgba(255,255,255,.14);color:rgba(255,255,255,.6);}
 .mm-litem .team-name,.mm-ghost .team-name{color:var(--ink);}
-.mm-litem .vs-badge,.mm-ghost .vs-badge{background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2);font-family:var(--font-display);font-weight:800;font-size:11px;}
+.mm-litem .vs-badge,.mm-ghost .vs-badge{background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2);font-weight:800;font-size:11px;}
 .mm-litem .score-final{background:var(--ink);box-shadow:0 2px 7px rgba(20,20,26,.28);}
 .mm-litem .pred-cell.human{background:var(--surface);border-color:var(--line);}
 .mm-litem .pred-cell.ia{background:var(--surface-2);}
@@ -798,7 +878,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
 <body>
 
 <div id="loading-screen">
-  <div class="spinner"></div>
+  <img class="load-rat" src="Imagens/Ratazana.png" alt="" onerror="this.style.display='none'">
   <p>Carregando bolão...</p>
 </div>
 
@@ -809,6 +889,10 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
       <img class="hdr-logo" src="Imagens/Ratazana.png" alt="Ratazana" onerror="this.style.display='none'">
       <div class="hdr-titles">
         <div class="hdr-title"><span class="ht-1">Bolão Ratazana00</span><span class="ht-2">Copa 2026</span></div>
+      </div>
+      <div class="seg hdr-seg" aria-label="Navegação">
+        <button onclick="showTab('mata')" data-tab="mata"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h4"/><path d="M3 9h4"/><path d="M7 4v5"/><path d="M7 6.5h4"/><path d="M3 15h4"/><path d="M3 20h4"/><path d="M7 15v5"/><path d="M7 17.5h4"/><path d="M11 6.5v11"/><path d="M11 12h5"/><circle cx="18.5" cy="12" r="2.5"/></svg></span><span class="nav-lbl">Mata-mata</span></button>
+        <button onclick="showTab('ranking')" data-tab="ranking"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v1a3 3 0 0 0 3 3"/><path d="M17 6h3v1a3 3 0 0 1-3 3"/><path d="M12 14v3"/><path d="M9.5 20.5h5l-.6-3h-3.8z"/></svg></span><span class="nav-lbl">Ranking</span></button>
       </div>
       <span id="dev-seal" class="hdr-dev" style="display:none">DEV</span>
     </div>
@@ -821,15 +905,18 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(80px + 
       <img class="hdr-compact-logo" src="Imagens/Ratazana.png" alt="" onerror="this.style.display='none'">
       <span class="hdr-compact-title"><b>Bolão Ratazana00</b> <b class="hc-lime">Copa 2026</b></span>
     </span>
-    <div class="hdr-compact-tabs">
-      <button onclick="showTab('mata')" data-tab="mata"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5v4h4"/><path d="M5 19v-4h4"/><path d="M9 9v6"/><path d="M9 12h5"/><path d="M14 9.5v5"/><path d="M14 12h5"/></svg></span><span class="nav-lbl">Mata-mata</span></button>
+    <div class="seg hdr-compact-tabs">
+      <button onclick="showTab('mata')" data-tab="mata"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h4"/><path d="M3 9h4"/><path d="M7 4v5"/><path d="M7 6.5h4"/><path d="M3 15h4"/><path d="M3 20h4"/><path d="M7 15v5"/><path d="M7 17.5h4"/><path d="M11 6.5v11"/><path d="M11 12h5"/><circle cx="18.5" cy="12" r="2.5"/></svg></span><span class="nav-lbl">Mata-mata</span></button>
       <button onclick="showTab('ranking')" data-tab="ranking"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v1a3 3 0 0 0 3 3"/><path d="M17 6h3v1a3 3 0 0 1-3 3"/><path d="M12 14v3"/><path d="M9.5 20.5h5l-.6-3h-3.8z"/></svg></span><span class="nav-lbl">Ranking</span></button>
     </div>
   </div>
 </div>
 <nav>
-  <button class="active" onclick="showTab('mata')"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5v4h4"/><path d="M5 19v-4h4"/><path d="M9 9v6"/><path d="M9 12h5"/><path d="M14 9.5v5"/><path d="M14 12h5"/></svg></span><span class="nav-lbl">Mata-mata</span></button>
-  <button onclick="showTab('ranking')"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v1a3 3 0 0 0 3 3"/><path d="M17 6h3v1a3 3 0 0 1-3 3"/><path d="M12 14v3"/><path d="M9.5 20.5h5l-.6-3h-3.8z"/></svg></span><span class="nav-lbl">Ranking</span></button>
+  <img class="nav-rat" src="Imagens/Ratazana.png" alt="" onerror="this.style.display='none'">
+  <div class="seg">
+    <button class="active" onclick="showTab('mata')" data-tab="mata"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h4"/><path d="M3 9h4"/><path d="M7 4v5"/><path d="M7 6.5h4"/><path d="M3 15h4"/><path d="M3 20h4"/><path d="M7 15v5"/><path d="M7 17.5h4"/><path d="M11 6.5v11"/><path d="M11 12h5"/><circle cx="18.5" cy="12" r="2.5"/></svg></span><span class="nav-lbl">Mata-mata</span></button>
+    <button onclick="showTab('ranking')" data-tab="ranking"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v1a3 3 0 0 0 3 3"/><path d="M17 6h3v1a3 3 0 0 1-3 3"/><path d="M12 14v3"/><path d="M9.5 20.5h5l-.6-3h-3.8z"/></svg></span><span class="nav-lbl">Ranking</span></button>
+  </div>
 </nav>
 <main>
   <div id="error-banner" class="error-banner" style="display:none"></div>
@@ -1365,7 +1452,7 @@ function renderCard(g){
     const badge=pts!==null?`<span class="pts-badge ${g.finished?ptsClass(pts):'preview'}">${pts}</span>`:'';
     const inp=side=>`<input type="number" min="0" max="99" inputmode="numeric" value="${hasPred?pred[side]:''}" placeholder="–"${started?' disabled':''} oninput="updPred('${g.id}','${p.id}','${side}',this.value)">`;
     if(p.type==='human'){
-      const hbadge=pts!==null?`<span class="pts-badge on-av ${g.finished?ptsClass(pts):'preview'}">${pts}</span>`:'';
+      const hbadge=pts!==null?`<span class="pts-badge on-av ${g.finished?ptsClass(pts):'preview'}${pts===0?' zero':''}">${pts}</span>`:'';
       html+=`<div class="pred-cell human" data-pid="${p.id}">
         <div class="hum-avwrap"><div class="hum-av" style="background:${p.color}">${avInner(p)}</div>${hbadge}</div>
         <span class="hum-name">${p.name}</span>
@@ -1452,7 +1539,7 @@ function refreshPoints(gameId){
         else if(top)top.appendChild(badge);         // IA
         else cell.appendChild(badge);
       }
-      badge.className=(wrap?'pts-badge on-av ':'pts-badge ')+(g.finished?ptsClass(pts):'preview');
+      badge.className=(wrap?'pts-badge on-av ':'pts-badge ')+(g.finished?ptsClass(pts):'preview')+(pts===0?' zero':'');
       badge.textContent=pts;
     }
   });
@@ -1609,11 +1696,39 @@ function statCard(p){
   </div>`;
 }
 
-// Linha do leaderboard
-function rkRow(p,i,mx,withTeam,delta){
+// ── Popup de estatísticas individuais (2.2): clicar numa pessoa em qualquer ranking abre o statCard
+// dela num modal. O ESCOPO segue o ranking clicado (geral/jxv/mata) — mesmos números da seção antiga.
+// Atenção aos pares de IDs: pepe (humano) ≠ pepe_ia (máquina), vinicius ≠ claude etc. — o pid vem
+// direto da linha clicada, então cada card mostra exatamente quem foi clicado.
+function statsFor(pid,scope){
+  if(scope==='mata'){
+    const p=MATA_PARTS.find(x=>x.id===pid); if(!p)return null;
+    const m=mataStats(pid);
+    return {...p,...m,avg:m.played?m.total/m.played:0};
+  }
+  const p=PARTICIPANTS.find(x=>x.id===pid); if(!p)return null;
+  const s={...p,...getStats(pid,scope==='jxv'?jxvEligible:(g=>sortKey(g)>=CUT))};
+  if(scope==='jxv'||geralScope==='tudo'){   // soma o mata, igual aos rankings correspondentes
+    const m=mataStats(pid);
+    s.total+=m.total; s.rHits+=m.rHits; s.eHits+=m.eHits; s.played+=m.played;
+    s.cravadas=s.cravadas.concat(m.cravadas);
+    s.avg=s.played?s.total/s.played:0;
+  }
+  return s;
+}
+function openStats(pid,scope){
+  const s=statsFor(pid,scope); if(!s)return;
+  closeStats();
+  document.body.insertAdjacentHTML('beforeend',`<div class="stats-modal" id="stats-modal" onclick="if(event.target===this)closeStats()"><div class="stats-modal-box"><button class="stats-modal-x" onclick="closeStats()" aria-label="Fechar">✕</button>${statCard(s)}</div></div>`);
+  document.body.style.overflow='hidden';
+}
+function closeStats(){const m=document.getElementById('stats-modal');if(m)m.remove();document.body.style.overflow='';}
+
+// Linha do leaderboard — clicável: abre o popup de estatísticas da pessoa no escopo daquele ranking (2.2)
+function rkRow(p,i,mx,withTeam,delta,scope){
   const medals=['🥇','🥈','🥉'];
   const team=withTeam?TEAMS.find(t=>t.id===p.team):null;
-  return `<div class="rk-row${i===0&&p.total>0?' lead':''}">
+  return `<div class="rk-row${i===0&&p.total>0?' lead':''}"${scope?` onclick="openStats('${p.id}','${scope}')" title="Ver estatísticas de ${esc(p.name)}"`:''}>
     <div class="rk-medal"><span class="rk-place">${medals[i]||(i+1)}</span>${deltaBadge(delta)}</div>
     <div class="rk-av" style="background:${p.color};box-shadow:0 0 0 2px var(--surface),0 0 0 4px ${p.color},0 3px 8px rgba(20,20,26,.18)">${avInner(p)}</div>
     <div class="rk-mid">
@@ -1627,12 +1742,12 @@ function rkRow(p,i,mx,withTeam,delta){
 
 // ─── RANKING GERAL (novo) — todos, a partir de 20/06 12h ──────────────────────
 // Pódio dos 3 primeiros (2º à esquerda, 1º no centro mais alto, 3º à direita)
-function podium(ranked){
+function podium(ranked,scope){
   const t=ranked.slice(0,3);
   if(t.length<3)return '';
   const cols=[{p:t[1],pl:2,m:'🥈'},{p:t[0],pl:1,m:'🥇'},{p:t[2],pl:3,m:'🥉'}];
   return `<div class="podium">${cols.map(c=>`
-    <div class="pod pod-${c.pl}">
+    <div class="pod pod-${c.pl}"${scope?` onclick="openStats('${c.p.id}','${scope}')" title="Ver estatísticas de ${esc(c.p.name)}"`:''}>
       <div class="pod-avwrap">
         <div class="pod-av" style="background:${c.p.color}">${avInner(c.p)}</div>
         <span class="pod-badge">${c.m}</span>
@@ -1689,6 +1804,27 @@ function deltaBadge(d){
   if(d>0)return `<span class="rk-delta up">▲${d}</span>`;
   if(d<0)return `<span class="rk-delta down">▼${-d}</span>`;
   return `<span class="rk-delta flat">=</span>`;
+}
+// Variação de posição nos ÚLTIMOS 3 JOGOS FINALIZADOS DO MATA-MATA, sobre uma base congelada (a fase
+// de grupos não muda mais — quem mexe no ranking agora é só o mata). Mesma regra do geralDeltas
+// (posição atual vs posição 3 jogos atrás) e mesmo desempate (total · cravados · ganhador).
+// Recortes: mata → base zero (MATA_PARTS) · geral → base grupos/CUT · jxv → base grupos sem g01-03.
+function mataPhaseDeltas(parts,baseStats){
+  const acc={};
+  parts.forEach(p=>{const b=baseStats?baseStats(p.id):null;acc[p.id]=b?{total:b.total,eHits:b.eHits,rHits:b.rHits}:{total:0,eHits:0,rHits:0};});
+  const posOf=()=>{
+    const order=parts.map(p=>({id:p.id,...acc[p.id]})).sort((a,b)=>b.total-a.total||b.eHits-a.eHits||b.rHits-a.rHits);
+    const pos={}; order.forEach((o,i)=>{pos[o.id]=i+1;}); return pos;
+  };
+  const steps=[posOf()];   // passo 0 = antes de qualquer jogo do mata
+  mataGamesFinished().forEach(c=>{
+    const per=mataPtsByPid(c);
+    parts.forEach(p=>{const x=per[p.id];if(!x)return;acc[p.id].total+=x.pts;acc[p.id].rHits+=x.rHits;acc[p.id].eHits+=x.eHits;});
+    steps.push(posOf());
+  });
+  const now=steps[steps.length-1], base=steps[Math.max(0,steps.length-1-3)];
+  const out={}; parts.forEach(p=>{out[p.id]=((base[p.id]==null)?now[p.id]:base[p.id])-now[p.id];});
+  return out;
 }
 // ─── DADOS DO GRÁFICO DE EVOLUÇÃO (3 abas × 2 visões: Por Jogos / Por Rodada) ───
 // REGRA DE OURO: g01–g03 NUNCA entram (em nenhuma aba, tabela ou gráfico).
@@ -1855,12 +1991,12 @@ function histClick(pid){ if(!pid)pid=null; histLocked=(histLocked===pid)?null:pi
 function rankMarquee(){
   const steps=geralHistory();
   if(!steps.length)return '';
-  const cur=steps[steps.length-1], deltas=geralDeltas(steps), medals=['🥇','🥈','🥉'];
+  const cur=steps[steps.length-1], deltas=geralDeltas(steps);
   const order=PARTICIPANTS.slice().sort((a,b)=>cur.pos[a.id]-cur.pos[b.id]);
   const item=p=>{
     const pos=cur.pos[p.id],d=deltas[p.id];
     const arrow=d>0?`<span class="rm-up">▲${d}</span>`:d<0?`<span class="rm-down">▼${-d}</span>`:`<span class="rm-flat">=</span>`;
-    return `<span class="rm-item"><span class="rm-pos">${medals[pos-1]||pos+'º'}</span>${arrow}<span class="rm-av" style="background:${p.color};box-shadow:0 0 0 2px var(--surface),0 0 0 3px ${p.color}">${avInner(p)}</span><span class="rm-nm">${p.name}</span><span class="rm-pts">${cur.tot[p.id]} pts</span></span>`;
+    return `<span class="rm-item"><span class="rm-pos${pos<=3?' p'+pos:''}">${pos}º</span>${arrow}<span class="rm-av" style="background:${p.color};box-shadow:0 0 0 2px var(--surface),0 0 0 3px ${p.color}">${avInner(p)}</span><span class="rm-nm">${p.name}</span><span class="rm-pts">${cur.tot[p.id]} pts</span></span>`;
   };
   const seq=order.map(item).join('');
   return `<div class="rank-marquee">
@@ -1888,18 +2024,19 @@ function rankingNew(){
   });
   const ranked=[...sAll].sort((a,b)=>b.total-a.total||b.eHits-a.eHits||b.rHits-a.rHits);
   const mx=Math.max(1,...ranked.map(s=>s.total));
-  const hist=geralHistory();
-  const deltas=geralDeltas(hist);
+  // Setinhas de variação (últimos 3 jogos): com o mata somado, quem move o ranking é o mata;
+  // no recorte "Só Fase de Grupos" (congelada) mantém o cálculo antigo sobre o histórico dos grupos.
+  const deltas=geralScope==='tudo'?mataPhaseDeltas(PARTICIPANTS,id=>getStats(id,inRank)):geralDeltas(geralHistory());
 
   let html=`<div class="hist-toggle scope-toggle"><button class="${geralScope==='tudo'?'active':''}" onclick="setGeralScope('tudo')">Mata-mata + Grupos</button><button class="${geralScope==='grupos'?'active':''}" onclick="setGeralScope('grupos')">Só Fase de Grupos</button></div>`;
-  html+=podium(ranked);
+  html+=podium(ranked,'geral');
   html+=`<div class="lead-board">
     <div class="lead-head">
       <div class="lh-title">🏆 CLASSIFICAÇÃO GERAL</div>
-      <div class="lh-sub">${fin} de ${tot} jogos${mataTotal>0?' + mata-mata':''} · vale a partir de 20/06 ${q('cutoff')}</div>
+      <div class="lh-sub">${fin} de ${tot} jogos${mataTotal>0?' + mata-mata':''} · vale a partir de 20/06 ${q('cutoff')} · toque numa pessoa pra ver as estatísticas dela</div>
     </div>
     <div class="rk-legend">Ao lado da posição: quantas posições a pessoa <b class="up">▲ subiu</b> ou <b class="down">▼ caiu</b> nos últimos 3 jogos (<b>=</b> manteve).</div>`;
-  ranked.forEach((p,i)=>{html+=rkRow(p,i,mx,true,deltas[p.id]);});
+  ranked.forEach((p,i)=>{html+=rkRow(p,i,mx,true,deltas[p.id],'geral');});
   html+=`</div>`;
 
   html+=evolutionSection('geral',PARTICIPANTS);   // gráfico com toggle Por Jogos/Por Rodada (grupos + mata)
@@ -1917,9 +2054,7 @@ function rankingNew(){
     return {name:t.name, mem:hu.name+' + '+ia.name, pts:byId(t.human)+byId(t.ia), col:t.color, human:hu, ia:ia};
   }));
 
-  const statsOrder=['jessica','tonius','leo','vinicius','chatgpt','claudio','chatgptleo','claude'];
-  html+=`<div class="section-title">📊 ESTATÍSTICAS INDIVIDUAIS</div>`;
-  statsOrder.forEach(id=>{const p=sAll.find(x=>x.id===id);if(p)html+=statCard(p);});
+  // Estatísticas individuais: agora em POPUP (openStats), aberto ao clicar na pessoa em qualquer ranking (2.2).
   // Tarefa 4: lista SÓ os jogos considerados pelo Bolão Geral (mesmo conjunto do ranking: sortKey>=CUT,
   // não removidos). Isso já exclui g01-g03 (que são de 11/06, antes do corte) e os "fora".
   html+=gamesListHTML('📋 Jogos da Fase de Grupos', GT.map(t=>getGame(t.id)).filter(g=>!g.removed&&inRank(g)));
@@ -1957,14 +2092,15 @@ function rankingOld(){
   });
   const ranked=[...sAll].sort((a,b)=>b.total-a.total||b.eHits-a.eHits||b.rHits-a.rHits);
   const mx=Math.max(1,...ranked.map(s=>s.total));
+  const deltas=mataPhaseDeltas(OLD_IDS.map(id=>PARTICIPANTS.find(x=>x.id===id)),id=>getStats(id,jxvEligible));
 
-  let html=podium(ranked);
+  let html=podium(ranked,'jxv');
   html+=`<div class="lead-board">
     <div class="lead-head">
       <div class="lh-title">🏆 BOLÃO JxV</div>
-      <div class="lh-sub">${fin} de ${tot} jogos da Copa + mata-mata ${q('pontuacao')}</div>
+      <div class="lh-sub">${fin} de ${tot} jogos da Copa + mata-mata ${q('pontuacao')} · toque numa pessoa pra ver as estatísticas dela</div>
     </div>`;
-  ranked.forEach((p,i)=>{html+=rkRow(p,i,mx,false);});
+  ranked.forEach((p,i)=>{html+=rkRow(p,i,mx,false,deltas[p.id],'jxv');});
   html+=`</div>`;
   html+=evolutionSection('jxv',OLD_IDS.map(id=>PARTICIPANTS.find(p=>p.id===id)));   // gráfico JxV (grupos + mata)
 
@@ -1978,8 +2114,7 @@ function rankingOld(){
   html+=versus('🤝 Humanos vs Máquinas','👤 Humanos','Jeca + Vini',hP,'#3d8ef0','🤖 Máquinas','ChatGPT Jeca + Claude Vini',iP,'#e8c44a');
   html+=versus('👥 Time Jeca vs Time Vini','Time Jeca','Jeca + ChatGPT Jeca',byId('jessica')+byId('chatgpt'),'#e05c8b','Time Vini','Vini + Claude Vini',byId('vinicius')+byId('claude'),'#3d8ef0');
 
-  html+=`<div class="section-title">📊 ESTATÍSTICAS INDIVIDUAIS</div>`;
-  sAll.forEach(p=>{html+=statCard(p);});
+  // Estatísticas individuais: em popup via clique na pessoa (openStats).
   // Tarefa C: jogos considerados no Bolão JxV — mesma regra do ranking (rankingOld/getStats):
   // toda a Copa, exceto g01-g03 (GROUP_EXCLUDED) e jogos removidos. São 69 jogos.
   html+=gamesListHTML('🆚 Jogos do Bolão JxV', GT.map(t=>getGame(t.id)).filter(jxvEligible));   // Tarefa 5: mesma função do ranking
@@ -1992,14 +2127,16 @@ function rankingMata(){
   const ranked=[...sAll].sort((a,b)=>b.total-a.total||b.eHits-a.eHits||b.rHits-a.rHits);
   const mx=Math.max(1,...ranked.map(s=>s.total));
   const fin=mataGamesFinished().length;
+  const deltas=mataPhaseDeltas(MATA_PARTS,null);
 
-  let html=podium(ranked);
+  let html=podium(ranked,'mata');
   html+=`<div class="lead-board">
     <div class="lead-head">
       <div class="lh-title">⚔️ CLASSIFICAÇÃO MATA-MATA</div>
-      <div class="lh-sub">${fin} jogo(s) do mata-mata finalizado(s) · placar final (com prorrogação) ${q('pontuacao')}</div>
-    </div>`;
-  ranked.forEach((p,i)=>{html+=rkRow(p,i,mx,true);});
+      <div class="lh-sub">${fin} jogo(s) do mata-mata finalizado(s) · placar final (com prorrogação) ${q('pontuacao')} · toque numa pessoa pra ver as estatísticas dela</div>
+    </div>
+    <div class="rk-legend">Ao lado da posição: quantas posições a pessoa <b class="up">▲ subiu</b> ou <b class="down">▼ caiu</b> nos últimos 3 jogos (<b>=</b> manteve).</div>`;
+  ranked.forEach((p,i)=>{html+=rkRow(p,i,mx,true,deltas[p.id],'mata');});
   html+=`</div>`;
   html+=evolutionSection('mata',MATA_PARTS);   // gráfico só do mata-mata (inclui mataOnly), toggle Por Jogos/Por Rodada
 
@@ -2020,9 +2157,7 @@ function rankingMata(){
   const tPepe=MATA_PARTS.find(p=>p.id==='pepe'), tPepeIA=MATA_PARTS.find(p=>p.id==='pepe_ia');
   if(tPepe&&tPepeIA) mataTeamRows.push({name:'Time Pepe', mem:tPepe.name+' + '+tPepeIA.name, pts:byId('pepe')+byId('pepe_ia'), col:tPepe.color, human:tPepe, ia:tPepeIA});
   html+=teamRace('👥 Times', mataTeamRows);
-  // Tarefa 6: estatísticas individuais de cada palpiteiro do mata (mesmo componente do Bolão Geral), escopo mata.
-  html+=`<div class="section-title">📊 ESTATÍSTICAS INDIVIDUAIS</div>`;
-  [...humans, ...machines].forEach(p=>{html+=statCard(p);});
+  // Estatísticas individuais: em popup via clique na pessoa (openStats, escopo 'mata').
   return html;
 }
 
@@ -2308,7 +2443,7 @@ function mmRefreshPts(cid){
   MATA_PARTS.forEach(p=>{
     const badge=card.querySelector(`.mm-pts[data-pid="${p.id}"]`); if(!badge)return;
     const pts=hasScore?calcMataPts((MM_PALPITES[cid]||{})[p.id],c):null;
-    badge.className='pts-badge on-av mm-pts'+(pts!=null?' '+(c.finished?ptsClass(pts):'preview'):' empty');   // sem número → display:none
+    badge.className='pts-badge on-av mm-pts'+(pts!=null?' '+(c.finished?ptsClass(pts):'preview'):' empty')+(pts===0?' zero':'');   // sem número → display:none
     badge.textContent=pts!=null?fmtPts(pts):'';
   });
   const pv=card.querySelector('.mm-foot-fl .prev-tag'); if(pv)pv.classList.toggle('show',!c.finished&&hasScore);   // prévia abaixo do "PLACAR FINAL", sem empurrar
@@ -2356,7 +2491,7 @@ function mmCard(c){
       : `<div class="mm-iascore${hasPred?'':' empty'}">${hasPred?`${pal.gols_a} × ${pal.gols_b}`:'– × –'}</div>`;
     preds+=`<div class="pred-cell ${isHuman?'human':'ia'} mm-cell" data-pid="${pid}">
       <div class="mm-cell-top">
-        <div class="hum-avwrap"><div class="hum-av" style="background:${p.color}">${avInner(p)}</div><span class="pts-badge on-av mm-pts${pts!=null?' '+(c.finished?ptsClass(pts):'preview'):''}" data-pid="${pid}">${pts!=null?pts:''}</span></div>
+        <div class="hum-avwrap"><div class="hum-av" style="background:${p.color}">${avInner(p)}</div><span class="pts-badge on-av mm-pts${pts!=null?' '+(c.finished?ptsClass(pts):'preview'):''}${pts===0?' zero':''}" data-pid="${pid}">${pts!=null?pts:''}</span></div>
         <span class="hum-name">${p.name}</span>
         ${palpiteUI}
       </div>
@@ -2418,7 +2553,6 @@ const MM_COLS=[
 const mmOpen=new Set();   // confrontos expandidos na lista (preserva estado entre re-renders)
 let mmPhaseFilter='32avos';   // filtro de fase da lista (3.1) — padrão 16 avos (key interna '32avos')
 let mmBracketOpen=false;            // A1: seção do chaveamento — COLAPSADA por padrão (Tarefa 2)
-const mmCollapsedCols=new Set();   // A2: fases (colunas) recolhidas na chave
 // AGENDA dos 16 avos (data/hora/local) por VAGA (slot). Fica no código (a anon key não cria coluna
 // nova no banco). O app lê isto OU os campos dt/tm/venue do confronto, se existirem no banco.
 const MM_AGENDA={
@@ -2518,7 +2652,7 @@ function mmCardBody(c){
     const pal=(MM_PALPITES[c.id]||{})[pid]||{};
     const hasPred=pal.gols_a!=null;
     const pts=hasScore&&hasPred?calcMataPts(pal,c):null;
-    const badge=`<span class="pts-badge on-av mm-pts${pts!=null?' '+(c.finished?ptsClass(pts):'preview'):' empty'}" data-pid="${pid}" onmouseenter="mmShowPtsTip(event,'${c.id}','${pid}')" onmouseleave="hideTip()" onclick="mmShowPtsTip(event,'${c.id}','${pid}')">${pts!=null?fmtPts(pts):''}</span>`;
+    const badge=`<span class="pts-badge on-av mm-pts${pts!=null?' '+(c.finished?ptsClass(pts):'preview'):' empty'}${pts===0?' zero':''}" data-pid="${pid}" onmouseenter="mmShowPtsTip(event,'${c.id}','${pid}')" onmouseleave="hideTip()" onclick="mmShowPtsTip(event,'${c.id}','${pid}')">${pts!=null?fmtPts(pts):''}</span>`;
     const av=`<div class="hum-avwrap"><div class="hum-av" style="background:${p.color}">${avInner(p)}</div>${badge}</div>`;
     const passa=`<div class="mm-qp mm-hc-passa" data-pid="${pid}">${mmQuemPassaHTML(c,pid,isHuman)}</div>`;
     if(isHuman){
@@ -2567,105 +2701,277 @@ function mmResultHTML(c){
     </div>`;
 }
 
-// ── CHAVE (bracket): esqueleto FIXO de todas as fases; vaga sem time resolvido = "A definir" ──
-function mmBracketBox(slotId){
-  const c=mmConf(slotId), tm={a:mmResolveSide(slotId,'A'),b:mmResolveSide(slotId,'B')};
-  const fin=c&&c.finished&&c.real_a!=null&&c.real_b!=null, w=mmRealWinner(c);
-  const side=(s,t)=>{
-    if(!t)return `<div class="mm-bx-side empty"></div>`;   // vaga futura → caixa VAZIA (sem texto)
-    const sc=c?(s==='A'?c.real_a:c.real_b):null;
-    const adv=fin&&c.real_a===c.real_b&&c.classificado===s;   // passou nos pênaltis
-    const won=fin&&w===s, lost=fin&&w&&w!==s;
-    // (p) vira tag ao lado do NOME (não no placar) pra não desalinhar a coluna dos números.
-    const z=MM_ZEBRA[slotId];   // zebra/zebrão no chaveamento: imagenzinha ao lado da bandeira do azarão
-    const zi=(z&&z.azarao===s)?`<img class="mm-bx-zebra" src="Imagens/${z.tipo==='zebrao'?'Zebra_o':'Zebra'}.png" alt="">`:'';
-    return `<div class="mm-bx-side${won?' win':''}${lost?' lost':''}">${mmFlag(t.flag)}${zi}<span class="mm-bx-nm">${esc(t.name)}${adv?'<span class="mm-bx-pen">pên</span>':''}</span><span class="mm-bx-sc">${fin&&sc!=null?sc:''}</span></div>`;
-  };
-  const playable=!!(c&&tm.a&&tm.b);   // tem confronto e os dois times conhecidos → clicável (abre na lista)
-  const mi=c?mmInfo(c):{};
-  const dtLabel=mi.dt?`<div class="mm-bx-dt">${mmWeekday(mi.dt)} ${esc(mi.dt)}${mi.tm?' · '+esc(mi.tm):''}</div>`:'';
-  return `<div class="mm-bx${playable?'':' nolink'}"${playable?` onclick="mmGotoConfronto('${slotId}')"`:''} title="${esc(((tm.a&&tm.a.name)||'A definir')+' x '+((tm.b&&tm.b.name)||'A definir'))}">${side('A',tm.a)}${side('B',tm.b)}</div>${dtLabel}`;
-}
 function mmColLabel(id){const col=MM_COLS.find(c=>c.ids.includes(id));return col?col.label:'';}
 // Bandeira numa caixa de tamanho FIXO, centralizada, sem distorcer (padroniza quadradas e retangulares).
 function mmFlag(em){return em?`<span class="flagbx">${flagImg(em)}</span>`:'';}
+// Selo do multiplicador da fase (visual apenas — a pontuação já usa MM_PHASE_MULT/mmMult no cálculo).
+// Número SEMPRE com vírgula (×1,25). Cores: ×1 cinza apagado · intermediários ciano · ×4 da Final em lime.
+// Jogo TURBO: selo LARANJA com o valor JÁ ×2 (×2 · ×2,5 · ×3 · ×3,5) — e o badge do cabeçalho perde o "2×".
+function mmMultSeal(phaseKey,extraCls,turbo){
+  let m=MM_PHASE_MULT[phaseKey]||1; if(turbo)m*=2;
+  const cls=turbo?' mturbo':(m===1?' m1':(m===4?' mfin':''));
+  return `<span class="mm-mult-seal${cls}${extraCls?' '+extraCls:''}">×${String(m).replace('.',',')}</span>`;
+}
 // Cabeçalho do card no estilo da fase de grupos: fase + status à esquerda; data/hora à direita (omitida se não houver).
 function mmHeadHTML(c){
   const status=c.finished?'<span class="bl-tag fec">FECHADO</span>':'<span class="bl-tag abe">ABERTO</span>';
-  const turbo=mmIsTurbo(c)?'<span class="bl-tag turbo">⚡ TURBO 2×</span>':'';
+  const turbo=mmIsTurbo(c)?'<span class="bl-tag turbo">⚡ TURBO</span>':'';   // sem o "2×" (o multiplicado vai no selo laranja)
   const i=mmInfo(c);
   // canto direito: dia da semana + data · hora — igual à fase de grupos; omite se não houver data.
   const dt=i.dt?`<span class="dt-tag">${mmWeekday(i.dt)}, ${esc(i.dt)}${i.tm?' · '+esc(i.tm):''}</span>`:'';
-  return `<div class="card-head"><span class="grp-tag"><span class="ch-dot${c.finished?' closed':''}"></span>${esc((mmColLabel(c.id)||'MATA-MATA').toUpperCase())} ${status}${turbo}${mmZebraSeal(c)}</span>${dt}</div>`;
+  return `<div class="card-head"><span class="grp-tag"><span class="ch-dot${c.finished?' closed':''}"></span>${esc((mmColLabel(c.id)||'MATA-MATA').toUpperCase())} ${status}${turbo}${mmZebraSeal(c)}</span>${dt}${mmMultSeal(mmPhaseKeyOf(c.id),'mm-seal-card',mmIsTurbo(c))}</div>`;
+}
+// ── CHAVEAMENTO (visor em janela): poucas fases por vez, linhas de conexão em destaque. Usa os dados
+// de MM_BRACKET/MM_COLS/mmResolveSide/mmRealWinner/mmInfo. Expandir = overlay em tela cheia, mesmo visual.
+const MMV_PHASES=[{key:'32avos',lbl:'16<sup>av</sup>'},{key:'oitavas',lbl:'8<sup>as</sup>'},{key:'quartas',lbl:'4<sup>as</sup>'},{key:'semis',lbl:'Semis'},{key:'final',lbl:'Final'}];
+let mmvPhase=null;        // fase selecionada no visor (null = calcula a fase atual do torneio no 1º uso)
+// coluna "final" do visor = Final + 3º lugar juntos (cada um com sua tagzinha)
+function mmvColIds(key){return key==='final'?['fin_1','tp_1']:(MM_COLS.find(c=>c.key===key)||{ids:[]}).ids;}
+// fase ATUAL do torneio = fase do jogo em andamento ou do próximo a acontecer; tudo encerrado → Final.
+function mmvCurrentPhaseKey(){
+  const now=Date.now(), TH=3*3600*1000; let best=null;
+  MM_CONFRONTOS.forEach(c=>{
+    if(mmIsTest(c))return; const d=mmGameDate(c); if(!d)return; const t=d.getTime();
+    if(now<t+TH&&(best==null||t<best.t))best={t,key:mmPhaseKeyOf(c.id)};
+  });
+  const k=best?best.key:'final';
+  return k==='3lugar'?'final':k;
+}
+// Card compacto do visor: 2 linhas (uma por time) + placar/data à direita.
+function mmvCardHTML(id){
+  const c=mmConf(id), a=mmResolveSide(id,'A'), b=mmResolveSide(id,'B');
+  const fin=c&&c.finished&&c.real_a!=null&&c.real_b!=null, w=mmRealWinner(c);
+  const pen=fin&&c.real_a===c.real_b&&(c.classificado==='A'||c.classificado==='B');   // decidido nos pênaltis
+  const info=c?mmInfo(c):(MM_AGENDA[id]||{dt:'',tm:''});
+  const shield='<span class="mmv-shield"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l8 3v6c0 5-3.4 8.6-8 11-4.6-2.4-8-6-8-11V5z" opacity=".5"/></svg></span>';
+  const ph=()=>'?';   // vaga indefinida: só "?" (sem códigos V16/W83)
+  const row=(s,t)=>{
+    if(!t)return `<div class="mmv-t">${shield}<span class="mmv-nm mmv-ph">${ph(s)}</span></div>`;
+    const sc=fin?(s==='A'?c.real_a:c.real_b):null;
+    const won=fin&&w===s, lost=fin&&w&&w!==s;
+    // quem passou de fase leva ✓; nos pênaltis vira "✓ (p)" — NUNCA o placar da disputa de pênaltis
+    const ck=won?`<span class="mmv-ck">✓${pen?' (p)':''}</span>`:'';
+    return `<div class="mmv-t${won?' win':''}${lost?' lost':''}">${mmFlag(t.flag)}<span class="mmv-nm">${esc(t.name)}</span>${ck}${fin?`<span class="mmv-sc">${sc}</span>`:''}</div>`;
+  };
+  const dtbx=(!fin&&info.dt)?`<div class="mmv-dtbx"><span>${mmWeekday(info.dt)} ${esc(info.dt)}</span><span>${esc(info.tm||'')}</span></div>`:'';
+  const playable=!!(c&&a&&b);   // definido → clicável, abre os palpites na lista (mesmo vínculo de hoje)
+  return `<div class="mmv-card${playable?'':' nolink'}"${playable?` onclick="mmVGoto('${id}')"`:''} title="${esc(((a&&a.name)||ph('A'))+' x '+((b&&b.name)||ph('B')))}"><div class="mmv-teams">${row('A',a)}${row('B',b)}</div>${dtbx}</div>`;
+}
+function mmVGoto(id){mmvCloseFull();mmSetPhase(mmPhaseKeyOf(id));mmGotoConfronto(id);}   // fecha o overlay (se aberto) e garante que o card está na lista antes de rolar
+// ── Geometria do visor (compartilhada por visor aberto, espiadinha e tela cheia) ──
+const MMV_BH=56, MMV_GAPY=12, MMV_PADY=20;   // altura do card, espaço vertical, folga pro título da coluna
+// A ESTEIRA renderiza TODAS as fases de uma vez; a janela (mmv-wrap) mostra 2 (celular) ou 3 (desktop)
+// colunas e desliza por translateX — arrastar é fluido porque o conteúdo vizinho já existe (1.5).
+function mmvGeom(){
+  const order=MMV_PHASES.map(p=>p.key);
+  const isMob=window.innerWidth<680, ncol=isMob?2:3;
+  const contW=Math.min(920,window.innerWidth)-28-2-20;   // main(920/viewport −28) − bordas mm-sec − margens do palco
+  const gap=isMob?24:30;
+  const boxW=Math.floor((contW-gap*(ncol-1))/ncol);
+  return {order,isMob,ncol,gap,boxW};
+}
+// primeira coluna da janela pra uma fase selecionada (desktop tenta deixá-la no centro)
+function mmvStartFor(si,g){return Math.max(0,Math.min(g.ncol===3?si-1:si,g.order.length-g.ncol));}
+// altura da janela = coluna mais alta DENTRO da janela (recalculada só no encaixe)
+function mmvViewH(L,st,g){
+  let m=MMV_PADY;
+  g.order.slice(st,st+g.ncol).forEach(k=>mmvColIds(k).forEach(id=>{if(L.pos[id]!=null)m=Math.max(m,L.pos[id]+MMV_BH);}));
+  return m+10;
+}
+// Posições com GEOMETRIA DE BRACKET DE VERDADE (1.1): a coluna-base (primeira da janela; 0 na tela
+// cheia) é distribuída uniformemente e CADA jogo das fases seguintes fica no PONTO MÉDIO vertical do
+// par que o alimenta — o espaçamento dobra naturalmente a cada fase. Colunas ANTES da base (fora da
+// janela, só aparecem no meio de um arrasto pra trás) ficam uniformes e são re-baseadas no encaixe.
+function mmvLayout(vis,boxW,gap,baseIdx){
+  const bh=MMV_BH, gapY=MMV_GAPY, padY=MMV_PADY, bi=baseIdx||0;
+  const colX={}; vis.forEach((k,i)=>colX[k]=i*(boxW+gap));
+  const pos={};
+  vis.forEach((k,ci)=>{
+    mmvColIds(k).forEach((id,i)=>{
+      let y;
+      if(ci<=bi){y=padY+i*(bh+gapY)+(id==='tp_1'?14:0);}
+      else{
+        const f=MM_BRACKET[id]&&MM_BRACKET[id].feeders;
+        if(id==='tp_1'&&pos['fin_1']!=null){y=pos['fin_1']+bh+36;}   // 3º lugar: logo abaixo da Final
+        else if(f&&pos[f.A.g]!=null&&pos[f.B.g]!=null){y=(pos[f.A.g]+pos[f.B.g])/2;}
+        else{y=padY+i*(bh+gapY);}
+      }
+      pos[id]=y;
+    });
+  });
+  let H=padY; Object.keys(pos).forEach(id=>{H=Math.max(H,pos[id]+bh);}); H+=10;
+  return {colX,pos,H,W:vis.length*boxW+(vis.length-1)*gap};
+}
+// Conectores em "colchete" desenhados a partir das posições REAIS dos cards renderizados (1.1):
+// traço da borda direita dos dois jogos de origem → linha vertical de junção → traço até a borda
+// esquerda do destino. Redesenhado a cada re-render (troca de fase, snap, resize, altura nova).
+function mmvDrawLines(stage){
+  const svg=stage&&stage.querySelector('.mmv-svg'); if(!svg)return;
+  const W=stage.offsetWidth, H=stage.offsetHeight;
+  svg.setAttribute('width',W); svg.setAttribute('height',H); svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  const rectOf=id=>{const el=stage.querySelector(`.mmv-cardpos[data-slot="${id}"]`);return el?{x:el.offsetLeft,y:el.offsetTop,w:el.offsetWidth,h:el.offsetHeight}:null;};
+  let paths='';
+  Object.keys(MM_BRACKET).forEach(id=>{
+    const f=MM_BRACKET[id].feeders; if(!f)return;
+    const t=rectOf(id); if(!t)return;
+    const is3=(id==='tp_1'), bx=t.x, bym=t.y+t.h/2;
+    ['A','B'].forEach(s=>{
+      const r=rectOf(f[s].g); if(!r)return;
+      const fxr=r.x+r.w, fym=r.y+r.h/2;
+      const mx=is3?fxr+(bx-fxr)*0.72:(fxr+bx)/2;   // 3º lugar: junção deslocada pra não sobrepor a da Final
+      paths+=`<path d="M${fxr} ${fym} H${mx} V${bym} H${bx}" class="mm-cn${is3?' c3':''}"/>`;
+    });
+  });
+  svg.innerHTML=paths;
+}
+function mmvDrawAll(){document.querySelectorAll('#mm-bracket-section .mmv-stage, #mmv-full .mmv-stage').forEach(mmvDrawLines);}
+// Palco: SVG (preenchido depois por mmvDrawLines, a partir dos cards reais) + painel sutil da fase
+// selecionada + títulos + cards.
+function mmvStageHTML(vis,sel,boxW,gap,L,focusId){
+  const {colX,pos,H,W}=L, bh=MMV_BH;
+  let panel='';
+  if(vis.includes(sel)){   // grande card de fundo contínuo envolvendo a coluna da fase ativa
+    let top=1e9,bot=0; mmvColIds(sel).forEach(id=>{if(pos[id]==null)return;top=Math.min(top,pos[id]);bot=Math.max(bot,pos[id]+bh);});
+    if(bot>0)panel=`<div class="mmv-colpanel" style="left:${colX[sel]-8}px;top:-6px;width:${boxW+16}px;height:${bot+16}px"></div>`;
+  }
+  let heads='',cards='';
+  vis.forEach(k=>{
+    const lbl=k==='final'?'Final':(MM_COLS.find(c=>c.key===k)||{}).label||'';
+    heads+=`<div class="mmv-colhead${k===sel?' cur':''}" data-k="${k}" style="left:${colX[k]}px;width:${boxW}px">${lbl}</div>`;
+    mmvColIds(k).forEach(id=>{
+      const tag=id==='fin_1'?'<span class="mmv-tag">Final</span>':(id==='tp_1'?'<span class="mmv-tag">3º lugar</span>':'');
+      cards+=`<div class="mmv-cardpos${id===focusId?' focus':''}" data-k="${k}" data-slot="${id}" style="left:${colX[k]}px;top:${pos[id]}px;width:${boxW}px;height:${bh}px">${tag}${mmvCardHTML(id)}</div>`;
+    });
+  });
+  return `<div class="mmv-stage" style="height:${H}px;width:${W}px">
+    <svg class="mmv-svg"></svg>
+    ${panel}${heads}${cards}
+  </div>`;
+}
+// Visor aberto: janela (altura da fase atual) + ESTEIRA com todas as fases (geometria baseada na
+// primeira coluna da janela → pares convergem de verdade) + setas laterais.
+function mmvViewerHTML(){
+  const g=mmvGeom();
+  const sel=mmvPhase||(mmvPhase=mmvCurrentPhaseKey());
+  const si=Math.max(0,g.order.indexOf(sel));
+  const st=mmvStartFor(si,g);
+  const L=mmvLayout(g.order,g.boxW,g.gap,st);
+  return `<div class="mmv-wrap" id="mmv-wrap" style="height:${mmvViewH(L,st,g)+24}px">
+    <div class="mmv-track" id="mmv-track" style="transform:translateX(${-st*(g.boxW+g.gap)}px)">${mmvStageHTML(g.order,sel,g.boxW,g.gap,L,null)}</div>
+    <button class="mmv-arr prev" onclick="mmvStep(-1)" aria-label="Fase anterior" style="${si===0?'display:none':''}">‹</button>
+    <button class="mmv-arr next" onclick="mmvStep(1)" aria-label="Próxima fase" style="${si===g.order.length-1?'display:none':''}">›</button>
+  </div>`;
+}
+// Espiadinha (3.3): destaca o PRÓXIMO jogo (kickoff futuro mais próximo) — card inteiro visível e
+// realçado, resto do bracket cortado ao redor (deslocamento até a janela da fase dele).
+function mmvPeekHTML(){
+  const now=Date.now(); let nxt=null;
+  MM_CONFRONTOS.forEach(c=>{if(mmIsTest(c))return;const d=mmGameDate(c);if(d&&d.getTime()>now&&(!nxt||d.getTime()<nxt.t))nxt={t:d.getTime(),id:c.id};});
+  let sel=nxt?mmPhaseKeyOf(nxt.id):mmvCurrentPhaseKey(); if(sel==='3lugar')sel='final';
+  const g=mmvGeom();
+  const st=mmvStartFor(Math.max(0,g.order.indexOf(sel)),g);
+  const L=mmvLayout(g.order,g.boxW,g.gap,st);
+  const offX=st*(g.boxW+g.gap);
+  const offY=(nxt&&L.pos[nxt.id]!=null)?Math.max(0,L.pos[nxt.id]-24):0;
+  return `<div class="mmv-peek" onclick="mmToggleBracket()"><div style="transform:translate(${-offX}px,${-offY}px)">${mmvStageHTML(g.order,sel,g.boxW,g.gap,L,nxt?nxt.id:null)}</div></div>`;
+}
+// Navegação do visor: pílulas com os MESMOS nomes das pílulas da lista (16av/8as/4as/Semis/Final,
+// sem selo de multiplicador aqui) + botão expandir (tela cheia).
+function mmvNavHTML(){
+  const sel=mmvPhase||(mmvPhase=mmvCurrentPhaseKey());
+  const pills=MMV_PHASES.map(p=>`<button class="mmv-pill${p.key===sel?' active':''}" data-k="${p.key}" onclick="mmvSetPhase('${p.key}')">${p.lbl}</button>`).join('');
+  const ic='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H3v6"/><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M15 21h6v-6"/></svg>';
+  return `<div class="mmv-nav">${pills}<button class="mmv-expand" onclick="mmvOpenFull()" title="Ver chave completa" aria-label="Chave completa em tela cheia">${ic}</button></div>`;
+}
+// Troca de fase = re-render da seção (a geometria re-baseia na nova janela) + linhas redesenhadas.
+function mmvSetPhase(k){mmvPhase=k;mmRerenderBracket();}
+function mmvStep(d){
+  const g=mmvGeom();
+  const i=Math.max(0,Math.min(g.order.length-1,Math.max(0,g.order.indexOf(mmvPhase||mmvCurrentPhaseKey()))+d));
+  mmvSetPhase(g.order[i]);
+}
+// Tela cheia (3.7): overlay com TODAS as fases lado a lado no visual novo, rolagem livre, X pra fechar.
+function mmvOpenFull(){
+  if(document.getElementById('mmv-full'))return;
+  const vis=MMV_PHASES.map(p=>p.key), boxW=170, gap=34;
+  const L=mmvLayout(vis,boxW,gap,0), sel=mmvPhase||mmvCurrentPhaseKey();   // tela cheia: árvore completa, base = 16 avos
+  document.body.insertAdjacentHTML('beforeend',`<div class="mmv-full" id="mmv-full">
+    <div class="mmv-full-head"><span class="mm-sec-title">⚔️ Chaveamento completo</span><button class="mmv-full-x" onclick="mmvCloseFull()" aria-label="Fechar">✕</button></div>
+    <div class="mmv-full-scroll">${mmvStageHTML(vis,sel,boxW,gap,L,null)}</div>
+  </div>`);
+  document.body.style.overflow='hidden';
+  mmvDrawAll();   // mesmas linhas SVG do visor, calculadas dos cards reais
+}
+function mmvCloseFull(){const el=document.getElementById('mmv-full');if(el)el.remove();document.body.style.overflow='';}
+// Arrastar/swipe (1.5): a ESTEIRA acompanha o dedo/mouse livremente (o conteúdo de todas as fases já
+// está renderizado); ao soltar, encaixa na fase mais próxima e SÓ ENTÃO recalcula altura/destaque.
+// Clique ≠ arraste: só vira arraste depois de ~10px de deslocamento (1.6). Toque E mouse (pointer events).
+function mmvBindDrag(){
+  const wrap=document.getElementById('mmv-wrap'); if(!wrap)return;
+  const track=document.getElementById('mmv-track'); if(!track)return;
+  let x0=0,dx=0,down=false,dragging=false,baseX=0,sup=false;
+  const baseOf=()=>{const g=mmvGeom();const si=Math.max(0,g.order.indexOf(mmvPhase));return -mmvStartFor(si,g)*(g.boxW+g.gap);};
+  wrap.addEventListener('pointerdown',e=>{down=true;dragging=false;x0=e.clientX;dx=0;baseX=baseOf();});
+  wrap.addEventListener('pointermove',e=>{
+    if(!down)return; dx=e.clientX-x0;
+    if(!dragging&&Math.abs(dx)>10){dragging=true;try{wrap.setPointerCapture(e.pointerId);}catch(_){ } track.style.transition='none';}
+    if(dragging)track.style.transform=`translateX(${baseX+dx}px)`;
+  });
+  const end=()=>{
+    if(!down)return; down=false;
+    if(!dragging){dx=0;return;}   // foi um clique — deixa o clique seguir o fluxo normal
+    dragging=false;
+    sup=true; setTimeout(()=>{sup=false;},80);   // suprime o clique fantasma pós-arraste
+    const g=mmvGeom(), unit=g.boxW+g.gap;
+    const si=Math.max(0,g.order.indexOf(mmvPhase));
+    const ni=Math.max(0,Math.min(g.order.length-1,si+Math.round(-dx/unit)));
+    if(ni!==si){mmvSetPhase(g.order[ni]);}   // encaixa na fase mais próxima → re-base + linhas novas
+    else{track.style.transition='transform .22s ease';track.style.transform=`translateX(${baseX}px)`;}
+    dx=0;
+  };
+  wrap.addEventListener('pointerup',end);
+  wrap.addEventListener('pointercancel',end);
+  wrap.addEventListener('click',e=>{if(sup){e.stopPropagation();e.preventDefault();}},true);
+  // Clique em COLUNA que não é a fase ativa navega até ela — vale título, cards E a área vazia/cinza
+  // da coluna (aí a coluna vem da posição X do clique). Mesmo efeito do pill. Na coluna ativa não faz
+  // nada (os cards dela mantêm o clique de abrir palpites). Arrasto >10px nunca vira clique (sup).
+  track.addEventListener('click',e=>{
+    let k=null;
+    const el=e.target.closest('[data-k]');
+    if(el){k=el.dataset.k;}
+    else{
+      const st=track.querySelector('.mmv-stage'); if(!st)return;
+      const g=mmvGeom(), unit=g.boxW+g.gap;
+      const x=e.clientX-st.getBoundingClientRect().left;   // rect já considera o translateX da esteira
+      const idx=Math.round((x-g.boxW/2)/unit);             // coluna com o centro mais próximo do clique
+      if(idx<0||idx>=g.order.length)return;
+      k=g.order[idx];
+    }
+    if(!k||k===mmvPhase)return;
+    e.stopPropagation(); e.preventDefault();
+    mmvSetPhase(k);
+  },true);
+}
+// Linha de status da espiadinha: fase atual + lembrete de que a chave vai até a Final.
+function mmvStatusHTML(){
+  const now=Date.now(), TH=3*3600*1000;
+  const stillGoing=MM_CONFRONTOS.some(c=>{if(mmIsTest(c))return false;const d=mmGameDate(c);return d&&now<d.getTime()+TH;});
+  const k=mmvCurrentPhaseKey();
+  const lbl=k==='final'?'Final':(MM_COLS.find(c=>c.key===k)||{}).label||'';
+  const txt=stillGoing?`${lbl} em andamento · caminho completo até a Final`:'Torneio encerrado · chave completa';
+  return `<div class="mmv-status" onclick="mmToggleBracket()">${txt} <span class="arr">▾</span></div>`;
 }
 // Seção do chaveamento com cabeçalho colapsável (A1).
 function mmBracketSectionHTML(){
-  // Card único: cabeçalho (com seta) grudado no topo e a chave logo abaixo, mesma borda/cantos.
+  // Card único: cabeçalho (com seta) grudado no topo; fechado = espiadinha do próximo jogo + status; aberto = visor.
   const op=mmBracketOpen;
   let h=`<div class="mm-sec${op?' open':''}"><div class="mm-sec-head" onclick="mmToggleBracket()"><span class="mm-sec-title">⚔️ Chaveamento</span><span class="mm-sec-cta"><span class="mm-sec-cta-lbl">${op?'toque para fechar':'toque para abrir'}</span><span class="mm-sec-arrow">${op?'▴':'▾'}</span></span></div>`;
-  if(op)h+=mmBracketHTML();
+  if(op)h+=mmvNavHTML()+mmvViewerHTML();
+  else h+=mmvPeekHTML()+mmvStatusHTML();
   return h+`</div>`;
 }
-function mmRerenderBracket(){const s=document.getElementById('mm-bracket-section');if(s){s.innerHTML=mmBracketSectionHTML();mmFitBracket();}}
+function mmRerenderBracket(){const s=document.getElementById('mm-bracket-section');if(s){s.innerHTML=mmBracketSectionHTML();mmvBindDrag();mmvDrawAll();}}
 function mmToggleBracket(){mmBracketOpen=!mmBracketOpen;mmRerenderBracket();}
-function mmToggleCol(key){if(mmCollapsedCols.has(key))mmCollapsedCols.delete(key);else mmCollapsedCols.add(key);mmRerenderBracket();}
-// Chave clássica: caixas posicionadas + conectores SVG em colchete. Fases podem ser recolhidas (A2):
-// a coluna expandida mais à esquerda é distribuída uniformemente e as seguintes centralizam entre os
-// feeders, então recolher fases antigas reduz altura E largura, deslocando o foco pra esquerda.
-function mmBracketHTML(){
-  const bw=134, bh=46, gapX=38, gapXc=12, gapY=22, titleH=24, colW0=18, padX=6, padR=8, padB=12, padY=titleH+12;   // caixa um pouco mais larga p/ caber nomes inteiros ("Inglaterra")
-  const colX={}, colWid={}; let x=padX;
-  // Colapsada: faixa mais fina (colW0) e gap menor (gapXc) → sobra espaço pra ver as fases à direita (8.1).
-  MM_COLS.forEach(col=>{const cl=mmCollapsedCols.has(col.key);const w=cl?colW0:bw;colX[col.key]=x;colWid[col.key]=w;x+=w+(cl?gapXc:gapX);});
-  const pos={}; let maxBottom=padY;
-  MM_COLS.forEach((col,ci)=>{
-    if(mmCollapsedCols.has(col.key))return;
-    const prev=ci>0?MM_COLS[ci-1]:null, base=!prev||mmCollapsedCols.has(prev.key);
-    col.ids.forEach((id,i)=>{
-      let y; if(base){y=padY+i*(bh+gapY);} else {const f=MM_BRACKET[id].feeders;y=(pos[f.A.g].y+pos[f.B.g].y)/2;}
-      pos[id]={x:colX[col.key],y};
-    });
-  });
-  if(pos['tp_1']&&pos['sf_2'])pos['tp_1'].y=pos['sf_2'].y+(bh+gapY)*1.4;   // 3º lugar: abaixo da semi de baixo
-  Object.keys(pos).forEach(id=>{maxBottom=Math.max(maxBottom,pos[id].y+bh);});
-  const totalW=(x-gapX)+padR, totalH=maxBottom+padB;
-  // conectores: só quando a caixa E a coluna dos feeders estão expandidas
-  let paths='';
-  Object.keys(MM_BRACKET).forEach(id=>{
-    const slot=MM_BRACKET[id]; if(!slot.feeders||!pos[id])return;
-    const feederCol=MM_COLS.find(c=>c.ids.includes(slot.feeders.A.g)).key;
-    if(mmCollapsedCols.has(feederCol))return;
-    const bx=pos[id].x, bym=pos[id].y+bh/2, is3=(id==='tp_1');
-    ['A','B'].forEach(s=>{const f=slot.feeders[s],fp=pos[f.g];if(!fp)return;const fxr=fp.x+bw,fym=fp.y+bh/2,mx=(fxr+bx)/2;paths+=`<path d="M${fxr} ${fym} H${mx} V${bym} H${bx}" class="mm-cn${is3?' c3':''}"/>`;});
-  });
-  // títulos clicáveis (recolhe/expande a fase); colapsada vira faixa estreita vertical
-  let titles='';
-  MM_COLS.forEach(col=>{
-    const cl=mmCollapsedCols.has(col.key);
-    titles+=`<div class="mm-coltitle${cl?' col-collapsed':''}" style="left:${colX[col.key]}px;width:${colWid[col.key]}px${cl?`;height:${totalH-padB}px`:''}" onclick="mmToggleCol('${col.key}')" title="${cl?'Expandir':'Recolher'} esta fase">${col.label}</div>`;
-  });
-  let boxes='';
-  Object.keys(pos).forEach(id=>{boxes+=`<div class="mm-bxpos" style="left:${pos[id].x}px;top:${pos[id].y}px;width:${bw}px;height:${bh}px">${mmBracketBox(id)}</div>`;});
-  return `<div class="mm-bracket-wrap">
-    <div class="mm-bracket-hint">Toque num confronto definido pra abrir os palpites · toque no título de uma fase pra recolhê-la</div>
-    <div class="mm-bracket-scroll"><div class="mm-bracket" data-w="${totalW}" data-h="${totalH}" style="width:${totalW}px;height:${totalH}px">
-      <svg class="mm-cn-svg" width="${totalW}" height="${totalH}" viewBox="0 0 ${totalW} ${totalH}" preserveAspectRatio="xMinYMin meet">${paths}</svg>
-      ${titles}${boxes}
-    </div></div>
-  </div>`;
-}
-// Desktop (≥760px): escala a chave pra caber na largura SEM rolagem horizontal. Celular: rola.
-function mmFitBracket(){
-  const el=document.querySelector('#tab-mata .mm-bracket'); if(!el)return;
-  const wrap=el.parentElement, W=+el.dataset.w, H=+el.dataset.h;
-  if(window.innerWidth>=760){
-    const avail=Math.max(320,wrap.clientWidth-16), s=Math.min(1.3,avail/W);
-    el.style.transform='scale('+s+')';
-    wrap.style.height=(H*s+4)+'px'; wrap.style.overflowX='hidden';
-  }else{
-    el.style.transform='none'; wrap.style.height=''; wrap.style.overflowX='auto';
-  }
-}
 let _mmResizeBound=false;
 
 // ── LISTA: só fases que já existem; cada confronto é clicável e expande inline ──
@@ -2692,7 +2998,15 @@ function mmToggleItem(cid){
   if(item.classList.toggle('open'))mmOpen.add(cid); else mmOpen.delete(cid);
 }
 function mmGotoConfronto(cid){
-  const item=document.querySelector(`#tab-mata .mm-litem[data-cid="${cid}"]`);
+  let item=document.querySelector(`#tab-mata .mm-litem[data-cid="${cid}"]`);
+  if(!item){   // card dentro de um DIA recolhido → expande o dia e tenta de novo
+    const c=mmConf(cid), dt=c?mmInfo(c).dt:'';
+    if(dt&&mmCollapsedDays.has(dt)){
+      mmCollapsedDays.delete(dt);
+      const l=document.getElementById('mm-list'); if(l)l.innerHTML=mmListHTML();
+      item=document.querySelector(`#tab-mata .mm-litem[data-cid="${cid}"]`);
+    }
+  }
   if(!item)return;
   if(!item.classList.contains('open')){item.classList.add('open');mmOpen.add(cid);}
   item.scrollIntoView({behavior:'smooth',block:'center'});
@@ -2770,15 +3084,20 @@ function mmNextGamesHTML(){
       <span class="dh-teams"><span class="dh-scroll">${tnm(tm.a,c,'A')} <i>×</i> ${tnm(tm.b,c,'B')}${miss?` <span class="dh-miss">• falta palpite de: ${esc(missText)}</span>`:''}</span></span>
       <span class="dh-cd" data-t="${t}">${fmtCountdown(t-now)}</span>
     </div>`;};
-  return `<div class="day-hero"><div class="dh-head"><span class="nh-live"></span>PRÓXIMOS JOGOS · MATA-MATA</div><div class="dh-list">${up.map(row).join('')}</div></div>`;
+  return `<div class="day-hero"><div class="dh-head"><span class="nh-live"></span>PRÓXIMOS JOGOS</div><div class="dh-list">${up.map(row).join('')}</div></div>`;
 }
 // (2) Classificação do mata-mata — MESMA barra rolante da classificação geral, filtrando só o mata-mata.
 function mmMataRankingHTML(){
   const rows=MATA_PARTS.map(p=>({p,...mataStats(p.id)})).sort((a,b)=>b.total-a.total||b.eHits-a.eHits||b.rHits-a.rHits);
-  const medals=['🥇','🥈','🥉'];
-  const item=(o,i)=>`<span class="rm-item"><span class="rm-pos">${medals[i]||(i+1)+'º'}</span><span class="rm-av" style="background:${o.p.color};box-shadow:0 0 0 2px var(--surface),0 0 0 3px ${o.p.color}">${avInner(o.p)}</span><span class="rm-nm">${o.p.name}</span><span class="rm-pts">${fmtPts(o.total)} pts</span></span>`;
+  const deltas=mataPhaseDeltas(MATA_PARTS,null);   // setinha de variação (últimos 3 jogos do mata)
+  const item=(o,i)=>{
+    const d=deltas[o.p.id];
+    const arrow=d>0?`<span class="rm-up">▲${d}</span>`:d<0?`<span class="rm-down">▼${-d}</span>`:`<span class="rm-flat">=</span>`;
+    return `<span class="rm-item"><span class="rm-pos${i<3?' p'+(i+1):''}">${i+1}º</span>${arrow}<span class="rm-av" style="background:${o.p.color};box-shadow:0 0 0 2px var(--surface),0 0 0 3px ${o.p.color}">${avInner(o.p)}</span><span class="rm-nm">${o.p.name}</span><span class="rm-pts">${fmtPts(o.total)} pts</span></span>`;
+  };
   const seq=rows.map(item).join('');
-  return `<div class="rank-marquee"><div class="rm-head">🏆 CLASSIFICAÇÃO DO MATA-MATA</div><div class="rm-track-wrap"><div class="rm-track" onclick="this.classList.toggle('paused')">${seq}${seq}</div></div></div>`;
+  // pausa enquanto o dedo toca (pointerdown/up); tocar/clicar leva ao ranking completo
+  return `<div class="rank-marquee"><div class="rm-head">🏆 CLASSIFICAÇÃO DO MATA-MATA</div><div class="rm-track-wrap"><div class="rm-track" onpointerdown="this.classList.add('paused')" onpointerup="this.classList.remove('paused')" onpointercancel="this.classList.remove('paused')" onclick="showTab('ranking')">${seq}${seq}</div></div></div>`;
 }
 // (3) Regras do Bolão.
 function mmHowItWorksHTML(){
@@ -2800,14 +3119,17 @@ function mmHowItWorksHTML(){
 function renderMata(){
   let html=mmNextGamesHTML()+mmMataRankingHTML()+mmHowItWorksHTML();
   html+=`<div id="mm-bracket-section">${mmBracketSectionHTML()}</div>`;   // chave (não afetada pelo filtro)
-  html+=`<div class="mm-filters">${MM_COLS.map(col=>`<button class="mm-fbtn${col.key===mmPhaseFilter?' active':''}" data-key="${col.key}" onclick="mmSetPhase('${col.key}')">${col.short}</button>`).join('')}</div>`;
+  // título da seção de palpites (3.8): marca onde termina o chaveamento e começam os palpites
+  html+=`<div class="mm-sec-head mm-list-title"><span class="mm-sec-title">🎯 Palpites de placares</span></div>`;
+  html+=`<div class="mm-filters">${MM_COLS.map(col=>`<button class="mm-fbtn${col.key===mmPhaseFilter?' active':''}" data-key="${col.key}" onclick="mmSetPhase('${col.key}')">${mmMultSeal(col.key)}<span class="fb-lbl">${col.short}</span></button>`).join('')}</div>`;
   html+=`<div id="mm-list">${mmListHTML()}</div>`;
   document.getElementById('tab-mata').innerHTML=html;
-  mmFitBracket();
+  mmvBindDrag();   // swipe do visor (se a seção estiver aberta)
+  mmvDrawAll();    // conectores do chaveamento a partir dos cards reais
   setupMarquees();   // faz o texto dos jogos do hero rolar quando não cabe (igual à fase de grupos)
   if(_cdInterval){clearInterval(_cdInterval);_cdInterval=null;}
   if(document.querySelector('#tab-mata .dh-cd'))_cdInterval=setInterval(tickCountdown,1000);   // contagem regressiva
-  if(!_mmResizeBound){_mmResizeBound=true;window.addEventListener('resize',()=>{if(activeTab==='mata')mmFitBracket();});}
+  if(!_mmResizeBound){_mmResizeBound=true;window.addEventListener('resize',()=>{if(activeTab==='mata')mmRerenderBracket();});}   // visor re-calcula colunas/largura no resize
 }
 
 // ─── ESPELHO PROD→DEV (só no ambiente de dev) ─────────────────────────────────
@@ -2862,18 +3184,23 @@ if(IS_DEV){   // marca visual + botão de espelho, só no ambiente de dev (hostn
   document.body.insertAdjacentHTML('afterbegin','<button id="mirror-btn" onclick="mirrorProdToDev()">🪞 Espelhar prod→dev</button>');
 }
 document.body.setAttribute('data-tab',activeTab);   // estado inicial das abas da barra compacta
-// Barra compacta fixa: aparece SÓ no desktop quando o cabeçalho grande sai de vista (rolagem).
+// Barras que reagem à rolagem: DESKTOP = barra compacta fixa no topo quando o cabeçalho grande sai de
+// vista · CELULAR = menu fixo embaixo (com ratazana) quando o cabeçalho (com a pílula do topo) some.
 (function(){
-  const compact=document.getElementById('hdr-compact');
-  function updCompact(){
-    if(!compact)return;
-    if(window.innerWidth<680){compact.classList.remove('show');return;}
-    const h=document.querySelector('header');
-    compact.classList.toggle('show', window.scrollY > ((h?h.offsetHeight:140)-26));
+  const compact=document.getElementById('hdr-compact'), nav=document.querySelector('nav');
+  function updBars(){
+    const h=document.querySelector('header'), hh=h?h.offsetHeight:140;
+    if(window.innerWidth<680){
+      if(compact)compact.classList.remove('show');
+      if(nav)nav.classList.toggle('show', window.scrollY>=hh);   // cabeçalho saiu POR COMPLETO → barra de baixo
+    }else{
+      if(nav)nav.classList.remove('show');
+      if(compact)compact.classList.toggle('show', window.scrollY > (hh-26));
+    }
   }
-  window.addEventListener('scroll',updCompact,{passive:true});
-  window.addEventListener('resize',updCompact);
-  updCompact();
+  window.addEventListener('scroll',updBars,{passive:true});
+  window.addEventListener('resize',updBars);
+  updBars();
 })();
 loadData();   // home padrão = Mata-mata (definido em activeTab e nas classes .active estáticas)
 </script>
