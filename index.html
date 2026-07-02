@@ -34,7 +34,7 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:var(--font-body);background:var(--sheet);color:var(--txt);min-height:100vh;}
 /* identidade Copa 26: títulos, números e horas em Archivo (só troca a fonte; cores/posições intactas) */
-.hdr-title,.dh-time,.dh-cd,.nh-cd .clock,.nh-label,.card-head .dt-tag,.pc-score,.score-final,.rk-tot b,.rk-place,.pod-base,.pod-pts,.stat-box .val,.vs2-pts,.tr-pts,.mm-bx-sc,.mm-iascore,.mm-next-when,.mm-rk-pos,.mm-rk-pts b,.lh-title,.section-badge,.mm-block-h{font-family:var(--font-display);}
+.hdr-title,.dh-time,.dh-cd,.nh-cd .clock,.nh-label,.card-head .dt-tag,.pc-score,.score-final,.rk-tot b,.rk-place,.pod-base,.pod-pts,.stat-box .val,.vs2-pts,.tr-pts,.mmv-sc,.mm-iascore,.mm-next-when,.mm-rk-pos,.mm-rk-pts b,.lh-title,.section-badge,.mm-block-h{font-family:var(--font-display);}
 /* ── Cabeçalho (barra preta) — NÃO sticky (se fosse fixo, engolia os toques do chaveamento/colunas) ── */
 header{position:relative;z-index:1;background:var(--frame);color:var(--on-dark);padding:11px 0 9px;border-bottom:1px solid rgba(255,255,255,.07);overflow:hidden;}
 .hdr-shapes{position:absolute;top:0;right:0;width:104px;height:100%;pointer-events:none;z-index:0;}
@@ -524,57 +524,44 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 .mm-qp-static{display:flex;align-items:center;gap:5px;padding-top:4px;border-top:1px dashed var(--brd);font-size:11px;color:var(--mu);font-weight:700;}
 .mm-qp-static .flag-img{height:12px;width:auto;border-radius:2px;}
 .pred-cell.ia.mm-cell{background:var(--bg);}
-/* Chave (bracket) do mata-mata — caixas posicionadas + conectores SVG em colchete */
-/* Seção da chave = card único (cabeçalho grudado no topo + chave no mesmo quadro) — 1.2 */
+/* Seção da chave = card único (cabeçalho grudado no topo + visor no mesmo quadro) — 1.2 */
 .mm-sec{border:1px solid var(--line);border-radius:var(--r-card);overflow:hidden;margin-bottom:18px;background:var(--surface);box-shadow:var(--shadow-card);}
-.mm-bracket-wrap{margin:0;}
-.mm-bracket-hint{font-size:10px;color:var(--muted);padding:7px 10px 0;}
-.mm-bracket-scroll{overflow-x:auto;overflow-y:hidden;background:var(--surface-2);padding:8px;-webkit-overflow-scrolling:touch;}
-.mm-bracket{position:relative;transform-origin:top left;}
-.mm-cn-svg{position:absolute;left:0;top:0;pointer-events:none;}
-.mm-cn{fill:none;stroke:#6a766a;stroke-width:1.4;stroke-linejoin:round;opacity:.65;}   /* 1.1: fino, cinza escuro suave */
+/* conectores do visor (as linhas que contam a história do jogo) */
+.mm-cn{fill:none;stroke:#6a766a;stroke-width:1.4;stroke-linejoin:round;opacity:.65;}
 .mm-cn.c3{stroke:#9aa59a;stroke-dasharray:4 4;stroke-width:1.1;opacity:.5;}
-.mm-coltitle{position:absolute;top:0;text-align:center;font-family:var(--font-display);font-size:10px;font-weight:800;color:var(--ink);letter-spacing:.5px;text-transform:uppercase;background:var(--lime);padding:5px 0;border-radius:var(--r-btn);box-shadow:0 2px 6px -2px rgba(20,20,26,.3);cursor:pointer;user-select:none;}
-.mm-coltitle:hover{filter:brightness(1.08);}
-.mm-coltitle.col-collapsed{display:flex;align-items:center;justify-content:center;writing-mode:vertical-rl;text-orientation:mixed;font-size:9px;padding:6px 0;opacity:1;background:var(--surface);color:var(--muted);border:1px solid var(--line);box-shadow:none;}
-.mm-bxpos{position:absolute;}
-.mm-bx{height:100%;box-sizing:border-box;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-field);padding:5px 9px;cursor:pointer;display:flex;flex-direction:column;justify-content:center;gap:4px;transition:box-shadow .15s,transform .12s;overflow:hidden;box-shadow:var(--shadow-card);}   /* 1.1: contorno cinza fino */
-.mm-bx:hover{box-shadow:0 0 0 2px var(--lime);}
-.mm-bx:active{transform:scale(.99);}
-.mm-bx.nolink{cursor:default;background:var(--surface-2);box-shadow:none;}
-.mm-bx.nolink:hover{box-shadow:none;}
-.mm-bx-side{position:relative;display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:800;color:var(--ink);min-width:0;line-height:1.2;min-height:16px;}
-.mm-bx-side.win{color:var(--green-ink);}
-.mm-bx-nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.mm-bx-sc{font-weight:800;font-variant-numeric:tabular-nums;flex-shrink:0;}
-.mm-bx-sc small{font-weight:600;color:var(--mu);}
 /* Bandeira padronizada: caixa de tamanho fixo, centralizada, sem distorcer */
 .flagbx{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;}
 .flagbx .flag-img{max-width:100%;max-height:100%;width:auto;height:auto;border-radius:2px;display:block;box-shadow:0 1px 2px rgba(0,0,0,.18);}
 .mm-matchup .team-flag .flagbx{width:46px;height:31px;}
-.mm-bx-side .flagbx{width:22px;height:15px;}
 .mm-qpb .flagbx{width:16px;height:11px;}
 .mm-class-btns .flagbx{width:18px;height:12px;}
 .mm-qp-static .flagbx{width:16px;height:11px;}
-/* ── Chaveamento NOVO (Tarefa B): visor em janela estilo Sofascore. Poucas fases por vez, linhas de
-   conexão em destaque. O bracket gigante antigo (mm-bracket*) NÃO foi apagado: é a visão expandida. ── */
+/* ── Chaveamento: visor em janela estilo Sofascore. Poucas fases por vez, linhas de conexão em
+   destaque; expandir = overlay em tela cheia com o mesmo visual. ── */
 .mmv-nav{display:flex;align-items:center;gap:5px;padding:11px 10px 3px;}
 .mmv-pill{flex:0 1 auto;min-width:0;padding:7px 13px;border-radius:var(--r-pill);border:1px solid var(--line-2);background:transparent;color:var(--muted);font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent;}
 .mmv-pill.active{background:var(--lime);border-color:var(--lime);color:var(--ink);}
 .mmv-expand{margin-left:auto;width:32px;height:32px;flex-shrink:0;border-radius:9px;border:1px solid var(--line-2);background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;}
-.mmv-expand.active{background:var(--ink);color:#fff;border-color:var(--ink);}
 .mmv-expand svg{width:15px;height:15px;display:block;}
 /* palco: colunas absolutas + SVG de conectores (as linhas contam a história do jogo) */
 .mmv-stage{position:relative;margin:10px 10px 14px;}
 .mmv-svg{position:absolute;left:0;top:0;pointer-events:none;}
 .mmv-colhead{position:absolute;top:0;font-family:var(--font-display);font-size:9.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--faint);text-align:center;white-space:nowrap;overflow:hidden;}
-.mmv-colhead.cur{color:var(--ink);}
+.mmv-colhead.cur{color:var(--lime);}   /* título da fase ativa: lime sobre o painel escuro */
+/* painel escuro contínuo atrás da coluna da fase selecionada (3.4, estilo Sofascore) */
+.mmv-colpanel{position:absolute;background:var(--card-dark);border-radius:14px;}
+/* wrapper do visor: referências pras setas + área de arrasto (pan-y deixa a rolagem vertical viva) */
+.mmv-wrap{position:relative;touch-action:pan-y;overflow:hidden;}
+.mmv-arr{position:absolute;top:50%;transform:translateY(-50%);z-index:5;width:30px;height:30px;border-radius:50%;border:none;background:var(--ink);color:#fff;opacity:.85;font-size:17px;font-weight:800;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0 0 2px;box-shadow:0 2px 8px rgba(0,0,0,.35);}
+.mmv-arr.prev{left:3px;}
+.mmv-arr.next{right:3px;}
+.mmv-arr:hover{opacity:1;}
 .mmv-cardpos{position:absolute;}
 .mmv-card{height:100%;box-sizing:border-box;display:flex;align-items:stretch;gap:5px;background:var(--surface);border:1px solid var(--line-2);border-radius:10px;padding:6px 8px;cursor:pointer;overflow:hidden;box-shadow:var(--shadow-card);transition:box-shadow .15s;}
 .mmv-card.nolink{cursor:default;background:var(--surface-2);box-shadow:none;}
 .mmv-card:not(.nolink):hover{box-shadow:0 0 0 2px var(--lime);}
 .mmv-card:not(.nolink):active{transform:scale(.99);}
-.mmv-cardpos.cur .mmv-card{border-color:var(--ink-2);}   /* fase selecionada em destaque */
+.mmv-cardpos.focus .mmv-card{box-shadow:0 0 0 2px var(--lime);border-color:var(--lime);}   /* espiadinha: próximo jogo realçado */
 .mmv-teams{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:space-around;gap:3px;}
 .mmv-t{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:800;color:var(--ink);min-width:0;line-height:1.15;min-height:15px;}
 .mmv-t .flagbx{width:20px;height:14px;}
@@ -595,6 +582,14 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 .mmv-peek .mmv-stage{margin-top:4px;}
 .mmv-status{display:flex;align-items:center;justify-content:center;gap:7px;padding:9px 12px 12px;font-size:10.5px;font-weight:700;color:var(--muted);cursor:pointer;border-top:1px dashed var(--line);}
 .mmv-status .arr{font-size:12px;line-height:1;}
+/* tela cheia (3.7): chaveamento completo no visual novo, com rolagem e X pra fechar */
+.mmv-full{position:fixed;inset:0;z-index:500;background:var(--sheet);display:flex;flex-direction:column;}
+.mmv-full-head{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--card-dark);padding:14px 16px;padding-top:calc(14px + env(safe-area-inset-top));flex-shrink:0;}
+.mmv-full-x{width:36px;height:36px;flex-shrink:0;border-radius:50%;border:none;background:var(--lime);color:var(--ink);font-size:15px;font-weight:900;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 11px -2px rgba(194,236,0,.7);}
+.mmv-full-scroll{flex:1;overflow:auto;padding:12px 14px calc(14px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch;}
+.mmv-full-scroll .mmv-stage{margin:4px 2px;}
+/* título da seção de palpites (3.8): mesmo estilo do cabeçalho "Chaveamento", sem ser clicável */
+.mm-list-title{border-radius:var(--r-card);cursor:default;margin:16px 0 4px;box-shadow:var(--shadow-card);}
 /* Tags de status do cabeçalho */
 .bl-tag.abe{background:rgba(255,255,255,.2);color:#fff;font-size:8.5px;}
 .bl-tag.fec{background:#e8c44a;color:#5c4708;font-size:8.5px;}
@@ -644,10 +639,6 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 .mm-zebra-img.zb{right:100%;margin-right:3px;}
 /* Imagem da zebra nos PRÓXIMOS JOGOS (linha compacta) e no CHAVEAMENTO (caixinha) — menor que a bandeira */
 .dh-zebra-img{height:18px;width:auto;vertical-align:-5px;margin:0 2px;}
-/* No chaveamento a célula é estreita: a imagem vira sobreposição na bandeira (absolute), assim
-   NÃO rouba largura do nome (legibilidade primeiro). ~tamanho da bandeira (15px). */
-/* Chaveamento: PNG sem selo, overlay no canto da bandeira (absolute) — não entra no fluxo, não corta o nome */
-.mm-bx-zebra{position:absolute;left:4px;bottom:-3px;height:18px;width:auto;z-index:3;pointer-events:none;}
 /* Balão "de onde vêm os pontos" (B): reaproveita o #floating-tip escuro */
 #floating-tip.mm-ptstip{pointer-events:none;}
 .mm-ptstip .mm-tip-l1{color:#fff;}
@@ -777,12 +768,6 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 /* Quebra de dia colapsável (10.2) */
 .mm-datehdr{cursor:pointer;user-select:none;}
 .mm-day-arrow{font-size:11px;color:var(--mu);font-weight:800;flex-shrink:0;}
-/* Chave: perdedor em cinza + tag "pên" sem desalinhar placar (Parte 9) */
-.mm-bx-side.lost{opacity:.4;}
-.mm-bx-side.lost .mm-bx-nm{text-decoration:line-through;}
-.mm-bx-pen{font-size:7px;font-weight:800;color:var(--green-ink);background:rgba(15,174,98,.14);border-radius:3px;padding:0 3px;margin-left:4px;vertical-align:1px;}
-.mm-bx-dt{font-size:7px;color:var(--mu);text-align:center;padding:3px 2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1;}
-.mm-bx-sc{min-width:12px;text-align:right;}
 /* Blocos do topo do mata-mata (próximos / ranking / como funciona) */
 .mm-block{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:12px 14px;margin-bottom:18px;box-shadow:var(--shadow-card);}
 .mm-block-h{font-family:var(--font-display);font-size:13px;font-weight:900;color:var(--ink);}
@@ -2484,7 +2469,6 @@ const MM_COLS=[
 const mmOpen=new Set();   // confrontos expandidos na lista (preserva estado entre re-renders)
 let mmPhaseFilter='32avos';   // filtro de fase da lista (3.1) — padrão 16 avos (key interna '32avos')
 let mmBracketOpen=false;            // A1: seção do chaveamento — COLAPSADA por padrão (Tarefa 2)
-const mmCollapsedCols=new Set();   // A2: fases (colunas) recolhidas na chave
 // AGENDA dos 16 avos (data/hora/local) por VAGA (slot). Fica no código (a anon key não cria coluna
 // nova no banco). O app lê isto OU os campos dt/tm/venue do confronto, se existirem no banco.
 const MM_AGENDA={
@@ -2633,25 +2617,6 @@ function mmResultHTML(c){
     </div>`;
 }
 
-// ── CHAVE (bracket): esqueleto FIXO de todas as fases; vaga sem time resolvido = "A definir" ──
-function mmBracketBox(slotId){
-  const c=mmConf(slotId), tm={a:mmResolveSide(slotId,'A'),b:mmResolveSide(slotId,'B')};
-  const fin=c&&c.finished&&c.real_a!=null&&c.real_b!=null, w=mmRealWinner(c);
-  const side=(s,t)=>{
-    if(!t)return `<div class="mm-bx-side empty"></div>`;   // vaga futura → caixa VAZIA (sem texto)
-    const sc=c?(s==='A'?c.real_a:c.real_b):null;
-    const adv=fin&&c.real_a===c.real_b&&c.classificado===s;   // passou nos pênaltis
-    const won=fin&&w===s, lost=fin&&w&&w!==s;
-    // (p) vira tag ao lado do NOME (não no placar) pra não desalinhar a coluna dos números.
-    const z=MM_ZEBRA[slotId];   // zebra/zebrão no chaveamento: imagenzinha ao lado da bandeira do azarão
-    const zi=(z&&z.azarao===s)?`<img class="mm-bx-zebra" src="Imagens/${z.tipo==='zebrao'?'Zebra_o':'Zebra'}.png" alt="">`:'';
-    return `<div class="mm-bx-side${won?' win':''}${lost?' lost':''}">${mmFlag(t.flag)}${zi}<span class="mm-bx-nm">${esc(t.name)}${adv?'<span class="mm-bx-pen">pên</span>':''}</span><span class="mm-bx-sc">${fin&&sc!=null?sc:''}</span></div>`;
-  };
-  const playable=!!(c&&tm.a&&tm.b);   // tem confronto e os dois times conhecidos → clicável (abre na lista)
-  const mi=c?mmInfo(c):{};
-  const dtLabel=mi.dt?`<div class="mm-bx-dt">${mmWeekday(mi.dt)} ${esc(mi.dt)}${mi.tm?' · '+esc(mi.tm):''}</div>`:'';
-  return `<div class="mm-bx${playable?'':' nolink'}"${playable?` onclick="mmGotoConfronto('${slotId}')"`:''} title="${esc(((tm.a&&tm.a.name)||'A definir')+' x '+((tm.b&&tm.b.name)||'A definir'))}">${side('A',tm.a)}${side('B',tm.b)}</div>${dtLabel}`;
-}
 function mmColLabel(id){const col=MM_COLS.find(c=>c.ids.includes(id));return col?col.label:'';}
 // Bandeira numa caixa de tamanho FIXO, centralizada, sem distorcer (padroniza quadradas e retangulares).
 function mmFlag(em){return em?`<span class="flagbx">${flagImg(em)}</span>`:'';}
@@ -2672,11 +2637,10 @@ function mmHeadHTML(c){
   const dt=i.dt?`<span class="dt-tag">${mmWeekday(i.dt)}, ${esc(i.dt)}${i.tm?' · '+esc(i.tm):''}</span>`:'';
   return `<div class="card-head"><span class="grp-tag"><span class="ch-dot${c.finished?' closed':''}"></span>${esc((mmColLabel(c.id)||'MATA-MATA').toUpperCase())} ${status}${turbo}${mmZebraSeal(c)}</span>${dt}${mmMultSeal(mmPhaseKeyOf(c.id),'mm-seal-card',mmIsTurbo(c))}</div>`;
 }
-// ── CHAVEAMENTO NOVO (Tarefa B): visor em janela. Usa os MESMOS dados do bracket antigo
-// (MM_BRACKET/MM_COLS/mmResolveSide/mmRealWinner/mmInfo). O bracket gigante segue vivo como visão expandida.
-const MMV_PHASES=[{key:'32avos',lbl:'1/16'},{key:'oitavas',lbl:'1/8'},{key:'quartas',lbl:'1/4'},{key:'semis',lbl:'Semis'},{key:'final',lbl:'Final'}];
+// ── CHAVEAMENTO (visor em janela): poucas fases por vez, linhas de conexão em destaque. Usa os dados
+// de MM_BRACKET/MM_COLS/mmResolveSide/mmRealWinner/mmInfo. Expandir = overlay em tela cheia, mesmo visual.
+const MMV_PHASES=[{key:'32avos',lbl:'16<sup>av</sup>'},{key:'oitavas',lbl:'8<sup>as</sup>'},{key:'quartas',lbl:'4<sup>as</sup>'},{key:'semis',lbl:'Semis'},{key:'final',lbl:'Final'}];
 let mmvPhase=null;        // fase selecionada no visor (null = calcula a fase atual do torneio no 1º uso)
-let mmvExpanded=false;    // true = mostra o bracket completo antigo (botão expandir)
 // coluna "final" do visor = Final + 3º lugar juntos (cada um com sua tagzinha)
 function mmvColIds(key){return key==='final'?['fin_1','tp_1']:(MM_COLS.find(c=>c.key===key)||{ids:[]}).ids;}
 // fase ATUAL do torneio = fase do jogo em andamento ou do próximo a acontecer; tudo encerrado → Final.
@@ -2703,32 +2667,39 @@ function mmvCardHTML(id){
     if(!t)return `<div class="mmv-t">${shield}<span class="mmv-nm mmv-ph">${ph(s)}</span></div>`;
     const sc=fin?(s==='A'?c.real_a:c.real_b):null;
     const won=fin&&w===s, lost=fin&&w&&w!==s;
-    const ck=(pen&&c.classificado===s)?'<span class="mmv-ck">✓</span>':'';   // pênaltis: só o check, NUNCA o placar da disputa
+    // quem passou de fase leva ✓; nos pênaltis vira "✓ (p)" — NUNCA o placar da disputa de pênaltis
+    const ck=won?`<span class="mmv-ck">✓${pen?' (p)':''}</span>`:'';
     return `<div class="mmv-t${won?' win':''}${lost?' lost':''}">${mmFlag(t.flag)}<span class="mmv-nm">${esc(t.name)}</span>${ck}${fin?`<span class="mmv-sc">${sc}</span>`:''}</div>`;
   };
   const dtbx=(!fin&&info.dt)?`<div class="mmv-dtbx"><span>${mmWeekday(info.dt)} ${esc(info.dt)}</span><span>${esc(info.tm||'')}</span></div>`:'';
   const playable=!!(c&&a&&b);   // definido → clicável, abre os palpites na lista (mesmo vínculo de hoje)
   return `<div class="mmv-card${playable?'':' nolink'}"${playable?` onclick="mmVGoto('${id}')"`:''} title="${esc(((a&&a.name)||ph('A'))+' x '+((b&&b.name)||ph('B')))}"><div class="mmv-teams">${row('A',a)}${row('B',b)}</div>${dtbx}</div>`;
 }
-function mmVGoto(id){mmSetPhase(mmPhaseKeyOf(id));mmGotoConfronto(id);}   // garante que o card está na lista antes de rolar
-// Palco do visor: desktop = 3 colunas (anterior · selecionada · próxima), celular = 2 (selecionada · próxima).
-// Altura acompanha a coluna mais à esquerda (8→4→2→1 jogos): fase adiante = visor mais baixo.
-function mmvViewerHTML(){
+function mmVGoto(id){mmvCloseFull();mmSetPhase(mmPhaseKeyOf(id));mmGotoConfronto(id);}   // fecha o overlay (se aberto) e garante que o card está na lista antes de rolar
+// ── Geometria do visor (compartilhada por visor aberto, espiadinha e tela cheia) ──
+const MMV_BH=56, MMV_GAPY=12, MMV_PADY=20;   // altura do card, espaço vertical, folga pro título da coluna
+function mmvGeom(selOverride){
   const order=MMV_PHASES.map(p=>p.key);
-  const sel=mmvPhase||(mmvPhase=mmvCurrentPhaseKey());
+  const sel=selOverride||mmvPhase||(mmvPhase=mmvCurrentPhaseKey());
   const si=Math.max(0,order.indexOf(sel));
-  const isMob=window.innerWidth<680, ncol=isMob?2:3;
+  const isMob=window.innerWidth<680, ncol=isMob?2:3;   // desktop 3 colunas (anterior·selecionada·próxima), celular 2
   const start=Math.max(0,Math.min(isMob?si:si-1,order.length-ncol));
   const vis=order.slice(start,start+ncol);
   const contW=Math.min(920,window.innerWidth)-28-2-20;   // main(920/viewport −28) − bordas mm-sec − margens do palco
-  const gap=isMob?24:30, bh=56, gapY=12, padY=20;
+  const gap=isMob?24:30;
   const boxW=Math.floor((contW-gap*(vis.length-1))/vis.length);
+  return {order,sel,si,vis,gap,boxW};
+}
+// Posições: coluna-base distribuída por igual; seguintes no ponto médio dos alimentadores.
+// Altura acompanha a coluna mais alta visível (8→4→2→1 jogos): fase adiante = visor mais baixo.
+function mmvLayout(vis,boxW,gap){
+  const bh=MMV_BH, gapY=MMV_GAPY, padY=MMV_PADY;
   const colX={}; vis.forEach((k,i)=>colX[k]=i*(boxW+gap));
   const pos={};
   vis.forEach((k,ci)=>{
     mmvColIds(k).forEach((id,i)=>{
       let y;
-      if(ci===0){y=padY+i*(bh+gapY)+(id==='tp_1'?14:0);}   // coluna-base: distribuição uniforme
+      if(ci===0){y=padY+i*(bh+gapY)+(id==='tp_1'?14:0);}
       else{
         const f=MM_BRACKET[id]&&MM_BRACKET[id].feeders;
         if(id==='tp_1'&&pos['fin_1']!=null){y=pos['fin_1']+bh+36;}   // 3º lugar: logo abaixo da Final
@@ -2739,7 +2710,11 @@ function mmvViewerHTML(){
     });
   });
   let H=padY; Object.keys(pos).forEach(id=>{H=Math.max(H,pos[id]+bh);}); H+=10;
-  // conectores (colchetes) entre colunas vizinhas — 3º lugar tracejado, como no bracket antigo
+  return {colX,pos,H,W:vis.length*boxW+(vis.length-1)*gap};
+}
+// Palco: conectores SVG + painel escuro atrás da fase selecionada (3.4) + títulos + cards.
+function mmvStageHTML(vis,sel,boxW,gap,L,focusId){
+  const {colX,pos,H,W}=L, bh=MMV_BH;
   let paths='';
   vis.forEach((k,ci)=>{
     if(ci===0)return;
@@ -2753,29 +2728,86 @@ function mmvViewerHTML(){
       });
     });
   });
+  let panel='';
+  if(vis.includes(sel)){   // grande card de fundo contínuo envolvendo a coluna da fase ativa
+    let top=1e9,bot=0; mmvColIds(sel).forEach(id=>{if(pos[id]==null)return;top=Math.min(top,pos[id]);bot=Math.max(bot,pos[id]+bh);});
+    if(bot>0)panel=`<div class="mmv-colpanel" style="left:${colX[sel]-8}px;top:-6px;width:${boxW+16}px;height:${bot+16}px"></div>`;
+  }
   let heads='',cards='';
   vis.forEach(k=>{
     const lbl=k==='final'?'Final':(MM_COLS.find(c=>c.key===k)||{}).label||'';
     heads+=`<div class="mmv-colhead${k===sel?' cur':''}" style="left:${colX[k]}px;width:${boxW}px">${lbl}</div>`;
     mmvColIds(k).forEach(id=>{
       const tag=id==='fin_1'?'<span class="mmv-tag">Final</span>':(id==='tp_1'?'<span class="mmv-tag">3º lugar</span>':'');
-      cards+=`<div class="mmv-cardpos${k===sel?' cur':''}" style="left:${colX[k]}px;top:${pos[id]}px;width:${boxW}px;height:${bh}px">${tag}${mmvCardHTML(id)}</div>`;
+      cards+=`<div class="mmv-cardpos${id===focusId?' focus':''}" style="left:${colX[k]}px;top:${pos[id]}px;width:${boxW}px;height:${bh}px">${tag}${mmvCardHTML(id)}</div>`;
     });
   });
-  return `<div class="mmv-stage" style="height:${H}px;width:${contW}px">
-    <svg class="mmv-svg" width="${contW}" height="${H}" viewBox="0 0 ${contW} ${H}">${paths}</svg>
-    ${heads}${cards}
+  return `<div class="mmv-stage" style="height:${H}px;width:${W}px">
+    <svg class="mmv-svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${paths}</svg>
+    ${panel}${heads}${cards}
   </div>`;
 }
-// Fileira de navegação do visor: pílulas de fase + botão expandir (abre o bracket completo antigo).
+// Visor aberto: palco + setas laterais (3.6) centralizadas na vertical; some na primeira/última fase.
+function mmvViewerHTML(){
+  const g=mmvGeom(), L=mmvLayout(g.vis,g.boxW,g.gap);
+  const arrL=g.si>0?`<button class="mmv-arr prev" onclick="mmvSetPhase('${g.order[g.si-1]}')" aria-label="Fase anterior">‹</button>`:'';
+  const arrR=g.si<g.order.length-1?`<button class="mmv-arr next" onclick="mmvSetPhase('${g.order[g.si+1]}')" aria-label="Próxima fase">›</button>`:'';
+  return `<div class="mmv-wrap" id="mmv-wrap">${mmvStageHTML(g.vis,g.sel,g.boxW,g.gap,L,null)}${arrL}${arrR}</div>`;
+}
+// Espiadinha (3.3): destaca o PRÓXIMO jogo (kickoff futuro mais próximo) — card inteiro visível e
+// realçado, resto do bracket cortado ao redor (deslocamento vertical até o card).
+function mmvPeekHTML(){
+  const now=Date.now(); let nxt=null;
+  MM_CONFRONTOS.forEach(c=>{if(mmIsTest(c))return;const d=mmGameDate(c);if(d&&d.getTime()>now&&(!nxt||d.getTime()<nxt.t))nxt={t:d.getTime(),id:c.id};});
+  let sel=nxt?mmPhaseKeyOf(nxt.id):mmvCurrentPhaseKey(); if(sel==='3lugar')sel='final';
+  const g=mmvGeom(sel), L=mmvLayout(g.vis,g.boxW,g.gap);
+  const off=(nxt&&L.pos[nxt.id]!=null)?Math.max(0,L.pos[nxt.id]-24):0;
+  return `<div class="mmv-peek" onclick="mmToggleBracket()"><div style="margin-top:-${off}px">${mmvStageHTML(g.vis,g.sel,g.boxW,g.gap,L,nxt?nxt.id:null)}</div></div>`;
+}
+// Navegação do visor: pílulas com os MESMOS nomes das pílulas da lista (16av/8as/4as/Semis/Final,
+// sem selo de multiplicador aqui) + botão expandir (tela cheia).
 function mmvNavHTML(){
   const sel=mmvPhase||(mmvPhase=mmvCurrentPhaseKey());
-  const pills=MMV_PHASES.map(p=>`<button class="mmv-pill${(!mmvExpanded&&p.key===sel)?' active':''}" onclick="mmvSetPhase('${p.key}')">${p.lbl}</button>`).join('');
+  const pills=MMV_PHASES.map(p=>`<button class="mmv-pill${p.key===sel?' active':''}" onclick="mmvSetPhase('${p.key}')">${p.lbl}</button>`).join('');
   const ic='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H3v6"/><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M15 21h6v-6"/></svg>';
-  return `<div class="mmv-nav">${pills}<button class="mmv-expand${mmvExpanded?' active':''}" onclick="mmvToggleExpand()" title="${mmvExpanded?'Voltar ao visor':'Ver chave completa'}" aria-label="Expandir chave completa">${ic}</button></div>`;
+  return `<div class="mmv-nav">${pills}<button class="mmv-expand" onclick="mmvOpenFull()" title="Ver chave completa" aria-label="Chave completa em tela cheia">${ic}</button></div>`;
 }
-function mmvSetPhase(k){mmvPhase=k;mmvExpanded=false;mmRerenderBracket();}
-function mmvToggleExpand(){mmvExpanded=!mmvExpanded;mmRerenderBracket();}
+function mmvSetPhase(k){mmvPhase=k;mmRerenderBracket();}
+// Tela cheia (3.7): overlay com TODAS as fases lado a lado no visual novo, rolagem livre, X pra fechar.
+function mmvOpenFull(){
+  if(document.getElementById('mmv-full'))return;
+  const vis=MMV_PHASES.map(p=>p.key), boxW=170, gap=34;
+  const L=mmvLayout(vis,boxW,gap), sel=mmvPhase||mmvCurrentPhaseKey();
+  document.body.insertAdjacentHTML('beforeend',`<div class="mmv-full" id="mmv-full">
+    <div class="mmv-full-head"><span class="mm-sec-title">⚔️ Chaveamento completo</span><button class="mmv-full-x" onclick="mmvCloseFull()" aria-label="Fechar">✕</button></div>
+    <div class="mmv-full-scroll">${mmvStageHTML(vis,sel,boxW,gap,L,null)}</div>
+  </div>`);
+  document.body.style.overflow='hidden';
+}
+function mmvCloseFull(){const el=document.getElementById('mmv-full');if(el)el.remove();document.body.style.overflow='';}
+// Arrastar/swipe (3.5): o palco acompanha o dedo/mouse; ao soltar, encaixa na fase mais próxima
+// (mesmo efeito de tocar na pílula: colunas realinham e a altura recalcula). Toque E mouse (pointer events).
+function mmvBindDrag(){
+  const w=document.getElementById('mmv-wrap'); if(!w)return;
+  const stage=w.querySelector('.mmv-stage'); if(!stage)return;
+  let x0=null,dx=0,drag=false;
+  w.addEventListener('pointerdown',e=>{x0=e.clientX;dx=0;drag=true;stage.style.transition='none';try{w.setPointerCapture(e.pointerId);}catch(_){}});
+  w.addEventListener('pointermove',e=>{if(!drag)return;dx=e.clientX-x0;if(Math.abs(dx)>6)stage.style.transform=`translateX(${dx}px)`;});
+  const end=()=>{
+    if(!drag)return; drag=false;
+    const g=mmvGeom(), unit=g.boxW+g.gap;
+    let steps=Math.trunc(-dx/unit); const rem=-dx-steps*unit;
+    if(Math.abs(rem)>unit/3)steps+=(rem>0?1:-1);
+    const ni=Math.max(0,Math.min(g.order.length-1,g.si+steps));
+    if(Math.abs(dx)>6){w.dataset.sup='1';setTimeout(()=>{delete w.dataset.sup;},60);}   // arrastou → não conta como clique no card
+    if(ni!==g.si)mmvSetPhase(g.order[ni]);
+    else{stage.style.transition='transform .18s ease';stage.style.transform='translateX(0)';}
+    dx=0;
+  };
+  w.addEventListener('pointerup',end);
+  w.addEventListener('pointercancel',end);
+  w.addEventListener('click',e=>{if(w.dataset.sup){e.stopPropagation();e.preventDefault();}},true);
+}
 // Linha de status da espiadinha: fase atual + lembrete de que a chave vai até a Final.
 function mmvStatusHTML(){
   const now=Date.now(), TH=3*3600*1000;
@@ -2787,73 +2819,15 @@ function mmvStatusHTML(){
 }
 // Seção do chaveamento com cabeçalho colapsável (A1).
 function mmBracketSectionHTML(){
-  // Card único: cabeçalho (com seta) grudado no topo; fechado = espiadinha real cortada + status; aberto = visor (ou bracket completo).
+  // Card único: cabeçalho (com seta) grudado no topo; fechado = espiadinha do próximo jogo + status; aberto = visor.
   const op=mmBracketOpen;
   let h=`<div class="mm-sec${op?' open':''}"><div class="mm-sec-head" onclick="mmToggleBracket()"><span class="mm-sec-title">⚔️ Chaveamento</span><span class="mm-sec-cta"><span class="mm-sec-cta-lbl">${op?'toque para fechar':'toque para abrir'}</span><span class="mm-sec-arrow">${op?'▴':'▾'}</span></span></div>`;
-  if(op){h+=mmvNavHTML()+(mmvExpanded?mmBracketHTML():mmvViewerHTML());}
-  else{h+=`<div class="mmv-peek" onclick="mmToggleBracket()">${mmvViewerHTML()}</div>${mmvStatusHTML()}`;}
+  if(op)h+=mmvNavHTML()+mmvViewerHTML();
+  else h+=mmvPeekHTML()+mmvStatusHTML();
   return h+`</div>`;
 }
-function mmRerenderBracket(){const s=document.getElementById('mm-bracket-section');if(s){s.innerHTML=mmBracketSectionHTML();mmFitBracket();}}
+function mmRerenderBracket(){const s=document.getElementById('mm-bracket-section');if(s){s.innerHTML=mmBracketSectionHTML();mmvBindDrag();}}
 function mmToggleBracket(){mmBracketOpen=!mmBracketOpen;mmRerenderBracket();}
-function mmToggleCol(key){if(mmCollapsedCols.has(key))mmCollapsedCols.delete(key);else mmCollapsedCols.add(key);mmRerenderBracket();}
-// Chave clássica: caixas posicionadas + conectores SVG em colchete. Fases podem ser recolhidas (A2):
-// a coluna expandida mais à esquerda é distribuída uniformemente e as seguintes centralizam entre os
-// feeders, então recolher fases antigas reduz altura E largura, deslocando o foco pra esquerda.
-function mmBracketHTML(){
-  const bw=134, bh=46, gapX=38, gapXc=12, gapY=22, titleH=24, colW0=18, padX=6, padR=8, padB=12, padY=titleH+12;   // caixa um pouco mais larga p/ caber nomes inteiros ("Inglaterra")
-  const colX={}, colWid={}; let x=padX;
-  // Colapsada: faixa mais fina (colW0) e gap menor (gapXc) → sobra espaço pra ver as fases à direita (8.1).
-  MM_COLS.forEach(col=>{const cl=mmCollapsedCols.has(col.key);const w=cl?colW0:bw;colX[col.key]=x;colWid[col.key]=w;x+=w+(cl?gapXc:gapX);});
-  const pos={}; let maxBottom=padY;
-  MM_COLS.forEach((col,ci)=>{
-    if(mmCollapsedCols.has(col.key))return;
-    const prev=ci>0?MM_COLS[ci-1]:null, base=!prev||mmCollapsedCols.has(prev.key);
-    col.ids.forEach((id,i)=>{
-      let y; if(base){y=padY+i*(bh+gapY);} else {const f=MM_BRACKET[id].feeders;y=(pos[f.A.g].y+pos[f.B.g].y)/2;}
-      pos[id]={x:colX[col.key],y};
-    });
-  });
-  if(pos['tp_1']&&pos['sf_2'])pos['tp_1'].y=pos['sf_2'].y+(bh+gapY)*1.4;   // 3º lugar: abaixo da semi de baixo
-  Object.keys(pos).forEach(id=>{maxBottom=Math.max(maxBottom,pos[id].y+bh);});
-  const totalW=(x-gapX)+padR, totalH=maxBottom+padB;
-  // conectores: só quando a caixa E a coluna dos feeders estão expandidas
-  let paths='';
-  Object.keys(MM_BRACKET).forEach(id=>{
-    const slot=MM_BRACKET[id]; if(!slot.feeders||!pos[id])return;
-    const feederCol=MM_COLS.find(c=>c.ids.includes(slot.feeders.A.g)).key;
-    if(mmCollapsedCols.has(feederCol))return;
-    const bx=pos[id].x, bym=pos[id].y+bh/2, is3=(id==='tp_1');
-    ['A','B'].forEach(s=>{const f=slot.feeders[s],fp=pos[f.g];if(!fp)return;const fxr=fp.x+bw,fym=fp.y+bh/2,mx=(fxr+bx)/2;paths+=`<path d="M${fxr} ${fym} H${mx} V${bym} H${bx}" class="mm-cn${is3?' c3':''}"/>`;});
-  });
-  // títulos clicáveis (recolhe/expande a fase); colapsada vira faixa estreita vertical
-  let titles='';
-  MM_COLS.forEach(col=>{
-    const cl=mmCollapsedCols.has(col.key);
-    titles+=`<div class="mm-coltitle${cl?' col-collapsed':''}" style="left:${colX[col.key]}px;width:${colWid[col.key]}px${cl?`;height:${totalH-padB}px`:''}" onclick="mmToggleCol('${col.key}')" title="${cl?'Expandir':'Recolher'} esta fase">${col.label}</div>`;
-  });
-  let boxes='';
-  Object.keys(pos).forEach(id=>{boxes+=`<div class="mm-bxpos" style="left:${pos[id].x}px;top:${pos[id].y}px;width:${bw}px;height:${bh}px">${mmBracketBox(id)}</div>`;});
-  return `<div class="mm-bracket-wrap">
-    <div class="mm-bracket-hint">Toque num confronto definido pra abrir os palpites · toque no título de uma fase pra recolhê-la</div>
-    <div class="mm-bracket-scroll"><div class="mm-bracket" data-w="${totalW}" data-h="${totalH}" style="width:${totalW}px;height:${totalH}px">
-      <svg class="mm-cn-svg" width="${totalW}" height="${totalH}" viewBox="0 0 ${totalW} ${totalH}" preserveAspectRatio="xMinYMin meet">${paths}</svg>
-      ${titles}${boxes}
-    </div></div>
-  </div>`;
-}
-// Desktop (≥760px): escala a chave pra caber na largura SEM rolagem horizontal. Celular: rola.
-function mmFitBracket(){
-  const el=document.querySelector('#tab-mata .mm-bracket'); if(!el)return;
-  const wrap=el.parentElement, W=+el.dataset.w, H=+el.dataset.h;
-  if(window.innerWidth>=760){
-    const avail=Math.max(320,wrap.clientWidth-16), s=Math.min(1.3,avail/W);
-    el.style.transform='scale('+s+')';
-    wrap.style.height=(H*s+4)+'px'; wrap.style.overflowX='hidden';
-  }else{
-    el.style.transform='none'; wrap.style.height=''; wrap.style.overflowX='auto';
-  }
-}
 let _mmResizeBound=false;
 
 // ── LISTA: só fases que já existem; cada confronto é clicável e expande inline ──
@@ -2988,14 +2962,16 @@ function mmHowItWorksHTML(){
 function renderMata(){
   let html=mmNextGamesHTML()+mmMataRankingHTML()+mmHowItWorksHTML();
   html+=`<div id="mm-bracket-section">${mmBracketSectionHTML()}</div>`;   // chave (não afetada pelo filtro)
+  // título da seção de palpites (3.8): marca onde termina o chaveamento e começam os palpites
+  html+=`<div class="mm-sec-head mm-list-title"><span class="mm-sec-title">🎯 Palpites de placares</span></div>`;
   html+=`<div class="mm-filters">${MM_COLS.map(col=>`<button class="mm-fbtn${col.key===mmPhaseFilter?' active':''}" data-key="${col.key}" onclick="mmSetPhase('${col.key}')">${mmMultSeal(col.key)}<span class="fb-lbl">${col.short}</span></button>`).join('')}</div>`;
   html+=`<div id="mm-list">${mmListHTML()}</div>`;
   document.getElementById('tab-mata').innerHTML=html;
-  mmFitBracket();
+  mmvBindDrag();   // swipe do visor (se a seção estiver aberta)
   setupMarquees();   // faz o texto dos jogos do hero rolar quando não cabe (igual à fase de grupos)
   if(_cdInterval){clearInterval(_cdInterval);_cdInterval=null;}
   if(document.querySelector('#tab-mata .dh-cd'))_cdInterval=setInterval(tickCountdown,1000);   // contagem regressiva
-  if(!_mmResizeBound){_mmResizeBound=true;window.addEventListener('resize',()=>{if(activeTab==='mata')mmRerenderBracket();});}   // visor re-calcula colunas/largura; mmRerenderBracket já chama mmFitBracket
+  if(!_mmResizeBound){_mmResizeBound=true;window.addEventListener('resize',()=>{if(activeTab==='mata')mmRerenderBracket();});}   // visor re-calcula colunas/largura no resize
 }
 
 // ─── ESPELHO PROD→DEV (só no ambiente de dev) ─────────────────────────────────
