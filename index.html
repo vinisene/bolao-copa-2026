@@ -474,10 +474,11 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 /* ── Delta de posição no ranking ── */
 .rk-medal{display:flex;flex-direction:column;align-items:center;gap:1px;}
 .rk-place{line-height:1;}
-.rk-delta{font-size:9px;font-weight:800;line-height:1;letter-spacing:-.3px;}
-.rk-delta.up{color:#1aa34a;}
-.rk-delta.down{color:#d33;}
-.rk-delta.flat{color:var(--mu);opacity:.55;}
+/* Chips de variação (só o ranking detalhado; o letreiro usa rm-up/rm-down e fica como está) */
+.rk-delta{font-size:10px;font-weight:800;line-height:1;letter-spacing:-.2px;padding:2.5px 6px;border-radius:999px;}
+.rk-delta.up{background:rgba(15,174,98,.15);color:var(--green-ink);}
+.rk-delta.down{background:rgba(245,49,79,.13);color:#C21834;}
+.rk-delta.flat{background:rgba(20,20,26,.08);color:var(--ink-2);}
 .rk-legend{font-size:10px;color:var(--mu);padding:8px 14px;border-bottom:1px solid var(--brd);background:#fafdfa;line-height:1.4;}
 .rk-legend b.up{color:#1aa34a;}.rk-legend b.down{color:#d33;}
 
