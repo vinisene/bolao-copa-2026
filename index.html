@@ -13,19 +13,21 @@
 <meta name="theme-color" content="#0C0C0E">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,500&display=swap');
 /* ── Tokens de design (identidade "Bolão Ratazana Copa 26") ── */
 :root{--g:#1a6b3a;--gl:#2d9653;--gd:#0f4424;--gold:#e8c44a;--bg:#f4f7f4;--card:#fff;--txt:#1a1a1a;--mu:#666;--brd:#dde6dd;--je:#e05c8b;--vi:#3d8ef0;--ch:#19c37d;--cl:#cc6b2c;}
 :root{
   --frame:#0C0C0E; --card-dark:#15151A; --input-dark:#26262C; --note-dark:#16161B;
   --sheet:#EDEAE3; --surface:#FFFFFF; --surface-2:#F3F1EA; --surface-3:#E7E4DA; --turbo-foot:#FFF3EE;
   --ink:#16161B; --ink-2:#43434B; --muted:#6E6E77; --faint:#A2A2AA; --on-dark:#F6F6F7; --on-dark-muted:#8A8A94;
-  --lime:#C2EC00; --lime-deep:#7D9B00; --blue:#2F63F6; --red:#F5314F; --cyan:#0FA3BD; --violet:#6D3BF5;
+  --lime:#AFEA00; --lime-deep:#7D9B00; --blue:#2F63F6; --red:#F5314F; --cyan:#0FA3BD; --violet:#6D3BF5;
   --orange:#FF5A1F; --green:#0FAE62; --green-ink:#0A8F4F; --yellow:#D99500; --pink:#EC3C7E; --mint:#10B894;
   --gold:#E0A82E; --silver:#8B95A1; --bronze:#B06D35;
   --line:rgba(20,20,26,.10); --line-2:rgba(20,20,26,.16);
-  --font-display:'Archivo',sans-serif; --font-body:'Noto Sans',system-ui,sans-serif;
+  --font-display:'Anton',sans-serif; --font-body:'Noto Sans',system-ui,sans-serif;
   --r-card:18px; --r-stat:16px; --r-mini:14px; --r-btn:11px; --r-field:9px; --r-pill:20px;
+  /* identidade Copa 26: "um canto bem arredondado, três quase retos" (não usar em bandeiras/avatares) */
+  --r-q-lg:4px 24px 4px 4px; --r-q-md:4px 18px 4px 4px; --r-q-sm:3px 12px 3px 3px;
   --shape-block:5px 1px 5px 1px;
   --shadow-card:0 8px 22px -16px rgba(20,20,26,.5);
   --shadow-turbo:0 12px 28px -16px rgba(255,90,31,.55);
@@ -34,7 +36,8 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:var(--font-body);background:var(--sheet);color:var(--txt);min-height:100vh;}
 /* identidade Copa 26: títulos, números e horas em Archivo (só troca a fonte; cores/posições intactas) */
-.hdr-title,.dh-time,.dh-cd,.nh-cd .clock,.nh-label,.card-head .dt-tag,.pc-score,.score-final,.rk-tot b,.rk-place,.pod-base,.pod-pts,.stat-box .val,.vs2-pts,.tr-pts,.mmv-sc,.mm-iascore,.mm-next-when,.mm-rk-pos,.mm-rk-pts b,.lh-title,.section-badge,.mm-block-h{font-family:var(--font-display);}
+/* identidade Copa 26: Anton em títulos/números/pills — condensada, então ganha letter-spacing leve */
+.hdr-title,.dh-time,.dh-cd,.nh-cd .clock,.nh-label,.card-head .dt-tag,.pc-score,.score-final,.rk-tot b,.rk-place,.pod-base,.pod-pts,.stat-box .val,.vs2-pts,.tr-pts,.mmv-sc,.mm-iascore,.mm-next-when,.mm-rk-pos,.mm-rk-pts b,.lh-title,.section-badge,.mm-block-h{font-family:var(--font-display);letter-spacing:.4px;}
 /* ── Cabeçalho (barra preta) — NÃO sticky (se fosse fixo, engolia os toques do chaveamento/colunas) ── */
 header{position:relative;z-index:1;background:var(--frame);color:var(--on-dark);padding:11px 0 9px;border-bottom:1px solid rgba(255,255,255,.07);overflow:hidden;}
 .hdr-shapes{position:absolute;top:0;right:0;width:104px;height:100%;pointer-events:none;z-index:0;}
@@ -47,9 +50,10 @@ header{position:relative;z-index:1;background:var(--frame);color:var(--on-dark);
 .hdr-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}   /* wrap: no celular a pílula quebra pra linha de baixo */
 .hdr-logo{height:96px;width:auto;flex-shrink:0;display:block;}
 .hdr-titles{min-width:0;}
-.hdr-title{font-family:var(--font-display);font-weight:900;line-height:.95;letter-spacing:.2px;display:flex;flex-direction:column;}
+.hdr-title{font-family:var(--font-display);font-weight:900;line-height:1;letter-spacing:.4px;display:flex;flex-direction:column;align-items:flex-start;}
 .hdr-title .ht-1{font-size:clamp(19px,6.2vw,25px);color:var(--on-dark);}   /* clamp: maior que antes, mas sem quebrar pra baixo do logo */
-.hdr-title .ht-2{font-size:clamp(19px,6.2vw,25px);color:var(--lime);}
+/* "Copa 2026" em bloco chapado verde-escuro com texto lime (tag da identidade Copa 26) */
+.hdr-title .ht-2{font-size:clamp(19px,6.2vw,25px);color:var(--lime);background:#004D3F;padding:3px 10px 4px;border-radius:2px 12px 2px 2px;margin-top:4px;width:max-content;}
 .hdr-dev{position:absolute;top:4px;right:14px;font-family:var(--font-display);font-weight:800;font-size:10px;letter-spacing:1.5px;color:var(--on-dark);border:1px solid rgba(255,255,255,.5);border-radius:6px;padding:2px 7px;z-index:2;}
 .hdr-status{position:relative;z-index:1;font-size:9px;font-weight:600;min-height:11px;margin:3px auto 0;max-width:920px;padding:0 14px;text-align:center;color:var(--on-dark-muted);}
 /* ── Menu: SEGMENTED CONTROL (pílula). CELULAR: pílula no TOPO (dentro do cabeçalho, largura total, sem
@@ -98,7 +102,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
   .hdr-compact-brand{display:flex;align-items:center;gap:12px;min-width:0;}
   .hdr-compact-logo{height:76px;width:auto;flex-shrink:0;display:block;}
   .hdr-compact-title{font-family:var(--font-display);font-weight:900;font-size:26px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--on-dark);}
-  .hdr-compact-title .hc-lime{color:var(--lime);}
+  .hdr-compact-title .hc-lime{color:var(--lime);background:#004D3F;padding:2px 8px 3px;border-radius:2px 10px 2px 2px;display:inline-block;line-height:1.05;}
   .hdr-compact-tabs{flex-shrink:0;}
   .hdr-compact-tabs button{padding:11px 20px;min-height:44px;}
   .hdr-compact-tabs button .nav-ico{width:19px;height:19px;}
@@ -133,7 +137,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 .view-toggle button.active{background:var(--gd);color:var(--gold);}
 .filters{display:flex;gap:5px;overflow-x:auto;padding-bottom:2px;}
 .filters::-webkit-scrollbar{display:none;}
-.pill{padding:6px 14px;border-radius:var(--r-pill);border:1px solid var(--line);background:var(--surface);font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;white-space:nowrap;flex-shrink:0;}
+.pill{padding:6px 14px;border-radius:var(--r-q-sm);border:1px solid var(--line);background:var(--surface);font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;white-space:nowrap;flex-shrink:0;}
 .pill.active{background:var(--ink);color:#fff;border-color:var(--ink);}
 
 /* Section headers */
@@ -212,7 +216,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 .real-row{display:flex;flex-direction:row;align-items:stretch;gap:9px;background:linear-gradient(135deg,var(--gd),var(--g));padding:11px 12px;}
 .real-row .rr-line{flex:3;display:flex;align-items:center;justify-content:center;gap:8px;}
 .real-row .rr-label{font-size:11px;font-weight:800;color:var(--gold);letter-spacing:.5px;}
-.rr-finish{flex:0 0 auto;padding:8px 12px;border-radius:9px;border:1.5px solid rgba(255,255,255,.45);background:rgba(255,255,255,.12);color:#fff;font-size:12px;font-weight:800;white-space:nowrap;cursor:pointer;transition:background .15s;}
+.rr-finish{flex:0 0 auto;padding:8px 12px;border-radius:var(--r-q-sm);border:1.5px solid rgba(255,255,255,.45);background:rgba(255,255,255,.12);color:#fff;font-size:12px;font-weight:800;white-space:nowrap;cursor:pointer;transition:background .15s;}
 .rr-finish:active{background:rgba(255,255,255,.22);}
 .rr-finish.done{background:var(--gold);color:#5c4708;border-color:var(--gold);}
 .rr-finish .chk-off{color:rgba(255,255,255,.55);font-weight:900;}
@@ -247,7 +251,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 .prev-tag{font-size:8px;font-weight:800;background:rgba(255,255,255,.22);color:#fff;padding:1px 5px;border-radius:6px;margin-left:5px;letter-spacing:.3px;vertical-align:1px;}
 
 /* ── Fase de Grupos: card no visual Copa 26 (ESCOPO .card; o mata usa .mm-litem e NÃO é afetado) ── */
-.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);box-shadow:var(--shadow-card);}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-q-lg);box-shadow:var(--shadow-card);}
 .card:hover{box-shadow:0 12px 26px -16px rgba(20,20,26,.55);transform:translateY(-1px);}
 .card.is-finished{border-color:var(--line);box-shadow:var(--shadow-card);}
 /* faixa superior preta */
@@ -306,7 +310,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 .tiebreak{font-size:10px;color:var(--mu);text-align:center;line-height:1.3;margin:8px 8px -2px;}
 
 /* Leaderboard */
-.lead-board{background:var(--surface);border-radius:var(--r-card);border:1px solid var(--line);overflow:hidden;box-shadow:var(--shadow-card);}
+.lead-board{background:var(--surface);border-radius:var(--r-q-lg);border:1px solid var(--line);overflow:hidden;box-shadow:var(--shadow-card);}
 .lead-head{background:var(--surface-2);padding:13px 16px;text-align:center;border-bottom:1px solid var(--line);}
 .lead-head .lh-title{font-family:var(--font-display);font-size:14px;font-weight:900;color:var(--ink);letter-spacing:.3px;}
 .lead-head .lh-sub{font-size:11px;color:var(--muted);margin-top:3px;display:flex;align-items:center;justify-content:center;gap:5px;}
@@ -436,7 +440,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 .crav-empty{font-size:11px;color:var(--muted);background:var(--surface-2);border-radius:8px;padding:7px 9px;}
 
 /* ── Hero "Jogos de hoje" (compacto) ── */
-.day-hero{background:var(--card-dark);border-radius:var(--r-card);padding:12px 14px;margin-bottom:18px;color:var(--on-dark);box-shadow:var(--shadow-card);}
+.day-hero{background:var(--card-dark);border-radius:var(--r-q-lg);padding:12px 14px;margin-bottom:18px;color:var(--on-dark);box-shadow:var(--shadow-card);}
 .dh-head{font-family:var(--font-display);font-size:11px;font-weight:900;letter-spacing:.5px;color:var(--lime);margin-bottom:9px;display:flex;align-items:center;gap:7px;}
 .dh-list{display:flex;flex-direction:column;gap:2px;}
 .dh-row{display:flex;align-items:center;gap:9px;padding:7px;border-radius:var(--r-field);cursor:pointer;transition:background .15s;}
@@ -456,7 +460,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 
 /* ── Barra rolante do ranking (aba Palpites) ── */
 /* Ranking rápido (letreiro): fundo CLARO em card, rolagem LENTA, pausa no hover/toque */
-.rank-marquee{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:10px 12px 12px;margin-bottom:18px;color:var(--ink);overflow:hidden;box-shadow:var(--shadow-card);}
+.rank-marquee{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-q-lg);padding:10px 12px 12px;margin-bottom:18px;color:var(--ink);overflow:hidden;box-shadow:var(--shadow-card);}
 .rm-head{font-family:var(--font-display);font-size:11px;font-weight:900;letter-spacing:.3px;color:var(--ink);margin:0 2px 9px;display:flex;align-items:center;gap:6px;}
 .rm-hint{font-family:var(--font-body);font-weight:600;letter-spacing:0;color:var(--faint);font-size:8.5px;}
 .rm-track-wrap{overflow:hidden;width:100%;}
@@ -487,7 +491,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 .rk-legend b.up{color:#1aa34a;}.rk-legend b.down{color:#d33;}
 
 /* ── Gráfico de evolução da classificação ── */
-.hist-wrap{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:10px 0 12px;overflow:hidden;}
+.hist-wrap{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-q-lg);padding:10px 0 12px;overflow:hidden;}
 .hist-scrollhint{font-size:9.5px;color:var(--mu);text-align:center;margin-bottom:4px;opacity:.7;}
 .hist-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;padding:0 6px;}
 .hist-svg{display:block;}
@@ -551,7 +555,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 .mm-qp-static .flag-img{height:12px;width:auto;border-radius:2px;}
 .pred-cell.ia.mm-cell{background:var(--bg);}
 /* Seção da chave = card único (cabeçalho grudado no topo + visor no mesmo quadro) — 1.2 */
-.mm-sec{border:1px solid var(--line);border-radius:var(--r-card);overflow:hidden;margin-bottom:18px;background:var(--surface);box-shadow:var(--shadow-card);}
+.mm-sec{border:1px solid var(--line);border-radius:var(--r-q-lg);overflow:hidden;margin-bottom:18px;background:var(--surface);box-shadow:var(--shadow-card);}
 /* conectores do visor (as linhas que contam a história do jogo) */
 .mm-cn{fill:none;stroke:#6a766a;stroke-width:1.4;stroke-linejoin:round;opacity:.65;}
 .mm-cn.c3{stroke:#9aa59a;stroke-dasharray:4 4;stroke-width:1.1;opacity:.5;}
@@ -565,9 +569,9 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 /* ── Chaveamento: visor em janela estilo Sofascore. Poucas fases por vez, linhas de conexão em
    destaque; expandir = overlay em tela cheia com o mesmo visual. ── */
 .mmv-nav{display:flex;align-items:center;gap:5px;padding:11px 10px 3px;}
-.mmv-pill{flex:0 1 auto;min-width:0;padding:7px 13px;border-radius:var(--r-pill);border:1px solid var(--line-2);background:transparent;color:var(--muted);font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent;}
+.mmv-pill{flex:0 1 auto;min-width:0;padding:7px 13px;border-radius:var(--r-q-sm);border:1px solid var(--line-2);background:transparent;color:var(--muted);font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent;}
 .mmv-pill.active{background:var(--lime);border-color:var(--lime);color:var(--ink);}
-.mmv-expand{margin-left:auto;width:32px;height:32px;flex-shrink:0;border-radius:9px;border:1px solid var(--line-2);background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;}
+.mmv-expand{margin-left:auto;width:32px;height:32px;flex-shrink:0;border-radius:var(--r-q-sm);border:1px solid var(--line-2);background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;}
 .mmv-expand svg{width:15px;height:15px;display:block;}
 /* palco: colunas absolutas + SVG de conectores (as linhas contam a história do jogo) */
 .mmv-stage{position:relative;margin:10px 10px 14px;}
@@ -585,7 +589,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 .mmv-arr.next{right:0;}
 .mmv-arr:hover{opacity:1;}
 .mmv-cardpos{position:absolute;}
-.mmv-card{height:100%;box-sizing:border-box;display:flex;align-items:stretch;gap:5px;background:var(--surface);border:1px solid var(--line-2);border-radius:10px;padding:6px 8px;cursor:pointer;overflow:hidden;box-shadow:var(--shadow-card);transition:box-shadow .15s;}
+.mmv-card{height:100%;box-sizing:border-box;display:flex;align-items:stretch;gap:5px;background:var(--surface);border:1px solid var(--line-2);border-radius:var(--r-q-sm);padding:6px 8px;cursor:pointer;overflow:hidden;box-shadow:var(--shadow-card);transition:box-shadow .15s;}
 .mmv-card.nolink{cursor:default;background:var(--surface-2);box-shadow:none;}
 .mmv-card:not(.nolink):hover{box-shadow:0 0 0 2px var(--lime);}
 .mmv-card:not(.nolink):active{transform:scale(.99);}
@@ -596,7 +600,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 .mmv-nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .mmv-t.win{color:var(--green-ink);}
 /* eliminado: acinzentado, risco no nome e risco separado no placar (1.2 — formato anterior) */
-.mmv-t.lost{opacity:.4;}
+.mmv-t.lost{color:#751312;opacity:.55;}
 .mmv-t.lost .mmv-nm,.mmv-t.lost .mmv-sc{text-decoration:line-through;}
 .mmv-sc{font-family:var(--font-display);font-weight:800;font-variant-numeric:tabular-nums;flex-shrink:0;}
 .mmv-ck{color:var(--green-ink);font-weight:900;flex-shrink:0;font-size:12px;}   /* venceu nos pênaltis (nunca mostra o placar dos pênaltis) */
@@ -618,7 +622,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 .mmv-full-scroll{flex:1;overflow:auto;padding:12px 14px calc(14px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch;background:var(--surface);}   /* mesmo fundo branco do visor (1.4) */
 .mmv-full-scroll .mmv-stage{margin:4px 2px;}
 /* título da seção de palpites (3.8): mesmo estilo do cabeçalho "Chaveamento", sem ser clicável */
-.mm-list-title{border-radius:var(--r-card);cursor:default;margin:16px 0 4px;box-shadow:var(--shadow-card);}
+.mm-list-title{border-radius:var(--r-q-lg);cursor:default;margin:16px 0 4px;box-shadow:var(--shadow-card);}
 /* Tags de status do cabeçalho */
 .bl-tag.abe{background:rgba(255,255,255,.2);color:#fff;font-size:8.5px;}
 .bl-tag.fec{background:#e8c44a;color:#5c4708;font-size:8.5px;}
@@ -629,16 +633,16 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 /* Filtro de fases (3.1) */
 /* Filtro: cabe numa linha só, sem rolagem (tabs de largura igual) */
 .mm-filters{display:flex;gap:4px;padding:10px 1px 11px;}
-.mm-fbtn{flex:1 1 0;min-width:0;position:relative;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-pill);padding:7px 4px;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;text-align:center;line-height:1.2;}
+.mm-fbtn{flex:1 1 0;min-width:0;position:relative;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-q-sm);padding:7px 4px;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;text-align:center;line-height:1.2;}
 .mm-fbtn .fb-lbl{display:block;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .mm-fbtn sup{font-size:.72em;}
 .mm-fbtn.active{background:var(--lime);border-color:var(--lime);color:var(--ink);}
 /* Selo do multiplicador de fase (×1 · ×1,25 · ×1,5 · ×1,75 · ×4) — etiqueta inclinada "saltando" do canto
    superior direito. Puramente visual: pointer-events:none (não rouba o toque da pílula/card). */
-.mm-mult-seal{position:absolute;top:-8px;right:-3px;transform:rotate(-6deg);background:var(--frame);color:var(--cyan);font-family:var(--font-display);font-size:9px;font-weight:800;line-height:1;padding:3px 6px;border-radius:6px;pointer-events:none;z-index:2;letter-spacing:.2px;box-shadow:0 2px 6px -2px rgba(0,0,0,.55);white-space:nowrap;}
+.mm-mult-seal{position:absolute;top:-8px;right:-3px;transform:rotate(-6deg);background:var(--frame);color:var(--lime);font-family:var(--font-body);font-size:9px;font-weight:800;line-height:1;padding:3px 6px;border-radius:6px;pointer-events:none;z-index:2;letter-spacing:.2px;box-shadow:0 2px 6px -2px rgba(0,0,0,.55);white-space:nowrap;}
 .mm-mult-seal.m1{color:var(--faint);}
 .mm-mult-seal.mfin{color:var(--lime);}
-.mm-mult-seal.mturbo{color:var(--orange);}   /* turbo: laranja (tom do badge TURBO), valor já ×2 */
+.mm-mult-seal.mturbo{background:#FF3D00;color:#fff;box-shadow:0 0 0 1.5px rgba(255,255,255,.85),0 2px 6px -2px rgba(0,0,0,.55);}   /* turbo: laranja da identidade, valor já ×2 */
 /* no card do confronto: um pouco pra dentro pra NÃO cobrir a data/hora do cabeçalho */
 .mm-mult-seal.mm-seal-card{top:-7px;right:12px;}
 /* Cabeçalho da seção do chaveamento (A1) — grudado no topo do card .mm-sec */
@@ -654,8 +658,8 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 #mm-list .mm-datehdr{grid-column:1/-1;margin:5px 0 1px;}   /* quebra de data ocupa a linha toda (7.1) */
 /* Card do confronto: cabeçalho/bandeiras/rodapé sempre visíveis; só os palpites colapsam (3.1) */
 /* overflow VISIBLE (era hidden) pro selo de multiplicador saltar da borda; cantos dos filhos arredondados à mão abaixo */
-.mm-litem{border:1px solid var(--brd);border-radius:14px;overflow:visible;background:var(--card);box-shadow:0 2px 8px rgba(15,68,36,.06);display:flex;flex-direction:column;}
-.mm-litem>:last-child{border-radius:0 0 13px 13px;}
+.mm-litem{border:1px solid var(--brd);border-radius:var(--r-q-lg);overflow:visible;background:var(--card);box-shadow:0 2px 8px rgba(15,68,36,.06);display:flex;flex-direction:column;}
+.mm-litem>:last-child{border-radius:0 0 4px 4px;}
 /* Selo de zebra (C): chip no cabeçalho, junto das tags. Zebrão = dourado. */
 /* Pílulas ZEBRA/ZEBRÃO no cabeçalho — mesmo formato/lugar da TURBO (convivem na França×Suécia) */
 .bl-tag.zebra{font-size:7.5px;padding:2px 4px;background:var(--red);color:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.06);}
@@ -674,7 +678,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 .mm-ptstip .mm-tip-l2{color:#ffd9a8;margin-top:3px;font-weight:700;}
 .mm-ptstip .mm-tip-zeb{color:#9be7a0;margin-top:3px;font-weight:800;}
 .mm-ptstip .mm-tip-tot{margin-top:5px;font-weight:800;font-size:13px;border-top:1px solid rgba(255,255,255,.2);padding-top:4px;}
-.mm-litem .card-head{border-radius:13px 13px 0 0;}   /* cantos por conta própria (mm-litem agora tem overflow:visible) */
+.mm-litem .card-head{border-radius:3px 23px 0 0;}   /* segue o quarto de círculo do card (mm-litem tem overflow:visible) */
 .mm-litem-summary{display:flex;align-items:center;gap:6px;padding:10px 12px;cursor:pointer;}
 .mm-litem-summary .matchup{flex:1;padding:0;}
 .mm-matchup{gap:16px;}
@@ -819,7 +823,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 .mm-rk-pts b{color:var(--g);font-size:14px;}
 
 /* ── Mata-mata: cartão de confronto no visual Copa 26 (ESCOPO .mm-litem/.mm-ghost; não afeta Grupos) ── */
-.mm-litem,.mm-ghost{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);box-shadow:var(--shadow-card);}
+.mm-litem,.mm-ghost{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-q-lg);box-shadow:var(--shadow-card);}
 .mm-litem .card-head,.mm-ghost .card-head{background:var(--card-dark);}
 .mm-litem .card-head .grp-tag,.mm-ghost .card-head .grp-tag{color:var(--on-dark-muted);}
 .mm-litem .card-head .dt-tag,.mm-ghost .card-head .dt-tag{color:var(--on-dark);}
