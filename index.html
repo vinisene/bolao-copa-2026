@@ -1788,6 +1788,27 @@ function deltaBadge(d){
   if(d<0)return `<span class="rk-delta down">▼${-d}</span>`;
   return `<span class="rk-delta flat">=</span>`;
 }
+// Variação de posição nos ÚLTIMOS 3 JOGOS FINALIZADOS DO MATA-MATA, sobre uma base congelada (a fase
+// de grupos não muda mais — quem mexe no ranking agora é só o mata). Mesma regra do geralDeltas
+// (posição atual vs posição 3 jogos atrás) e mesmo desempate (total · cravados · ganhador).
+// Recortes: mata → base zero (MATA_PARTS) · geral → base grupos/CUT · jxv → base grupos sem g01-03.
+function mataPhaseDeltas(parts,baseStats){
+  const acc={};
+  parts.forEach(p=>{const b=baseStats?baseStats(p.id):null;acc[p.id]=b?{total:b.total,eHits:b.eHits,rHits:b.rHits}:{total:0,eHits:0,rHits:0};});
+  const posOf=()=>{
+    const order=parts.map(p=>({id:p.id,...acc[p.id]})).sort((a,b)=>b.total-a.total||b.eHits-a.eHits||b.rHits-a.rHits);
+    const pos={}; order.forEach((o,i)=>{pos[o.id]=i+1;}); return pos;
+  };
+  const steps=[posOf()];   // passo 0 = antes de qualquer jogo do mata
+  mataGamesFinished().forEach(c=>{
+    const per=mataPtsByPid(c);
+    parts.forEach(p=>{const x=per[p.id];if(!x)return;acc[p.id].total+=x.pts;acc[p.id].rHits+=x.rHits;acc[p.id].eHits+=x.eHits;});
+    steps.push(posOf());
+  });
+  const now=steps[steps.length-1], base=steps[Math.max(0,steps.length-1-3)];
+  const out={}; parts.forEach(p=>{out[p.id]=((base[p.id]==null)?now[p.id]:base[p.id])-now[p.id];});
+  return out;
+}
 // ─── DADOS DO GRÁFICO DE EVOLUÇÃO (3 abas × 2 visões: Por Jogos / Por Rodada) ───
 // REGRA DE OURO: g01–g03 NUNCA entram (em nenhuma aba, tabela ou gráfico).
 const GROUP_EXCLUDED=new Set(['g01','g02','g03']);
@@ -1986,8 +2007,9 @@ function rankingNew(){
   });
   const ranked=[...sAll].sort((a,b)=>b.total-a.total||b.eHits-a.eHits||b.rHits-a.rHits);
   const mx=Math.max(1,...ranked.map(s=>s.total));
-  const hist=geralHistory();
-  const deltas=geralDeltas(hist);
+  // Setinhas de variação (últimos 3 jogos): com o mata somado, quem move o ranking é o mata;
+  // no recorte "Só Fase de Grupos" (congelada) mantém o cálculo antigo sobre o histórico dos grupos.
+  const deltas=geralScope==='tudo'?mataPhaseDeltas(PARTICIPANTS,id=>getStats(id,inRank)):geralDeltas(geralHistory());
 
   let html=`<div class="hist-toggle scope-toggle"><button class="${geralScope==='tudo'?'active':''}" onclick="setGeralScope('tudo')">Mata-mata + Grupos</button><button class="${geralScope==='grupos'?'active':''}" onclick="setGeralScope('grupos')">Só Fase de Grupos</button></div>`;
   html+=podium(ranked,'geral');
@@ -2053,6 +2075,7 @@ function rankingOld(){
   });
   const ranked=[...sAll].sort((a,b)=>b.total-a.total||b.eHits-a.eHits||b.rHits-a.rHits);
   const mx=Math.max(1,...ranked.map(s=>s.total));
+  const deltas=mataPhaseDeltas(OLD_IDS.map(id=>PARTICIPANTS.find(x=>x.id===id)),id=>getStats(id,jxvEligible));
 
   let html=podium(ranked,'jxv');
   html+=`<div class="lead-board">
@@ -2060,7 +2083,7 @@ function rankingOld(){
       <div class="lh-title">🏆 BOLÃO JxV</div>
       <div class="lh-sub">${fin} de ${tot} jogos da Copa + mata-mata ${q('pontuacao')} · toque numa pessoa pra ver as estatísticas dela</div>
     </div>`;
-  ranked.forEach((p,i)=>{html+=rkRow(p,i,mx,false,undefined,'jxv');});
+  ranked.forEach((p,i)=>{html+=rkRow(p,i,mx,false,deltas[p.id],'jxv');});
   html+=`</div>`;
   html+=evolutionSection('jxv',OLD_IDS.map(id=>PARTICIPANTS.find(p=>p.id===id)));   // gráfico JxV (grupos + mata)
 
@@ -2087,14 +2110,16 @@ function rankingMata(){
   const ranked=[...sAll].sort((a,b)=>b.total-a.total||b.eHits-a.eHits||b.rHits-a.rHits);
   const mx=Math.max(1,...ranked.map(s=>s.total));
   const fin=mataGamesFinished().length;
+  const deltas=mataPhaseDeltas(MATA_PARTS,null);
 
   let html=podium(ranked,'mata');
   html+=`<div class="lead-board">
     <div class="lead-head">
       <div class="lh-title">⚔️ CLASSIFICAÇÃO MATA-MATA</div>
       <div class="lh-sub">${fin} jogo(s) do mata-mata finalizado(s) · placar final (com prorrogação) ${q('pontuacao')} · toque numa pessoa pra ver as estatísticas dela</div>
-    </div>`;
-  ranked.forEach((p,i)=>{html+=rkRow(p,i,mx,true,undefined,'mata');});
+    </div>
+    <div class="rk-legend">Ao lado da posição: quantas posições a pessoa <b class="up">▲ subiu</b> ou <b class="down">▼ caiu</b> nos últimos 3 jogos (<b>=</b> manteve).</div>`;
+  ranked.forEach((p,i)=>{html+=rkRow(p,i,mx,true,deltas[p.id],'mata');});
   html+=`</div>`;
   html+=evolutionSection('mata',MATA_PARTS);   // gráfico só do mata-mata (inclui mataOnly), toggle Por Jogos/Por Rodada
 
@@ -3036,7 +3061,12 @@ function mmNextGamesHTML(){
 // (2) Classificação do mata-mata — MESMA barra rolante da classificação geral, filtrando só o mata-mata.
 function mmMataRankingHTML(){
   const rows=MATA_PARTS.map(p=>({p,...mataStats(p.id)})).sort((a,b)=>b.total-a.total||b.eHits-a.eHits||b.rHits-a.rHits);
-  const item=(o,i)=>`<span class="rm-item"><span class="rm-pos${i<3?' p'+(i+1):''}">${i+1}º</span><span class="rm-av" style="background:${o.p.color};box-shadow:0 0 0 2px var(--surface),0 0 0 3px ${o.p.color}">${avInner(o.p)}</span><span class="rm-nm">${o.p.name}</span><span class="rm-pts">${fmtPts(o.total)} pts</span></span>`;
+  const deltas=mataPhaseDeltas(MATA_PARTS,null);   // setinha de variação (últimos 3 jogos do mata)
+  const item=(o,i)=>{
+    const d=deltas[o.p.id];
+    const arrow=d>0?`<span class="rm-up">▲${d}</span>`:d<0?`<span class="rm-down">▼${-d}</span>`:`<span class="rm-flat">=</span>`;
+    return `<span class="rm-item"><span class="rm-pos${i<3?' p'+(i+1):''}">${i+1}º</span>${arrow}<span class="rm-av" style="background:${o.p.color};box-shadow:0 0 0 2px var(--surface),0 0 0 3px ${o.p.color}">${avInner(o.p)}</span><span class="rm-nm">${o.p.name}</span><span class="rm-pts">${fmtPts(o.total)} pts</span></span>`;
+  };
   const seq=rows.map(item).join('');
   // pausa enquanto o dedo toca (pointerdown/up); tocar/clicar leva ao ranking completo
   return `<div class="rank-marquee"><div class="rm-head">🏆 CLASSIFICAÇÃO DO MATA-MATA</div><div class="rm-track-wrap"><div class="rm-track" onpointerdown="this.classList.add('paused')" onpointerup="this.classList.remove('paused')" onpointercancel="this.classList.remove('paused')" onclick="showTab('ranking')">${seq}${seq}</div></div></div>`;
