@@ -331,6 +331,12 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 .stat-phead{display:flex;align-items:center;gap:10px;margin-bottom:11px;}
 .stat-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:#fff;flex-shrink:0;box-shadow:0 2px 5px rgba(0,0,0,.13);}
 .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:11px;}
+/* Popup de estatísticas individuais (2.2): modal centralizado, fundo escurecido, X e clique-fora fecham */
+.stats-modal{position:fixed;inset:0;z-index:600;background:rgba(12,12,14,.6);display:flex;align-items:center;justify-content:center;padding:16px;}
+.stats-modal-box{position:relative;width:100%;max-width:520px;max-height:86vh;overflow:auto;background:var(--sheet);border-radius:var(--r-card);padding:12px;box-shadow:0 18px 60px -18px rgba(0,0,0,.65);-webkit-overflow-scrolling:touch;}
+.stats-modal-box .stat-card{margin:0;}
+.stats-modal-x{position:absolute;top:10px;right:10px;z-index:2;width:32px;height:32px;border-radius:50%;border:none;background:var(--ink);color:#fff;font-size:14px;font-weight:900;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.rk-row,.pod{cursor:pointer;}
 .stat-box{background:var(--surface-2);border-radius:var(--r-mini);padding:9px 8px;text-align:center;}
 .stat-box .val{font-size:21px;font-weight:900;color:var(--ink);line-height:1;}
 .stat-box .lbl{font-size:10px;color:var(--mu);margin-top:4px;display:flex;align-items:center;justify-content:center;gap:3px;}
@@ -434,14 +440,18 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 .dh-soon{font-size:13px;flex-shrink:0;opacity:.6;}
 
 /* ── Barra rolante do ranking (aba Palpites) ── */
-.rank-marquee{background:transparent;border-radius:0;padding:2px 0 4px;margin-bottom:18px;color:var(--ink);overflow:hidden;box-shadow:none;}
+/* Ranking rápido (letreiro): fundo CLARO em card, rolagem LENTA, pausa no hover/toque */
+.rank-marquee{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:10px 12px 12px;margin-bottom:18px;color:var(--ink);overflow:hidden;box-shadow:var(--shadow-card);}
 .rm-head{font-family:var(--font-display);font-size:11px;font-weight:900;letter-spacing:.3px;color:var(--ink);margin:0 2px 9px;display:flex;align-items:center;gap:6px;}
 .rm-hint{font-family:var(--font-body);font-weight:600;letter-spacing:0;color:var(--faint);font-size:8.5px;}
 .rm-track-wrap{overflow:hidden;width:100%;}
-.rm-track{display:flex;width:max-content;animation:rmscroll 38s linear infinite;cursor:pointer;}
+.rm-track{display:flex;width:max-content;animation:rmscroll 90s linear infinite;cursor:pointer;}
 .rm-track:hover,.rm-track.paused{animation-play-state:paused;}
+.rm-pos.p1{color:var(--gold);}
+.rm-pos.p2{color:var(--silver);}
+.rm-pos.p3{color:var(--bronze);}
 @keyframes rmscroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}
-.rm-item{display:flex;align-items:center;gap:7px;padding:8px 12px;margin-right:8px;border-right:none;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-mini);box-shadow:var(--shadow-card);white-space:nowrap;}
+.rm-item{display:flex;align-items:center;gap:7px;padding:8px 12px;margin-right:8px;border-right:none;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-mini);box-shadow:none;white-space:nowrap;}
 .rm-pos{font-family:var(--font-display);font-size:14px;font-weight:900;color:var(--faint);min-width:20px;text-align:center;font-variant-numeric:tabular-nums;}
 .rm-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;color:#fff;position:relative;overflow:hidden;flex-shrink:0;}
 .rm-nm{font-size:12.5px;font-weight:800;color:var(--ink);}
@@ -1662,11 +1672,39 @@ function statCard(p){
   </div>`;
 }
 
-// Linha do leaderboard
-function rkRow(p,i,mx,withTeam,delta){
+// ── Popup de estatísticas individuais (2.2): clicar numa pessoa em qualquer ranking abre o statCard
+// dela num modal. O ESCOPO segue o ranking clicado (geral/jxv/mata) — mesmos números da seção antiga.
+// Atenção aos pares de IDs: pepe (humano) ≠ pepe_ia (máquina), vinicius ≠ claude etc. — o pid vem
+// direto da linha clicada, então cada card mostra exatamente quem foi clicado.
+function statsFor(pid,scope){
+  if(scope==='mata'){
+    const p=MATA_PARTS.find(x=>x.id===pid); if(!p)return null;
+    const m=mataStats(pid);
+    return {...p,...m,avg:m.played?m.total/m.played:0};
+  }
+  const p=PARTICIPANTS.find(x=>x.id===pid); if(!p)return null;
+  const s={...p,...getStats(pid,scope==='jxv'?jxvEligible:(g=>sortKey(g)>=CUT))};
+  if(scope==='jxv'||geralScope==='tudo'){   // soma o mata, igual aos rankings correspondentes
+    const m=mataStats(pid);
+    s.total+=m.total; s.rHits+=m.rHits; s.eHits+=m.eHits; s.played+=m.played;
+    s.cravadas=s.cravadas.concat(m.cravadas);
+    s.avg=s.played?s.total/s.played:0;
+  }
+  return s;
+}
+function openStats(pid,scope){
+  const s=statsFor(pid,scope); if(!s)return;
+  closeStats();
+  document.body.insertAdjacentHTML('beforeend',`<div class="stats-modal" id="stats-modal" onclick="if(event.target===this)closeStats()"><div class="stats-modal-box"><button class="stats-modal-x" onclick="closeStats()" aria-label="Fechar">✕</button>${statCard(s)}</div></div>`);
+  document.body.style.overflow='hidden';
+}
+function closeStats(){const m=document.getElementById('stats-modal');if(m)m.remove();document.body.style.overflow='';}
+
+// Linha do leaderboard — clicável: abre o popup de estatísticas da pessoa no escopo daquele ranking (2.2)
+function rkRow(p,i,mx,withTeam,delta,scope){
   const medals=['🥇','🥈','🥉'];
   const team=withTeam?TEAMS.find(t=>t.id===p.team):null;
-  return `<div class="rk-row${i===0&&p.total>0?' lead':''}">
+  return `<div class="rk-row${i===0&&p.total>0?' lead':''}"${scope?` onclick="openStats('${p.id}','${scope}')" title="Ver estatísticas de ${esc(p.name)}"`:''}>
     <div class="rk-medal"><span class="rk-place">${medals[i]||(i+1)}</span>${deltaBadge(delta)}</div>
     <div class="rk-av" style="background:${p.color};box-shadow:0 0 0 2px var(--surface),0 0 0 4px ${p.color},0 3px 8px rgba(20,20,26,.18)">${avInner(p)}</div>
     <div class="rk-mid">
@@ -1680,12 +1718,12 @@ function rkRow(p,i,mx,withTeam,delta){
 
 // ─── RANKING GERAL (novo) — todos, a partir de 20/06 12h ──────────────────────
 // Pódio dos 3 primeiros (2º à esquerda, 1º no centro mais alto, 3º à direita)
-function podium(ranked){
+function podium(ranked,scope){
   const t=ranked.slice(0,3);
   if(t.length<3)return '';
   const cols=[{p:t[1],pl:2,m:'🥈'},{p:t[0],pl:1,m:'🥇'},{p:t[2],pl:3,m:'🥉'}];
   return `<div class="podium">${cols.map(c=>`
-    <div class="pod pod-${c.pl}">
+    <div class="pod pod-${c.pl}"${scope?` onclick="openStats('${c.p.id}','${scope}')" title="Ver estatísticas de ${esc(c.p.name)}"`:''}>
       <div class="pod-avwrap">
         <div class="pod-av" style="background:${c.p.color}">${avInner(c.p)}</div>
         <span class="pod-badge">${c.m}</span>
@@ -1908,12 +1946,12 @@ function histClick(pid){ if(!pid)pid=null; histLocked=(histLocked===pid)?null:pi
 function rankMarquee(){
   const steps=geralHistory();
   if(!steps.length)return '';
-  const cur=steps[steps.length-1], deltas=geralDeltas(steps), medals=['🥇','🥈','🥉'];
+  const cur=steps[steps.length-1], deltas=geralDeltas(steps);
   const order=PARTICIPANTS.slice().sort((a,b)=>cur.pos[a.id]-cur.pos[b.id]);
   const item=p=>{
     const pos=cur.pos[p.id],d=deltas[p.id];
     const arrow=d>0?`<span class="rm-up">▲${d}</span>`:d<0?`<span class="rm-down">▼${-d}</span>`:`<span class="rm-flat">=</span>`;
-    return `<span class="rm-item"><span class="rm-pos">${medals[pos-1]||pos+'º'}</span>${arrow}<span class="rm-av" style="background:${p.color};box-shadow:0 0 0 2px var(--surface),0 0 0 3px ${p.color}">${avInner(p)}</span><span class="rm-nm">${p.name}</span><span class="rm-pts">${cur.tot[p.id]} pts</span></span>`;
+    return `<span class="rm-item"><span class="rm-pos${pos<=3?' p'+pos:''}">${pos}º</span>${arrow}<span class="rm-av" style="background:${p.color};box-shadow:0 0 0 2px var(--surface),0 0 0 3px ${p.color}">${avInner(p)}</span><span class="rm-nm">${p.name}</span><span class="rm-pts">${cur.tot[p.id]} pts</span></span>`;
   };
   const seq=order.map(item).join('');
   return `<div class="rank-marquee">
@@ -1945,14 +1983,14 @@ function rankingNew(){
   const deltas=geralDeltas(hist);
 
   let html=`<div class="hist-toggle scope-toggle"><button class="${geralScope==='tudo'?'active':''}" onclick="setGeralScope('tudo')">Mata-mata + Grupos</button><button class="${geralScope==='grupos'?'active':''}" onclick="setGeralScope('grupos')">Só Fase de Grupos</button></div>`;
-  html+=podium(ranked);
+  html+=podium(ranked,'geral');
   html+=`<div class="lead-board">
     <div class="lead-head">
       <div class="lh-title">🏆 CLASSIFICAÇÃO GERAL</div>
-      <div class="lh-sub">${fin} de ${tot} jogos${mataTotal>0?' + mata-mata':''} · vale a partir de 20/06 ${q('cutoff')}</div>
+      <div class="lh-sub">${fin} de ${tot} jogos${mataTotal>0?' + mata-mata':''} · vale a partir de 20/06 ${q('cutoff')} · toque numa pessoa pra ver as estatísticas dela</div>
     </div>
     <div class="rk-legend">Ao lado da posição: quantas posições a pessoa <b class="up">▲ subiu</b> ou <b class="down">▼ caiu</b> nos últimos 3 jogos (<b>=</b> manteve).</div>`;
-  ranked.forEach((p,i)=>{html+=rkRow(p,i,mx,true,deltas[p.id]);});
+  ranked.forEach((p,i)=>{html+=rkRow(p,i,mx,true,deltas[p.id],'geral');});
   html+=`</div>`;
 
   html+=evolutionSection('geral',PARTICIPANTS);   // gráfico com toggle Por Jogos/Por Rodada (grupos + mata)
@@ -1970,9 +2008,7 @@ function rankingNew(){
     return {name:t.name, mem:hu.name+' + '+ia.name, pts:byId(t.human)+byId(t.ia), col:t.color, human:hu, ia:ia};
   }));
 
-  const statsOrder=['jessica','tonius','leo','vinicius','chatgpt','claudio','chatgptleo','claude'];
-  html+=`<div class="section-title">📊 ESTATÍSTICAS INDIVIDUAIS</div>`;
-  statsOrder.forEach(id=>{const p=sAll.find(x=>x.id===id);if(p)html+=statCard(p);});
+  // Estatísticas individuais: agora em POPUP (openStats), aberto ao clicar na pessoa em qualquer ranking (2.2).
   // Tarefa 4: lista SÓ os jogos considerados pelo Bolão Geral (mesmo conjunto do ranking: sortKey>=CUT,
   // não removidos). Isso já exclui g01-g03 (que são de 11/06, antes do corte) e os "fora".
   html+=gamesListHTML('📋 Jogos da Fase de Grupos', GT.map(t=>getGame(t.id)).filter(g=>!g.removed&&inRank(g)));
@@ -2011,13 +2047,13 @@ function rankingOld(){
   const ranked=[...sAll].sort((a,b)=>b.total-a.total||b.eHits-a.eHits||b.rHits-a.rHits);
   const mx=Math.max(1,...ranked.map(s=>s.total));
 
-  let html=podium(ranked);
+  let html=podium(ranked,'jxv');
   html+=`<div class="lead-board">
     <div class="lead-head">
       <div class="lh-title">🏆 BOLÃO JxV</div>
-      <div class="lh-sub">${fin} de ${tot} jogos da Copa + mata-mata ${q('pontuacao')}</div>
+      <div class="lh-sub">${fin} de ${tot} jogos da Copa + mata-mata ${q('pontuacao')} · toque numa pessoa pra ver as estatísticas dela</div>
     </div>`;
-  ranked.forEach((p,i)=>{html+=rkRow(p,i,mx,false);});
+  ranked.forEach((p,i)=>{html+=rkRow(p,i,mx,false,undefined,'jxv');});
   html+=`</div>`;
   html+=evolutionSection('jxv',OLD_IDS.map(id=>PARTICIPANTS.find(p=>p.id===id)));   // gráfico JxV (grupos + mata)
 
@@ -2031,8 +2067,7 @@ function rankingOld(){
   html+=versus('🤝 Humanos vs Máquinas','👤 Humanos','Jeca + Vini',hP,'#3d8ef0','🤖 Máquinas','ChatGPT Jeca + Claude Vini',iP,'#e8c44a');
   html+=versus('👥 Time Jeca vs Time Vini','Time Jeca','Jeca + ChatGPT Jeca',byId('jessica')+byId('chatgpt'),'#e05c8b','Time Vini','Vini + Claude Vini',byId('vinicius')+byId('claude'),'#3d8ef0');
 
-  html+=`<div class="section-title">📊 ESTATÍSTICAS INDIVIDUAIS</div>`;
-  sAll.forEach(p=>{html+=statCard(p);});
+  // Estatísticas individuais: em popup via clique na pessoa (openStats).
   // Tarefa C: jogos considerados no Bolão JxV — mesma regra do ranking (rankingOld/getStats):
   // toda a Copa, exceto g01-g03 (GROUP_EXCLUDED) e jogos removidos. São 69 jogos.
   html+=gamesListHTML('🆚 Jogos do Bolão JxV', GT.map(t=>getGame(t.id)).filter(jxvEligible));   // Tarefa 5: mesma função do ranking
@@ -2046,13 +2081,13 @@ function rankingMata(){
   const mx=Math.max(1,...ranked.map(s=>s.total));
   const fin=mataGamesFinished().length;
 
-  let html=podium(ranked);
+  let html=podium(ranked,'mata');
   html+=`<div class="lead-board">
     <div class="lead-head">
       <div class="lh-title">⚔️ CLASSIFICAÇÃO MATA-MATA</div>
-      <div class="lh-sub">${fin} jogo(s) do mata-mata finalizado(s) · placar final (com prorrogação) ${q('pontuacao')}</div>
+      <div class="lh-sub">${fin} jogo(s) do mata-mata finalizado(s) · placar final (com prorrogação) ${q('pontuacao')} · toque numa pessoa pra ver as estatísticas dela</div>
     </div>`;
-  ranked.forEach((p,i)=>{html+=rkRow(p,i,mx,true);});
+  ranked.forEach((p,i)=>{html+=rkRow(p,i,mx,true,undefined,'mata');});
   html+=`</div>`;
   html+=evolutionSection('mata',MATA_PARTS);   // gráfico só do mata-mata (inclui mataOnly), toggle Por Jogos/Por Rodada
 
@@ -2073,9 +2108,7 @@ function rankingMata(){
   const tPepe=MATA_PARTS.find(p=>p.id==='pepe'), tPepeIA=MATA_PARTS.find(p=>p.id==='pepe_ia');
   if(tPepe&&tPepeIA) mataTeamRows.push({name:'Time Pepe', mem:tPepe.name+' + '+tPepeIA.name, pts:byId('pepe')+byId('pepe_ia'), col:tPepe.color, human:tPepe, ia:tPepeIA});
   html+=teamRace('👥 Times', mataTeamRows);
-  // Tarefa 6: estatísticas individuais de cada palpiteiro do mata (mesmo componente do Bolão Geral), escopo mata.
-  html+=`<div class="section-title">📊 ESTATÍSTICAS INDIVIDUAIS</div>`;
-  [...humans, ...machines].forEach(p=>{html+=statCard(p);});
+  // Estatísticas individuais: em popup via clique na pessoa (openStats, escopo 'mata').
   return html;
 }
 
@@ -3001,10 +3034,10 @@ function mmNextGamesHTML(){
 // (2) Classificação do mata-mata — MESMA barra rolante da classificação geral, filtrando só o mata-mata.
 function mmMataRankingHTML(){
   const rows=MATA_PARTS.map(p=>({p,...mataStats(p.id)})).sort((a,b)=>b.total-a.total||b.eHits-a.eHits||b.rHits-a.rHits);
-  const medals=['🥇','🥈','🥉'];
-  const item=(o,i)=>`<span class="rm-item"><span class="rm-pos">${medals[i]||(i+1)+'º'}</span><span class="rm-av" style="background:${o.p.color};box-shadow:0 0 0 2px var(--surface),0 0 0 3px ${o.p.color}">${avInner(o.p)}</span><span class="rm-nm">${o.p.name}</span><span class="rm-pts">${fmtPts(o.total)} pts</span></span>`;
+  const item=(o,i)=>`<span class="rm-item"><span class="rm-pos${i<3?' p'+(i+1):''}">${i+1}º</span><span class="rm-av" style="background:${o.p.color};box-shadow:0 0 0 2px var(--surface),0 0 0 3px ${o.p.color}">${avInner(o.p)}</span><span class="rm-nm">${o.p.name}</span><span class="rm-pts">${fmtPts(o.total)} pts</span></span>`;
   const seq=rows.map(item).join('');
-  return `<div class="rank-marquee"><div class="rm-head">🏆 CLASSIFICAÇÃO DO MATA-MATA</div><div class="rm-track-wrap"><div class="rm-track" onclick="this.classList.toggle('paused')">${seq}${seq}</div></div></div>`;
+  // pausa enquanto o dedo toca (pointerdown/up); tocar/clicar leva ao ranking completo
+  return `<div class="rank-marquee"><div class="rm-head">🏆 CLASSIFICAÇÃO DO MATA-MATA</div><div class="rm-track-wrap"><div class="rm-track" onpointerdown="this.classList.add('paused')" onpointerup="this.classList.remove('paused')" onpointercancel="this.classList.remove('paused')" onclick="showTab('ranking')">${seq}${seq}</div></div></div>`;
 }
 // (3) Regras do Bolão.
 function mmHowItWorksHTML(){
