@@ -150,7 +150,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(104px +
 .card.is-finished{border-color:var(--gl);box-shadow:0 2px 12px rgba(45,150,83,.18);}
 .card.is-naocons{opacity:.62;}
 
-.card-head{display:flex;justify-content:space-between;align-items:center;padding:11px 10px;background:linear-gradient(135deg,var(--gd),var(--g));gap:3px;flex-wrap:wrap;}
+.card-head{position:relative;display:flex;justify-content:space-between;align-items:center;padding:11px 10px;background:linear-gradient(135deg,var(--gd),var(--g));gap:3px;flex-wrap:wrap;}
 .card-head .grp-tag{font-size:9.5px;font-weight:800;color:var(--gold);letter-spacing:0;display:flex;align-items:center;gap:3px;flex-wrap:nowrap;white-space:nowrap;}
 .card-head .dt-tag{font-size:11px;font-weight:800;color:#fff;white-space:nowrap;}
 .bl-tag{font-size:6px;font-weight:800;letter-spacing:.2px;padding:1px 3px;border-radius:4px;}
@@ -570,10 +570,18 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(104px +
 .mm-qp:empty{display:none;}
 /* Filtro de fases (3.1) */
 /* Filtro: cabe numa linha só, sem rolagem (tabs de largura igual) */
-.mm-filters{display:flex;gap:4px;padding:2px 1px 11px;}
-.mm-fbtn{flex:1 1 0;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-pill);padding:7px 4px;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;}
+.mm-filters{display:flex;gap:4px;padding:10px 1px 11px;}
+.mm-fbtn{flex:1 1 0;min-width:0;position:relative;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-pill);padding:7px 4px;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;text-align:center;line-height:1.2;}
+.mm-fbtn .fb-lbl{display:block;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .mm-fbtn sup{font-size:.72em;}
 .mm-fbtn.active{background:var(--lime);border-color:var(--lime);color:var(--ink);}
+/* Selo do multiplicador de fase (×1 · ×1,25 · ×1,5 · ×1,75 · ×4) — etiqueta inclinada "saltando" do canto
+   superior direito. Puramente visual: pointer-events:none (não rouba o toque da pílula/card). */
+.mm-mult-seal{position:absolute;top:-8px;right:-3px;transform:rotate(-6deg);background:var(--frame);color:var(--cyan);font-family:var(--font-display);font-size:9px;font-weight:800;line-height:1;padding:3px 6px;border-radius:6px;pointer-events:none;z-index:2;letter-spacing:.2px;box-shadow:0 2px 6px -2px rgba(0,0,0,.55);white-space:nowrap;}
+.mm-mult-seal.m1{color:var(--faint);}
+.mm-mult-seal.mfin{color:var(--lime);}
+/* no card do confronto: um pouco pra dentro pra NÃO cobrir a data/hora do cabeçalho */
+.mm-mult-seal.mm-seal-card{top:-7px;right:12px;}
 /* Cabeçalho da seção do chaveamento (A1) — grudado no topo do card .mm-sec */
 .mm-sec-head{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--card-dark);padding:15px 16px;cursor:pointer;min-height:62px;-webkit-tap-highlight-color:transparent;}
 .mm-sec-head:active{background:#1d1d24;}
@@ -586,7 +594,9 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(104px +
 @media(min-width:680px){#mm-list{grid-template-columns:repeat(2,minmax(0,1fr));}}
 #mm-list .mm-datehdr{grid-column:1/-1;margin:5px 0 1px;}   /* quebra de data ocupa a linha toda (7.1) */
 /* Card do confronto: cabeçalho/bandeiras/rodapé sempre visíveis; só os palpites colapsam (3.1) */
-.mm-litem{border:1px solid var(--brd);border-radius:14px;overflow:hidden;background:var(--card);box-shadow:0 2px 8px rgba(15,68,36,.06);display:flex;flex-direction:column;}
+/* overflow VISIBLE (era hidden) pro selo de multiplicador saltar da borda; cantos dos filhos arredondados à mão abaixo */
+.mm-litem{border:1px solid var(--brd);border-radius:14px;overflow:visible;background:var(--card);box-shadow:0 2px 8px rgba(15,68,36,.06);display:flex;flex-direction:column;}
+.mm-litem>:last-child{border-radius:0 0 13px 13px;}
 /* Selo de zebra (C): chip no cabeçalho, junto das tags. Zebrão = dourado. */
 /* Pílulas ZEBRA/ZEBRÃO no cabeçalho — mesmo formato/lugar da TURBO (convivem na França×Suécia) */
 .bl-tag.zebra{font-size:7.5px;padding:2px 4px;background:var(--red);color:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.06);}
@@ -609,7 +619,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(104px +
 .mm-ptstip .mm-tip-l2{color:#ffd9a8;margin-top:3px;font-weight:700;}
 .mm-ptstip .mm-tip-zeb{color:#9be7a0;margin-top:3px;font-weight:800;}
 .mm-ptstip .mm-tip-tot{margin-top:5px;font-weight:800;font-size:13px;border-top:1px solid rgba(255,255,255,.2);padding-top:4px;}
-.mm-litem .card-head{border-radius:0;}
+.mm-litem .card-head{border-radius:13px 13px 0 0;}   /* cantos por conta própria (mm-litem agora tem overflow:visible) */
 .mm-litem-summary{display:flex;align-items:center;gap:6px;padding:10px 12px;cursor:pointer;}
 .mm-litem-summary .matchup{flex:1;padding:0;}
 .mm-matchup{gap:16px;}
@@ -2610,6 +2620,13 @@ function mmBracketBox(slotId){
 function mmColLabel(id){const col=MM_COLS.find(c=>c.ids.includes(id));return col?col.label:'';}
 // Bandeira numa caixa de tamanho FIXO, centralizada, sem distorcer (padroniza quadradas e retangulares).
 function mmFlag(em){return em?`<span class="flagbx">${flagImg(em)}</span>`:'';}
+// Selo do multiplicador da fase (visual apenas — a pontuação já usa MM_PHASE_MULT no cálculo).
+// Número SEMPRE com vírgula (×1,25). Cores: ×1 cinza apagado · intermediários ciano · ×4 da Final em lime.
+function mmMultSeal(phaseKey,extraCls){
+  const m=MM_PHASE_MULT[phaseKey]||1;
+  const cls=m===1?' m1':(m===4?' mfin':'');
+  return `<span class="mm-mult-seal${cls}${extraCls?' '+extraCls:''}">×${String(m).replace('.',',')}</span>`;
+}
 // Cabeçalho do card no estilo da fase de grupos: fase + status à esquerda; data/hora à direita (omitida se não houver).
 function mmHeadHTML(c){
   const status=c.finished?'<span class="bl-tag fec">FECHADO</span>':'<span class="bl-tag abe">ABERTO</span>';
@@ -2617,7 +2634,7 @@ function mmHeadHTML(c){
   const i=mmInfo(c);
   // canto direito: dia da semana + data · hora — igual à fase de grupos; omite se não houver data.
   const dt=i.dt?`<span class="dt-tag">${mmWeekday(i.dt)}, ${esc(i.dt)}${i.tm?' · '+esc(i.tm):''}</span>`:'';
-  return `<div class="card-head"><span class="grp-tag"><span class="ch-dot${c.finished?' closed':''}"></span>${esc((mmColLabel(c.id)||'MATA-MATA').toUpperCase())} ${status}${turbo}${mmZebraSeal(c)}</span>${dt}</div>`;
+  return `<div class="card-head"><span class="grp-tag"><span class="ch-dot${c.finished?' closed':''}"></span>${esc((mmColLabel(c.id)||'MATA-MATA').toUpperCase())} ${status}${turbo}${mmZebraSeal(c)}</span>${dt}${mmMultSeal(mmPhaseKeyOf(c.id),'mm-seal-card')}</div>`;
 }
 // Seção do chaveamento com cabeçalho colapsável (A1).
 function mmBracketSectionHTML(){
@@ -2821,7 +2838,7 @@ function mmHowItWorksHTML(){
 function renderMata(){
   let html=mmNextGamesHTML()+mmMataRankingHTML()+mmHowItWorksHTML();
   html+=`<div id="mm-bracket-section">${mmBracketSectionHTML()}</div>`;   // chave (não afetada pelo filtro)
-  html+=`<div class="mm-filters">${MM_COLS.map(col=>`<button class="mm-fbtn${col.key===mmPhaseFilter?' active':''}" data-key="${col.key}" onclick="mmSetPhase('${col.key}')">${col.short}</button>`).join('')}</div>`;
+  html+=`<div class="mm-filters">${MM_COLS.map(col=>`<button class="mm-fbtn${col.key===mmPhaseFilter?' active':''}" data-key="${col.key}" onclick="mmSetPhase('${col.key}')">${mmMultSeal(col.key)}<span class="fb-lbl">${col.short}</span></button>`).join('')}</div>`;
   html+=`<div id="mm-list">${mmListHTML()}</div>`;
   document.getElementById('tab-mata').innerHTML=html;
   mmFitBracket();
