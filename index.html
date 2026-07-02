@@ -36,8 +36,10 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:var(--font-body);background:var(--sheet);color:var(--txt);min-height:100vh;}
 /* identidade Copa 26: títulos, números e horas em Archivo (só troca a fonte; cores/posições intactas) */
-/* identidade Copa 26: Anton em títulos/números/pills — condensada, então ganha letter-spacing leve */
-.hdr-title,.dh-time,.dh-cd,.nh-cd .clock,.nh-label,.card-head .dt-tag,.pc-score,.score-final,.rk-tot b,.rk-place,.pod-base,.pod-pts,.stat-box .val,.vs2-pts,.tr-pts,.mmv-sc,.mm-iascore,.mm-next-when,.mm-rk-pos,.mm-rk-pts b,.lh-title,.section-badge,.mm-block-h{font-family:var(--font-display);letter-spacing:.4px;}
+/* identidade Copa 26 — HIERARQUIA: Anton SÓ em títulos de seção + título do app; todo o resto em Noto Sans.
+   Regra única dos TÍTULOS DE SEÇÃO (referência de tamanho: "CHAVEAMENTO"): Anton, CAIXA ALTA, 17px. */
+.mm-sec-title,.section-title,.lh-title,.rm-head,.dh-head,.mm-block-h{font-family:var(--font-display);font-size:17px;font-weight:900;letter-spacing:.3px;line-height:1.05;text-transform:uppercase;}
+.rm-hint{text-transform:none;letter-spacing:0;}   /* a notinha do letreiro não vira caixa alta */
 /* ── Cabeçalho (barra preta) — NÃO sticky (se fosse fixo, engolia os toques do chaveamento/colunas) ── */
 header{position:relative;z-index:1;background:var(--frame);color:var(--on-dark);padding:11px 0 9px;border-bottom:1px solid rgba(255,255,255,.07);overflow:hidden;}
 .hdr-shapes{position:absolute;top:0;right:0;width:104px;height:100%;pointer-events:none;z-index:0;}
@@ -54,7 +56,7 @@ header{position:relative;z-index:1;background:var(--frame);color:var(--on-dark);
 .hdr-title .ht-1{font-size:clamp(19px,6.2vw,25px);color:var(--on-dark);}   /* clamp: maior que antes, mas sem quebrar pra baixo do logo */
 /* "Copa 2026" em bloco chapado verde-escuro com texto lime (tag da identidade Copa 26) */
 .hdr-title .ht-2{font-size:clamp(19px,6.2vw,25px);color:var(--lime);background:#004D3F;padding:3px 10px 4px;border-radius:2px 12px 2px 2px;margin-top:4px;width:max-content;}
-.hdr-dev{position:absolute;top:4px;right:14px;font-family:var(--font-display);font-weight:800;font-size:10px;letter-spacing:1.5px;color:var(--on-dark);border:1px solid rgba(255,255,255,.5);border-radius:6px;padding:2px 7px;z-index:2;}
+.hdr-dev{position:absolute;top:4px;right:14px;font-weight:800;font-size:10px;letter-spacing:1.5px;color:var(--on-dark);border:1px solid rgba(255,255,255,.5);border-radius:6px;padding:2px 7px;z-index:2;}
 .hdr-status{position:relative;z-index:1;font-size:9px;font-weight:600;min-height:11px;margin:3px auto 0;max-width:920px;padding:0 14px;text-align:center;color:var(--on-dark-muted);}
 /* ── Menu: SEGMENTED CONTROL (pílula). CELULAR: pílula no TOPO (dentro do cabeçalho, largura total, sem
    ratazana) e barra fixa embaixo (COM ratazana) só quando o cabeçalho sai da tela · DESKTOP: no cabeçalho, à direita ── */
@@ -241,7 +243,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 /* Selo de pontos NA FOTO (Tarefa 1): círculo escuro sobreposto ao canto inferior direito do avatar,
    número em lime, borda de 2px na cor da página (recorta o selo da foto). MESMO selo na prévia e no
    final; vira pílula quando o número é fracionário (ex.: 12,5). Pontuação 0 = número cinza apagado. */
-.pts-badge.on-av{position:absolute;bottom:-6px;right:-7px;min-width:22px;height:22px;width:auto;padding:0 4px;border-radius:999px;border:2px solid var(--sheet);background:var(--frame);color:var(--lime);font-family:var(--font-display);font-size:10.5px;font-weight:800;letter-spacing:0;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.35);box-sizing:border-box;}
+.pts-badge.on-av{position:absolute;bottom:-6px;right:-7px;min-width:22px;height:22px;width:auto;padding:0 4px;border-radius:999px;border:2px solid var(--sheet);background:var(--frame);color:var(--lime);font-size:10.5px;font-weight:800;letter-spacing:0;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.35);box-sizing:border-box;}
 .pts-badge.on-av.zero{color:var(--faint);}
 /* Estado do jogo (mesma condição do badge "Fechado": classe .preview = ainda não finalizado):
    ABERTO/prévia = selo cinza discreto (tom do selo antigo, pontuação provisória) · FECHADO = preto+lime acima */
@@ -265,7 +267,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 .card .bl-tag.jxv{background:rgba(255,255,255,.08);color:rgba(255,255,255,.42);}
 /* times + VS central */
 .card .team-name{color:var(--ink);}
-.card .vs-badge{background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2);font-family:var(--font-display);font-weight:800;font-size:11px;}
+.card .vs-badge{background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2);font-weight:800;font-size:11px;}
 .card .score-final{background:var(--ink);box-shadow:0 2px 7px rgba(20,20,26,.28);}
 /* campos de palpite escuros */
 .card .pred-cell.human{background:var(--surface);border-color:var(--line);}
@@ -303,7 +305,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 .card.is-turbo .rr-finish.done{background:transparent;border-color:#e0a07f;color:var(--orange);}
 
 /* ─── Ranking & Estatísticas ─── */
-.section-title{display:flex;align-items:center;justify-content:center;gap:7px;font-family:var(--font-display);font-size:13px;font-weight:900;color:var(--ink);letter-spacing:.4px;margin:26px 4px 12px;}
+.section-title{display:flex;align-items:center;justify-content:center;gap:7px;color:var(--ink);margin:26px 4px 12px;}
 .section-title::before{content:"";width:11px;height:11px;background:var(--lime);border-radius:var(--shape-block);flex-shrink:0;}
 .scoring{font-size:10.5px;color:var(--on-dark-muted);background:var(--note-dark);border:1px solid var(--line);border-radius:var(--r-stat);text-align:center;line-height:1.35;margin:14px 4px 0;padding:10px 12px;}
 .scoring b{color:var(--lime);}
@@ -312,7 +314,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 /* Leaderboard */
 .lead-board{background:var(--surface);border-radius:var(--r-q-lg);border:1px solid var(--line);overflow:hidden;box-shadow:var(--shadow-card);}
 .lead-head{background:var(--surface-2);padding:13px 16px;text-align:center;border-bottom:1px solid var(--line);}
-.lead-head .lh-title{font-family:var(--font-display);font-size:14px;font-weight:900;color:var(--ink);letter-spacing:.3px;}
+.lead-head .lh-title{color:var(--ink);}
 .lead-head .lh-sub{font-size:11px;color:var(--muted);margin-top:3px;display:flex;align-items:center;justify-content:center;gap:5px;}
 .rk-row{display:flex;align-items:center;gap:11px;padding:12px 14px;border-bottom:1px solid var(--line);}
 .rk-row:last-child{border-bottom:none;}
@@ -326,7 +328,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 .rk-bar{height:6px;background:var(--surface-3);border-radius:3px;overflow:hidden;}
 .rk-bar i{display:block;height:100%;border-radius:3px;transition:width .5s ease;}
 .rk-tot{text-align:right;flex-shrink:0;}
-.rk-tot b{font-family:var(--font-display);font-size:23px;font-weight:900;color:var(--ink);line-height:1;}
+.rk-tot b{font-size:23px;font-weight:900;color:var(--ink);line-height:1;}
 .rk-tot span{display:block;font-size:9px;color:var(--muted);margin-top:1px;}
 .tag-ia{font-size:9px;background:rgba(109,59,245,.13);color:var(--violet);border-radius:5px;padding:1px 6px;font-weight:800;}
 .tag-human{font-size:9px;background:rgba(15,174,98,.14);color:var(--green-ink);border-radius:5px;padding:1px 6px;font-weight:800;}
@@ -334,7 +336,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 /* Versus battle cards */
 .vs2{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:13px 15px;box-shadow:var(--shadow-card);}
 .vs2+.vs2{margin-top:9px;}
-.vs2-title{font-family:var(--font-display);font-size:12px;font-weight:900;color:var(--ink);text-align:center;margin-bottom:11px;}
+.vs2-title{font-size:12px;font-weight:900;color:var(--ink);text-align:center;margin-bottom:11px;}
 .vs2-row{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px;}
 .vs2-side{min-width:0;}.vs2-side.r{text-align:right;}
 .vs2-nm{font-size:12.5px;font-weight:800;}
@@ -409,7 +411,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 
 /* ── Sub-abas do ranking (trilho branco; ativa preta) ── */
 .rank-toggle{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-btn);padding:4px;margin-bottom:14px;box-shadow:var(--shadow-card);}
-.rank-toggle button{flex:1;padding:9px 6px;border:none;border-radius:8px;background:transparent;font-family:var(--font-display);font-size:12.5px;font-weight:700;color:var(--muted);cursor:pointer;transition:background .15s,color .15s;}
+.rank-toggle button{flex:1;padding:9px 6px;border:none;border-radius:8px;background:transparent;font-size:12.5px;font-weight:700;color:var(--muted);cursor:pointer;transition:background .15s,color .15s;}
 .rank-toggle button.active{background:var(--ink);color:#fff;}
 .hist-toggle{display:flex;gap:7px;justify-content:center;margin:0 4px 10px;}
 .hist-toggle button{flex:0 0 auto;padding:6px 16px;border:1px solid var(--line);background:var(--surface);border-radius:999px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;}
@@ -441,7 +443,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 
 /* ── Hero "Jogos de hoje" (compacto) ── */
 .day-hero{background:var(--card-dark);border-radius:var(--r-q-lg);padding:12px 14px;margin-bottom:18px;color:var(--on-dark);box-shadow:var(--shadow-card);}
-.dh-head{font-family:var(--font-display);font-size:11px;font-weight:900;letter-spacing:.5px;color:var(--lime);margin-bottom:9px;display:flex;align-items:center;gap:7px;}
+.dh-head{color:var(--lime);margin-bottom:9px;display:flex;align-items:center;gap:7px;}
 .dh-list{display:flex;flex-direction:column;gap:2px;}
 .dh-row{display:flex;align-items:center;gap:9px;padding:7px;border-radius:var(--r-field);cursor:pointer;transition:background .15s;}
 .dh-row:active{background:rgba(255,255,255,.08);}
@@ -461,7 +463,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 /* ── Barra rolante do ranking (aba Palpites) ── */
 /* Ranking rápido (letreiro): fundo CLARO em card, rolagem LENTA, pausa no hover/toque */
 .rank-marquee{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-q-lg);padding:10px 12px 12px;margin-bottom:18px;color:var(--ink);overflow:hidden;box-shadow:var(--shadow-card);}
-.rm-head{font-family:var(--font-display);font-size:11px;font-weight:900;letter-spacing:.3px;color:var(--ink);margin:0 2px 9px;display:flex;align-items:center;gap:6px;}
+.rm-head{color:var(--ink);margin:0 2px 9px;display:flex;align-items:center;gap:6px;}
 .rm-hint{font-family:var(--font-body);font-weight:600;letter-spacing:0;color:var(--faint);font-size:8.5px;}
 .rm-track-wrap{overflow:hidden;width:100%;}
 .rm-track{display:flex;width:max-content;animation:rmscroll 90s linear infinite;cursor:pointer;}
@@ -471,7 +473,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 .rm-pos.p3{color:var(--bronze);}
 @keyframes rmscroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}
 .rm-item{display:flex;align-items:center;gap:7px;padding:8px 12px;margin-right:8px;border-right:none;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-mini);box-shadow:none;white-space:nowrap;}
-.rm-pos{font-family:var(--font-display);font-size:14px;font-weight:900;color:var(--faint);min-width:20px;text-align:center;font-variant-numeric:tabular-nums;}
+.rm-pos{font-size:14px;font-weight:900;color:var(--faint);min-width:20px;text-align:center;font-variant-numeric:tabular-nums;}
 .rm-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;color:#fff;position:relative;overflow:hidden;flex-shrink:0;}
 .rm-nm{font-size:12.5px;font-weight:800;color:var(--ink);}
 .rm-pts{font-size:10.5px;color:var(--muted);}
@@ -515,7 +517,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 .pod-name{font-size:12px;font-weight:800;margin-top:9px;text-align:center;line-height:1.1;color:var(--ink);}
 .pod-pts{font-size:14px;font-weight:800;color:var(--ink-2);}
 .pod-pts span{font-size:9px;color:var(--muted);font-weight:600;}
-.pod-base{width:100%;margin-top:7px;border-radius:10px 10px 0 0;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:900;line-height:1;color:#fff;}
+.pod-base{width:100%;margin-top:7px;border-radius:10px 10px 0 0;display:flex;align-items:center;justify-content:center;font-weight:900;line-height:1;color:#fff;}
 .pod-1 .pod-base{height:78px;background:var(--gold);font-size:30px;box-shadow:inset 0 2px 0 rgba(255,255,255,.28);}
 .pod-2 .pod-base{height:58px;background:var(--silver);font-size:23px;box-shadow:inset 0 2px 0 rgba(255,255,255,.22);}
 .pod-3 .pod-base{height:44px;background:var(--bronze);font-size:18px;box-shadow:inset 0 2px 0 rgba(255,255,255,.2);}
@@ -576,7 +578,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 /* palco: colunas absolutas + SVG de conectores (as linhas contam a história do jogo) */
 .mmv-stage{position:relative;margin:10px 10px 14px;}
 .mmv-svg{position:absolute;left:0;top:0;pointer-events:none;}
-.mmv-colhead{position:absolute;top:0;font-family:var(--font-display);font-size:9.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--faint);text-align:center;white-space:nowrap;overflow:hidden;}
+.mmv-colhead{position:absolute;top:0;font-size:9.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--faint);text-align:center;white-space:nowrap;overflow:hidden;}
 .mmv-colhead.cur{color:var(--ink);}   /* título da fase ativa (o painel agora é sutil e claro) */
 /* painel de destaque da fase selecionada: BEM sutil (1.2), só um tom a mais que o fundo */
 .mmv-colpanel{position:absolute;top:-6px;background:rgba(21,21,26,.13);border-radius:14px;transition:left .28s ease,width .28s ease,height .28s ease;}
@@ -602,9 +604,9 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 /* eliminado: acinzentado, risco no nome e risco separado no placar (1.2 — formato anterior) */
 .mmv-t.lost{color:#751312;opacity:.55;}
 .mmv-t.lost .mmv-nm,.mmv-t.lost .mmv-sc{text-decoration:line-through;}
-.mmv-sc{font-family:var(--font-display);font-weight:800;font-variant-numeric:tabular-nums;flex-shrink:0;}
+.mmv-sc{font-weight:800;font-variant-numeric:tabular-nums;flex-shrink:0;}
 .mmv-ck{color:var(--green-ink);font-weight:900;flex-shrink:0;font-size:12px;}   /* venceu nos pênaltis (nunca mostra o placar dos pênaltis) */
-.mmv-dtbx{flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:3px;font-family:var(--font-display);font-size:9px;font-weight:800;color:var(--muted);line-height:1;white-space:nowrap;}
+.mmv-dtbx{flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:3px;font-size:9px;font-weight:800;color:var(--muted);line-height:1;white-space:nowrap;}
 .mmv-ph{color:var(--faint);font-weight:700;}   /* placeholder V33/P29 (vaga indefinida) */
 .mmv-shield{width:20px;height:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--faint);}
 .mmv-shield svg{width:11px;height:13px;display:block;}
@@ -648,7 +650,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 /* Cabeçalho da seção do chaveamento (A1) — grudado no topo do card .mm-sec */
 .mm-sec-head{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--card-dark);padding:15px 16px;cursor:pointer;min-height:62px;-webkit-tap-highlight-color:transparent;}
 .mm-sec-head:active{background:#1d1d24;}
-.mm-sec-title{font-family:var(--font-display);font-size:17px;font-weight:900;color:var(--lime);letter-spacing:.3px;line-height:1.05;}
+.mm-sec-title{color:var(--lime);}
 .mm-sec-cta{display:flex;align-items:center;gap:9px;flex-shrink:0;}
 .mm-sec-cta-lbl{font-size:10.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--lime);white-space:nowrap;}
 .mm-sec-arrow{width:33px;height:33px;border-radius:50%;background:var(--lime);color:var(--ink);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:900;line-height:1;flex-shrink:0;box-shadow:0 3px 11px -2px rgba(194,236,0,.7);}
@@ -803,7 +805,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 .mm-day-arrow{font-size:11px;color:var(--mu);font-weight:800;flex-shrink:0;}
 /* Blocos do topo do mata-mata (próximos / ranking / como funciona) */
 .mm-block{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:12px 14px;margin-bottom:18px;box-shadow:var(--shadow-card);}
-.mm-block-h{font-family:var(--font-display);font-size:13px;font-weight:900;color:var(--ink);}
+.mm-block-h{color:var(--ink);}
 .mm-block-sub{font-size:10.5px;color:var(--mu);margin:3px 0 6px;}
 .mm-next-row{display:flex;flex-direction:column;gap:2px;padding:8px 0;border-top:1px solid var(--brd);cursor:pointer;}
 .mm-next .mm-block-h{margin-bottom:4px;}
@@ -832,7 +834,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 .mm-litem .bl-tag.abe,.mm-ghost .bl-tag.abe{background:rgba(15,174,98,.22);color:#86efb4;font-weight:800;}
 .mm-litem .bl-tag.fec,.mm-ghost .bl-tag.fec{background:rgba(255,255,255,.14);color:rgba(255,255,255,.6);}
 .mm-litem .team-name,.mm-ghost .team-name{color:var(--ink);}
-.mm-litem .vs-badge,.mm-ghost .vs-badge{background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2);font-family:var(--font-display);font-weight:800;font-size:11px;}
+.mm-litem .vs-badge,.mm-ghost .vs-badge{background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2);font-weight:800;font-size:11px;}
 .mm-litem .score-final{background:var(--ink);box-shadow:0 2px 7px rgba(20,20,26,.28);}
 .mm-litem .pred-cell.human{background:var(--surface);border-color:var(--line);}
 .mm-litem .pred-cell.ia{background:var(--surface-2);}
@@ -3070,7 +3072,7 @@ function mmNextGamesHTML(){
       <span class="dh-teams"><span class="dh-scroll">${tnm(tm.a,c,'A')} <i>×</i> ${tnm(tm.b,c,'B')}${miss?` <span class="dh-miss">• falta palpite de: ${esc(missText)}</span>`:''}</span></span>
       <span class="dh-cd" data-t="${t}">${fmtCountdown(t-now)}</span>
     </div>`;};
-  return `<div class="day-hero"><div class="dh-head"><span class="nh-live"></span>PRÓXIMOS JOGOS · MATA-MATA</div><div class="dh-list">${up.map(row).join('')}</div></div>`;
+  return `<div class="day-hero"><div class="dh-head"><span class="nh-live"></span>PRÓXIMOS JOGOS</div><div class="dh-list">${up.map(row).join('')}</div></div>`;
 }
 // (2) Classificação do mata-mata — MESMA barra rolante da classificação geral, filtrando só o mata-mata.
 function mmMataRankingHTML(){
