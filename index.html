@@ -189,7 +189,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 .pred-cell.human{background:#fff;border-color:var(--brd);padding:7px 6px;display:flex;align-items:center;gap:5px;}
 .hum-av{width:30px;height:30px;border-radius:50%;flex-shrink:0;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:12px;}
 .hum-name{font-size:14px;font-weight:800;color:var(--txt);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.pred-cell.human .pts-badge{font-size:9px;padding:1px 4px;}
+.pred-cell.human .pts-badge:not(.on-av){font-size:9px;padding:1px 4px;}   /* :not(.on-av): não encolher o selo da foto */
 .av-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
 .rk-av,.pod-av,.stat-avatar{position:relative;overflow:hidden;}
 .pc-top{display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:5px;min-height:14px;}
@@ -234,7 +234,12 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 .pts-badge{font-size:10px;font-weight:700;padding:1px 5px;border-radius:10px;}
 .pts-badge.preview{background:#dfe4df;color:#7a857a;}
 .hum-avwrap{position:relative;flex-shrink:0;}
-.pts-badge.on-av{position:absolute;bottom:-4px;right:-6px;border:1.6px solid #fff;min-width:16px;height:16px;padding:0 3px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:9px;box-shadow:0 1px 2px rgba(0,0,0,.25);}
+/* Selo de pontos NA FOTO (Tarefa 1): círculo escuro sobreposto ao canto inferior direito do avatar,
+   número em lime, borda de 2px na cor da página (recorta o selo da foto). MESMO selo na prévia e no
+   final; vira pílula quando o número é fracionário (ex.: 12,5). Pontuação 0 = número cinza apagado. */
+.pts-badge.on-av{position:absolute;bottom:-6px;right:-7px;min-width:22px;height:22px;width:auto;padding:0 4px;border-radius:999px;border:2px solid var(--sheet);background:var(--frame);color:var(--lime);font-family:var(--font-display);font-size:10.5px;font-weight:800;letter-spacing:0;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.35);box-sizing:border-box;}
+.pts-badge.on-av.zero{color:var(--faint);}
+.mm-litem .pts-badge.on-av{min-width:26px;height:26px;font-size:12px;bottom:-7px;right:-8px;}   /* avatares maiores do mata */
 .prev-tag{font-size:8px;font-weight:800;background:rgba(255,255,255,.22);color:#fff;padding:1px 5px;border-radius:6px;margin-left:5px;letter-spacing:.3px;vertical-align:1px;}
 
 /* ── Fase de Grupos: card no visual Copa 26 (ESCOPO .card; o mata usa .mm-litem e NÃO é afetado) ── */
@@ -1435,7 +1440,7 @@ function renderCard(g){
     const badge=pts!==null?`<span class="pts-badge ${g.finished?ptsClass(pts):'preview'}">${pts}</span>`:'';
     const inp=side=>`<input type="number" min="0" max="99" inputmode="numeric" value="${hasPred?pred[side]:''}" placeholder="–"${started?' disabled':''} oninput="updPred('${g.id}','${p.id}','${side}',this.value)">`;
     if(p.type==='human'){
-      const hbadge=pts!==null?`<span class="pts-badge on-av ${g.finished?ptsClass(pts):'preview'}">${pts}</span>`:'';
+      const hbadge=pts!==null?`<span class="pts-badge on-av ${g.finished?ptsClass(pts):'preview'}${pts===0?' zero':''}">${pts}</span>`:'';
       html+=`<div class="pred-cell human" data-pid="${p.id}">
         <div class="hum-avwrap"><div class="hum-av" style="background:${p.color}">${avInner(p)}</div>${hbadge}</div>
         <span class="hum-name">${p.name}</span>
@@ -1522,7 +1527,7 @@ function refreshPoints(gameId){
         else if(top)top.appendChild(badge);         // IA
         else cell.appendChild(badge);
       }
-      badge.className=(wrap?'pts-badge on-av ':'pts-badge ')+(g.finished?ptsClass(pts):'preview');
+      badge.className=(wrap?'pts-badge on-av ':'pts-badge ')+(g.finished?ptsClass(pts):'preview')+(pts===0?' zero':'');
       badge.textContent=pts;
     }
   });
@@ -2426,7 +2431,7 @@ function mmRefreshPts(cid){
   MATA_PARTS.forEach(p=>{
     const badge=card.querySelector(`.mm-pts[data-pid="${p.id}"]`); if(!badge)return;
     const pts=hasScore?calcMataPts((MM_PALPITES[cid]||{})[p.id],c):null;
-    badge.className='pts-badge on-av mm-pts'+(pts!=null?' '+(c.finished?ptsClass(pts):'preview'):' empty');   // sem número → display:none
+    badge.className='pts-badge on-av mm-pts'+(pts!=null?' '+(c.finished?ptsClass(pts):'preview'):' empty')+(pts===0?' zero':'');   // sem número → display:none
     badge.textContent=pts!=null?fmtPts(pts):'';
   });
   const pv=card.querySelector('.mm-foot-fl .prev-tag'); if(pv)pv.classList.toggle('show',!c.finished&&hasScore);   // prévia abaixo do "PLACAR FINAL", sem empurrar
@@ -2474,7 +2479,7 @@ function mmCard(c){
       : `<div class="mm-iascore${hasPred?'':' empty'}">${hasPred?`${pal.gols_a} × ${pal.gols_b}`:'– × –'}</div>`;
     preds+=`<div class="pred-cell ${isHuman?'human':'ia'} mm-cell" data-pid="${pid}">
       <div class="mm-cell-top">
-        <div class="hum-avwrap"><div class="hum-av" style="background:${p.color}">${avInner(p)}</div><span class="pts-badge on-av mm-pts${pts!=null?' '+(c.finished?ptsClass(pts):'preview'):''}" data-pid="${pid}">${pts!=null?pts:''}</span></div>
+        <div class="hum-avwrap"><div class="hum-av" style="background:${p.color}">${avInner(p)}</div><span class="pts-badge on-av mm-pts${pts!=null?' '+(c.finished?ptsClass(pts):'preview'):''}${pts===0?' zero':''}" data-pid="${pid}">${pts!=null?pts:''}</span></div>
         <span class="hum-name">${p.name}</span>
         ${palpiteUI}
       </div>
@@ -2635,7 +2640,7 @@ function mmCardBody(c){
     const pal=(MM_PALPITES[c.id]||{})[pid]||{};
     const hasPred=pal.gols_a!=null;
     const pts=hasScore&&hasPred?calcMataPts(pal,c):null;
-    const badge=`<span class="pts-badge on-av mm-pts${pts!=null?' '+(c.finished?ptsClass(pts):'preview'):' empty'}" data-pid="${pid}" onmouseenter="mmShowPtsTip(event,'${c.id}','${pid}')" onmouseleave="hideTip()" onclick="mmShowPtsTip(event,'${c.id}','${pid}')">${pts!=null?fmtPts(pts):''}</span>`;
+    const badge=`<span class="pts-badge on-av mm-pts${pts!=null?' '+(c.finished?ptsClass(pts):'preview'):' empty'}${pts===0?' zero':''}" data-pid="${pid}" onmouseenter="mmShowPtsTip(event,'${c.id}','${pid}')" onmouseleave="hideTip()" onclick="mmShowPtsTip(event,'${c.id}','${pid}')">${pts!=null?fmtPts(pts):''}</span>`;
     const av=`<div class="hum-avwrap"><div class="hum-av" style="background:${p.color}">${avInner(p)}</div>${badge}</div>`;
     const passa=`<div class="mm-qp mm-hc-passa" data-pid="${pid}">${mmQuemPassaHTML(c,pid,isHuman)}</div>`;
     if(isHuman){
