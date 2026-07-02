@@ -614,6 +614,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 .mm-mult-seal{position:absolute;top:-8px;right:-3px;transform:rotate(-6deg);background:var(--frame);color:var(--cyan);font-family:var(--font-display);font-size:9px;font-weight:800;line-height:1;padding:3px 6px;border-radius:6px;pointer-events:none;z-index:2;letter-spacing:.2px;box-shadow:0 2px 6px -2px rgba(0,0,0,.55);white-space:nowrap;}
 .mm-mult-seal.m1{color:var(--faint);}
 .mm-mult-seal.mfin{color:var(--lime);}
+.mm-mult-seal.mturbo{color:var(--orange);}   /* turbo: laranja (tom do badge TURBO), valor já ×2 */
 /* no card do confronto: um pouco pra dentro pra NÃO cobrir a data/hora do cabeçalho */
 .mm-mult-seal.mm-seal-card{top:-7px;right:12px;}
 /* Cabeçalho da seção do chaveamento (A1) — grudado no topo do card .mm-sec */
@@ -2654,21 +2655,22 @@ function mmBracketBox(slotId){
 function mmColLabel(id){const col=MM_COLS.find(c=>c.ids.includes(id));return col?col.label:'';}
 // Bandeira numa caixa de tamanho FIXO, centralizada, sem distorcer (padroniza quadradas e retangulares).
 function mmFlag(em){return em?`<span class="flagbx">${flagImg(em)}</span>`:'';}
-// Selo do multiplicador da fase (visual apenas — a pontuação já usa MM_PHASE_MULT no cálculo).
+// Selo do multiplicador da fase (visual apenas — a pontuação já usa MM_PHASE_MULT/mmMult no cálculo).
 // Número SEMPRE com vírgula (×1,25). Cores: ×1 cinza apagado · intermediários ciano · ×4 da Final em lime.
-function mmMultSeal(phaseKey,extraCls){
-  const m=MM_PHASE_MULT[phaseKey]||1;
-  const cls=m===1?' m1':(m===4?' mfin':'');
+// Jogo TURBO: selo LARANJA com o valor JÁ ×2 (×2 · ×2,5 · ×3 · ×3,5) — e o badge do cabeçalho perde o "2×".
+function mmMultSeal(phaseKey,extraCls,turbo){
+  let m=MM_PHASE_MULT[phaseKey]||1; if(turbo)m*=2;
+  const cls=turbo?' mturbo':(m===1?' m1':(m===4?' mfin':''));
   return `<span class="mm-mult-seal${cls}${extraCls?' '+extraCls:''}">×${String(m).replace('.',',')}</span>`;
 }
 // Cabeçalho do card no estilo da fase de grupos: fase + status à esquerda; data/hora à direita (omitida se não houver).
 function mmHeadHTML(c){
   const status=c.finished?'<span class="bl-tag fec">FECHADO</span>':'<span class="bl-tag abe">ABERTO</span>';
-  const turbo=mmIsTurbo(c)?'<span class="bl-tag turbo">⚡ TURBO 2×</span>':'';
+  const turbo=mmIsTurbo(c)?'<span class="bl-tag turbo">⚡ TURBO</span>':'';   // sem o "2×" (o multiplicado vai no selo laranja)
   const i=mmInfo(c);
   // canto direito: dia da semana + data · hora — igual à fase de grupos; omite se não houver data.
   const dt=i.dt?`<span class="dt-tag">${mmWeekday(i.dt)}, ${esc(i.dt)}${i.tm?' · '+esc(i.tm):''}</span>`:'';
-  return `<div class="card-head"><span class="grp-tag"><span class="ch-dot${c.finished?' closed':''}"></span>${esc((mmColLabel(c.id)||'MATA-MATA').toUpperCase())} ${status}${turbo}${mmZebraSeal(c)}</span>${dt}${mmMultSeal(mmPhaseKeyOf(c.id),'mm-seal-card')}</div>`;
+  return `<div class="card-head"><span class="grp-tag"><span class="ch-dot${c.finished?' closed':''}"></span>${esc((mmColLabel(c.id)||'MATA-MATA').toUpperCase())} ${status}${turbo}${mmZebraSeal(c)}</span>${dt}${mmMultSeal(mmPhaseKeyOf(c.id),'mm-seal-card',mmIsTurbo(c))}</div>`;
 }
 // ── CHAVEAMENTO NOVO (Tarefa B): visor em janela. Usa os MESMOS dados do bracket antigo
 // (MM_BRACKET/MM_COLS/mmResolveSide/mmRealWinner/mmInfo). O bracket gigante segue vivo como visão expandida.
