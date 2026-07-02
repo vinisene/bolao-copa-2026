@@ -112,8 +112,14 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 /* Loading / Error */
 #loading-screen{position:fixed;inset:0;background:var(--frame);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;color:#fff;gap:12px;}
 #loading-screen.hidden{display:none;}
-.spinner{width:36px;height:36px;border:3px solid rgba(255,255,255,.18);border-top-color:var(--lime);border-radius:50%;animation:spin .8s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg);}}
+/* Ratazana animada no lugar do círculo: balanço suave + pulso de escala (só keyframes CSS) */
+.load-rat{height:150px;width:auto;display:block;animation:ratLoad 1.8s ease-in-out infinite;transform-origin:50% 85%;}
+@keyframes ratLoad{
+  0%,100%{transform:rotate(-6deg) scale(1);}
+  25%{transform:rotate(0deg) scale(1.05);}
+  50%{transform:rotate(6deg) scale(1);}
+  75%{transform:rotate(0deg) scale(1.05);}
+}
 #loading-screen p{font-size:13px;color:rgba(255,255,255,.7);}
 .error-banner{background:#c00;color:#fff;text-align:center;padding:10px 16px;font-size:12px;font-weight:600;}
 .sync-dot{width:7px;height:7px;border-radius:50%;background:var(--gl);display:inline-block;margin-right:4px;}
@@ -854,7 +860,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 <body>
 
 <div id="loading-screen">
-  <div class="spinner"></div>
+  <img class="load-rat" src="Imagens/Ratazana.png" alt="" onerror="this.style.display='none'">
   <p>Carregando bolão...</p>
 </div>
 
