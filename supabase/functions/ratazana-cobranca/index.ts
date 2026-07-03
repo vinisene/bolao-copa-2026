@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// ROBÔ RATAZANA — Edge Function "ratazana-cobranca" (Fase 1.5: calibragem)
+// ROBÔ RATAZANA — Edge Function "ratazana-cobranca" (v1.4: fase ativa + estilo)
 // ═══════════════════════════════════════════════════════════════════════════
 // Uso (navegador ou curl):
 //   GET https://<projeto>.supabase.co/functions/v1/ratazana-cobranca?token=XXX
@@ -10,6 +10,10 @@
 //
 // Dados: SEMPRE tabelas de PRODUÇÃO (mata_confrontos / mata_palpites / bot_config).
 // Modelo de IA: lido de bot_config key 'modelo_ia' (fallback Haiku 4.5).
+// Fase ativa: bot_config key 'fase_ativa' (ex.: '16avos'). A cobrança NUNCA
+// inclui jogo de outra fase; a próxima fase entra no máximo como PRÉVIA
+// explicitamente não-cobrável. Resposta longa da IA (blocos "---") vira até
+// 3 mensagens sequenciais no WhatsApp.
 // A função PRÉ-CALCULA tudo (multiplicador final, zebra, palpites públicos,
 // último jogo encerrado, ranking) e entrega pronto no prompt: a IA nunca calcula.
 // Lógica portada do app (index.html): mmNextGamesHTML, mmHasFullPred, mmScore,
@@ -420,7 +424,7 @@ Deno.serve(async (req: Request) => {
     const [confrontos, palpites, cfg] = await Promise.all([
       sbGet("mata_confrontos?select=*"),
       sbGet("mata_palpites?select=confronto_id,pid,gols_a,gols_b,quem_passa"),
-      sbGet("bot_config?key=in.(system_prompt_ratazana,modelo_ia)&select=key,value"),
+      sbGet("bot_config?key=in.(system_prompt_ratazana,modelo_ia,fase_ativa)&select=key,value"),
     ]);
     const cfgMap: Record<string, string> = {};
     for (const row of cfg) cfgMap[row.key] = row.value;
@@ -429,6 +433,21 @@ Deno.serve(async (req: Request) => {
     if (!systemPrompt) {
       throw new Error("bot_config sem 'system_prompt_ratazana' — rode o supabase_bot.sql no SQL Editor");
     }
+    // Fase ativa (v1.4): a cobrança NUNCA vaza de rodada. O Vini atualiza
+    // bot_config 'fase_ativa' no Table Editor quando abre uma rodada nova.
+    const FASE_CANON: Record<string, string> = {
+      "16avos": "32avos", "32avos": "32avos",
+      oitavas: "oitavas", "8as": "oitavas",
+      quartas: "quartas", "4as": "quartas",
+      semis: "semis", semifinal: "semis", semifinais: "semis",
+      "3lugar": "3lugar", terceirolugar: "3lugar",
+      final: "final",
+    };
+    const faseRaw = (cfgMap["fase_ativa"] || "").trim();
+    const faseAtiva = FASE_CANON[faseRaw.toLowerCase().replace(/\s+/g, "").replace(/º/g, "")] || null;
+    if (!faseAtiva) {
+      throw new Error(`bot_config 'fase_ativa' ausente ou inválida (valor: "${faseRaw}"). Aceitos: 16avos, oitavas, quartas, semis, 3lugar, final.`);
+    }
 
     // 3b) Mesma seleção do app: 3 próximos jogos com kickoff no futuro
     etapa = "faltantes";
@@ -436,12 +455,19 @@ Deno.serve(async (req: Request) => {
     for (const p of palpites) (PAL[p.confronto_id] ??= {})[p.pid] = p;
     const teamsOf = makeResolver(confrontos);
     const now = Date.now();
-    const up = confrontos
+    const futuros = confrontos
       .filter((c: Conf) => !mmIsTest(c))
       .map((c: Conf) => ({ c, d: mmGameDate(c) }))
       .filter((x: Conf) => x.d && x.d.getTime() > now)
-      .sort((a: Conf, b: Conf) => a.d.getTime() - b.d.getTime())
-      .slice(0, 3);
+      .sort((a: Conf, b: Conf) => a.d.getTime() - b.d.getTime());
+    // cobrança: SÓ jogos da fase ativa (fases futuras nunca entram aqui)
+    const up = futuros.filter((x: Conf) => mmPhaseKeyOf(x.c.id) === faseAtiva).slice(0, 3);
+    // prévia: até 2 jogos da PRÓXIMA fase, só informativo (nunca cobrados)
+    const idxFase = MM_COLS.findIndex((col) => col.key === faseAtiva);
+    const proximaFase = idxFase >= 0 && idxFase + 1 < MM_COLS.length ? MM_COLS[idxFase + 1].key : null;
+    const previaUp = proximaFase
+      ? futuros.filter((x: Conf) => mmPhaseKeyOf(x.c.id) === proximaFase).slice(0, 2)
+      : [];
 
     // formata um palpite completo: "2×1" ou "1×1 (Time passa nos pênaltis)"
     const fmtPal = (pal: Conf, tA: string, tB: string): string | null => {
@@ -485,17 +511,40 @@ Deno.serve(async (req: Request) => {
         palMaquinas,
       };
     });
+    // prévia da próxima fase: dado informativo, sem lista de faltantes de
+    // propósito (pra IA não ter material de cobrança sobre eles)
+    const previaJogos = previaUp.map(({ c, d }: Conf) => {
+      const i = mmInfo(c);
+      const t = teamsOf(c);
+      const nomeA = t.a?.name || "A definir";
+      const nomeB = t.b?.name || "A definir";
+      const phaseKey = mmPhaseKeyOf(c.id);
+      const turbo = MM_TURBO.has(c.id);
+      const z = mmZebra(c);
+      return {
+        id: c.id,
+        fase: PH_LABEL[phaseKey] || phaseKey,
+        quando: `${diaSemana(d)} ${i.dt} às *${i.tm}*`,
+        onde: i.ven,
+        jogo: `${nomeA} × ${nomeB}`,
+        turbo,
+        multFinal: fmtPts((MM_PHASE_MULT[phaseKey] || 1) * (turbo ? 2 : 1)),
+        zebra: z ? { tipo: z.tipo, azarao: z.azarao === "A" ? nomeA : nomeB, bonus: z.tipo === "zebrao" ? 5 : 3 } : null,
+      };
+    });
     const comPendencia = jogos.filter((j: Conf) => j.faltam.length > 0);
     const todosFaltantes = [...new Set(comPendencia.flatMap((j: Conf) => j.faltam))] as string[];
 
     // 3c) Ninguém falta e sem force → não envia nada, só informa (e loga)
     if (!comPendencia.length && !force) {
-      await botLog({ ...logBase, status_envio: "nao_enviado", erro: "ninguém falta palpitar (sem force=1)" });
+      await botLog({ ...logBase, status_envio: "nao_enviado", erro: "ninguém falta palpitar na fase ativa (sem force=1)" });
       return json({
         ok: true,
         enviado: false,
-        motivo: "Ninguém está devendo palpite nos próximos jogos. Use ?force=1 para enviar mesmo assim (teste).",
+        fase_ativa: PH_LABEL[faseAtiva],
+        motivo: "Ninguém está devendo palpite na fase ativa. Use ?force=1 para enviar mesmo assim (teste).",
         proximos_jogos: jogos,
+        previa: previaJogos,
       });
     }
 
@@ -582,13 +631,25 @@ Deno.serve(async (req: Request) => {
       return linhas.join("\n");
     };
     const tarefa = comPendencia.length
-      ? "TAREFA: escreva a mensagem de COBRANÇA DE PALPITES para o grupo de WhatsApp do bolão, cutucando pelo nome quem está devendo e citando os jogos pendentes com horário. Se render piada, use os palpites públicos, o último jogo encerrado e a sua própria situação no ranking. Inclua o link do bolão."
-      : "TAREFA: ninguém está devendo palpite (mensagem de teste do sistema). Escreva uma mensagem curta comemorando que está todo mundo em dia, provocando com os palpites públicos, o último jogo ou o ranking se render piada. Inclua o link do bolão.";
+      ? "TAREFA: escreva a mensagem de COBRANÇA DE PALPITES para o grupo de WhatsApp do bolão, cutucando pelo nome quem está devendo e citando os jogos pendentes da FASE ATIVA com horário. Se render piada, use os palpites públicos, o último jogo encerrado e a sua própria situação no ranking. Inclua o link do bolão."
+      : "TAREFA: ninguém está devendo palpite na fase ativa (mensagem de teste do sistema). Escreva uma mensagem curta comemorando que está todo mundo em dia, provocando com os palpites públicos, o último jogo ou o ranking se render piada. Se houver prévia da próxima fase nos dados, pode citá-la como aquecimento, sem cobrar ninguém por ela. Inclua o link do bolão.";
+    // referência de origem/esgoto racionada por sorteio (~1 a cada 3 mensagens)
+    const origemLiberada = Math.random() < 1 / 3;
+    const previaBloco = previaJogos.length
+      ? `\nPRÉVIA DA PRÓXIMA FASE (${PH_LABEL[proximaFase!]}) - INFORMATIVO, NÃO COBRAR (a rodada destes jogos ainda não abriu no app; ninguém deve palpite deles):\n` +
+        previaJogos.map((j) =>
+          `- ${j.quando} - ${j.jogo} - ${j.onde} - vale ×${j.multFinal}${j.turbo ? " (⚡ turbo incluído)" : ""}` +
+          (j.zebra ? ` - ${j.zebra.tipo === "zebrao" ? "ZEBRÃO" : "ZEBRA"}: azarão ${j.zebra.azarao}, bônus +${j.zebra.bonus}` : "")
+        ).join("\n") + "\n"
+      : "";
     userPrompt =
       `DADOS VERIFICADOS DO BOLÃO (gerados pelo sistema em ${agoraBrasilia()}, horário de Brasília). Use somente estes dados. Não calcule nem invente nada.\n\n` +
-      `PRÓXIMOS JOGOS (palpites ainda abertos):\n${jogos.map(blocoJogo).join("\n")}\n\n` +
+      `FASE ATIVA DO BOLÃO: ${PH_LABEL[faseAtiva]}. Cobrança de palpite vale SOMENTE para jogos desta fase.\n` +
+      `Estilo desta mensagem: referência de origem/esgoto ${origemLiberada ? "LIBERADA (no máximo uma)" : "PROIBIDA nesta mensagem"}.\n\n` +
+      `PRÓXIMOS JOGOS DA FASE ATIVA (palpites ainda abertos):\n${jogos.length ? jogos.map(blocoJogo).join("\n") : "- nenhum jogo futuro restante nesta fase"}\n\n` +
       `Já completaram os palpites de todos os jogos citados: ${completaram.length ? listaNomes(completaram) : "ninguém"}\n` +
       (adiantados.length ? `Palpites completos em jogos futuros já definidos (${futurosDef.length} jogos abertos): ${adiantados.map((x) => `${x.nome} ${x.n}`).join("; ")}\n` : "") +
+      previaBloco +
       (ultimoBloco ? `\n${ultimoBloco}\n` : "") +
       `\n${rankingBloco}\n\n` +
       `LINK DO BOLÃO: https://bolao-ratazana00.pages.dev\n\n` +
@@ -599,9 +660,22 @@ Deno.serve(async (req: Request) => {
     const ia = await chamaIA(modelo, systemPrompt, userPrompt);
     respostaIA = ia.texto;
 
-    // 3g) Envia ao grupo de teste via ZapZap
+    // 3g) Envia ao grupo de teste via ZapZap. Se a IA separou blocos com uma
+    // linha "---" (exceção prevista na alma v1.4), cada bloco vira uma
+    // mensagem separada (máximo 3); o padrão continua sendo mensagem única.
     etapa = "zapzap";
-    const envio = await zapEnviaTexto(GRUPO, respostaIA);
+    const blocos = respostaIA.split(/\n\s*-{3,}\s*\n/).map((b: string) => b.trim()).filter(Boolean);
+    const partes = blocos.length <= 3 ? blocos : [...blocos.slice(0, 2), blocos.slice(2).join("\n\n")];
+    if (!partes.length) throw new Error("resposta da IA ficou vazia após a divisão em blocos");
+    const envios: { ok: boolean; detalhe: string }[] = [];
+    for (const parte of partes) {
+      envios.push(await zapEnviaTexto(GRUPO, parte));
+      if (partes.length > 1) await new Promise((res) => setTimeout(res, 900));
+    }
+    const envio = {
+      ok: envios.every((e) => e.ok),
+      detalhe: envios.map((e, ix) => `msg ${ix + 1}/${partes.length} ${e.detalhe}`).join(" | "),
+    };
 
     // 3h) Auditoria
     etapa = "log";
@@ -609,7 +683,7 @@ Deno.serve(async (req: Request) => {
       ...logBase,
       prompt_enviado: userPrompt,
       resposta_ia: respostaIA,
-      mensagem_enviada: respostaIA,
+      mensagem_enviada: partes.join("\n\n"),
       status_envio: envio.ok ? "ok" : "erro",
       erro: envio.ok ? null : envio.detalhe,
     });
@@ -617,11 +691,14 @@ Deno.serve(async (req: Request) => {
     return json({
       ok: envio.ok,
       enviado: envio.ok,
+      fase_ativa: PH_LABEL[faseAtiva],
       modelo,
       uso_tokens: ia.usage,
       faltantes: todosFaltantes,
       jogos,
-      mensagem: respostaIA,
+      previa: previaJogos,
+      n_mensagens: partes.length,
+      mensagens: partes,
       zapzap: envio.detalhe,
     }, envio.ok ? 200 : 502);
   } catch (e) {
