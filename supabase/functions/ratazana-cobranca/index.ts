@@ -288,6 +288,25 @@ function listaNomes(nomes: string[]) {
   if (nomes.length <= 1) return nomes[0] || "";
   return nomes.slice(0, -1).join(", ") + " e " + nomes[nomes.length - 1];
 }
+// Rede de segurança de tamanho: parte acima de ~1100 caracteres é quebrada em
+// pedaços de até ~900, cortando só em quebra de parágrafo (nunca no meio da
+// frase). Evita o "Ler mais" do WhatsApp mesmo se a IA não usar blocos "---".
+function quebraLonga(texto: string, alvo = 900): string[] {
+  if (texto.length <= alvo * 1.25) return [texto];
+  const paras = texto.split(/\n\n+/);
+  const out: string[] = [];
+  let atual = "";
+  for (const p of paras) {
+    if (atual && (atual.length + 2 + p.length) > alvo) {
+      out.push(atual);
+      atual = p;
+    } else {
+      atual = atual ? atual + "\n\n" + p : p;
+    }
+  }
+  if (atual) out.push(atual);
+  return out;
+}
 
 // ─── Supabase via REST (service role; só produção) ───────────────────────────
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
@@ -320,7 +339,7 @@ async function botLog(row: Record<string, unknown>) {
 }
 
 // ─── IA (Anthropic Messages API); modelo vem de bot_config 'modelo_ia' ───────
-async function chamaIA(modelo: string, systemPrompt: string, userPrompt: string) {
+async function chamaIA(modelo: string, systemPrompt: string, userPrompt: string, maxTokens = 800) {
   const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -330,7 +349,7 @@ async function chamaIA(modelo: string, systemPrompt: string, userPrompt: string)
     },
     body: JSON.stringify({
       model: modelo,
-      max_tokens: 800,
+      max_tokens: maxTokens,
       system: systemPrompt,
       messages: [{ role: "user", content: userPrompt }],
     }),
@@ -384,6 +403,9 @@ Deno.serve(async (req: Request) => {
 
   const force = url.searchParams.get("force") === "1";
   const listarGrupos = url.searchParams.get("listar_grupos") === "1";
+  // teste_longo=1: pede à IA uma mensagem propositalmente longa em blocos,
+  // pra validar o envio dividido de verdade no WhatsApp (implica force)
+  const testeLongo = url.searchParams.get("teste_longo") === "1";
 
   // 2) Confere secrets necessários (nunca mostra valores, só nomes)
   const necessarios = listarGrupos
@@ -413,7 +435,7 @@ Deno.serve(async (req: Request) => {
 
   // 3) Pipeline da cobrança — cada etapa em try/catch; tudo vai pro bot_log
   const GRUPO = Deno.env.get("GRUPO_TESTE_ID") || "";
-  const logBase = { tipo: force ? "cobranca_forcada" : "cobranca", destino: GRUPO };
+  const logBase = { tipo: testeLongo ? "teste_mensagem_longa" : (force ? "cobranca_forcada" : "cobranca"), destino: GRUPO };
   let etapa = "consulta_banco";
   let userPrompt: string | null = null;
   let respostaIA: string | null = null;
@@ -630,9 +652,12 @@ Deno.serve(async (req: Request) => {
       if (j.palMaquinas.length) linhas.push(`  Palpites das outras máquinas: ${j.palMaquinas.join("; ")}`);
       return linhas.join("\n");
     };
-    const tarefa = comPendencia.length
+    let tarefa = comPendencia.length
       ? "TAREFA: escreva a mensagem de COBRANÇA DE PALPITES para o grupo de WhatsApp do bolão, cutucando pelo nome quem está devendo e citando os jogos pendentes da FASE ATIVA com horário. Se render piada, use os palpites públicos, o último jogo encerrado e a sua própria situação no ranking. Inclua o link do bolão."
       : "TAREFA: ninguém está devendo palpite na fase ativa (mensagem de teste do sistema). Escreva uma mensagem curta comemorando que está todo mundo em dia, provocando com os palpites públicos, o último jogo ou o ranking se render piada. Se houver prévia da próxima fase nos dados, pode citá-la como aquecimento, sem cobrar ninguém por ela. Inclua o link do bolão.";
+    if (testeLongo) {
+      tarefa = "TAREFA (TESTE DE MENSAGEM LONGA DO SISTEMA): gere uma mensagem COMPLETA e LONGA cobrindo, nesta ordem: o resultado do último jogo encerrado com quem pontuou e quem cravou; o ranking (top 3 e a sua posição); e TODOS os jogos citados nos dados (fase ativa e prévia) com horário e os palpites públicos listados. Use apenas os dados fornecidos, sem inventar nada. Estruture em 2 ou 3 blocos separados por uma linha contendo apenas ---, cada bloco com no máximo 900 caracteres e se sustentando sozinho. Inclua o link do bolão no bloco final.";
+    }
     // referência de origem/esgoto racionada por sorteio (~1 a cada 3 mensagens)
     const origemLiberada = Math.random() < 1 / 3;
     const previaBloco = previaJogos.length
@@ -657,15 +682,16 @@ Deno.serve(async (req: Request) => {
 
     // 3f) Chama a IA com a personalidade do Ratazana
     etapa = "anthropic";
-    const ia = await chamaIA(modelo, systemPrompt, userPrompt);
+    const ia = await chamaIA(modelo, systemPrompt, userPrompt, testeLongo ? 1400 : 800);
     respostaIA = ia.texto;
 
     // 3g) Envia ao grupo de teste via ZapZap. Se a IA separou blocos com uma
     // linha "---" (exceção prevista na alma v1.4), cada bloco vira uma
     // mensagem separada (máximo 3); o padrão continua sendo mensagem única.
     etapa = "zapzap";
-    const blocos = respostaIA.split(/\n\s*-{3,}\s*\n/).map((b: string) => b.trim()).filter(Boolean);
-    const partes = blocos.length <= 3 ? blocos : [...blocos.slice(0, 2), blocos.slice(2).join("\n\n")];
+    const blocosIA = respostaIA.split(/\n\s*-{3,}\s*\n/).map((b: string) => b.trim()).filter(Boolean);
+    const pedacos = blocosIA.flatMap((b: string) => quebraLonga(b));
+    const partes = pedacos.length <= 3 ? pedacos : [...pedacos.slice(0, 2), pedacos.slice(2).join("\n\n")];
     if (!partes.length) throw new Error("resposta da IA ficou vazia após a divisão em blocos");
     const envios: { ok: boolean; detalhe: string }[] = [];
     for (const parte of partes) {
@@ -698,7 +724,9 @@ Deno.serve(async (req: Request) => {
       jogos,
       previa: previaJogos,
       n_mensagens: partes.length,
+      tamanhos: partes.map((p: string) => p.length),
       mensagens: partes,
+      teste_longo: testeLongo,
       zapzap: envio.detalhe,
     }, envio.ok ? 200 : 502);
   } catch (e) {
