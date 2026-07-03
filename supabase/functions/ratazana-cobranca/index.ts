@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// ROBÔ RATAZANA — Edge Function "ratazana-cobranca" (Fase 1: disparo MANUAL)
+// ROBÔ RATAZANA — Edge Function "ratazana-cobranca" (Fase 1.5: calibragem)
 // ═══════════════════════════════════════════════════════════════════════════
 // Uso (navegador ou curl):
 //   GET https://<projeto>.supabase.co/functions/v1/ratazana-cobranca?token=XXX
@@ -9,30 +9,48 @@
 //                         instância (para descobrir o ID ...@g.us do grupo)
 //
 // Dados: SEMPRE tabelas de PRODUÇÃO (mata_confrontos / mata_palpites / bot_config).
-// A lógica de "falta palpite" espelha o app (index.html): 3 próximos jogos por
-// data (mmNextGamesHTML) + palpite completo (mmHasFullPred). Só HUMANOS.
+// Modelo de IA: lido de bot_config key 'modelo_ia' (fallback Haiku 4.5).
+// A função PRÉ-CALCULA tudo (multiplicador final, zebra, palpites públicos,
+// último jogo encerrado, ranking) e entrega pronto no prompt: a IA nunca calcula.
+// Lógica portada do app (index.html): mmNextGamesHTML, mmHasFullPred, mmScore,
+// mataStats, MM_PHASE_MULT/MM_TURBO/MM_ZEBRA/MM_BRACKET/MM_COLS/MM_AGENDA.
+// ⚠️ Quando o Vini definir novos turbos/zebras no index.html, replicar AQUI.
 // Jogos de grupos (g01–g72, incluindo g01–g03) nunca entram: só mata_*.
-// IA: POST https://api.anthropic.com/v1/messages (claude-haiku-4-5-20251001).
 // WhatsApp: ZapZap API (docs oficiais: https://api.zapzapapi.com/docs)
 //   POST {ZAPZAP_ENDPOINT_BASE}/send/text  body {number, text}
 //   headers x-api-key / x-api-secret. number aceita ID de grupo (@g.us).
 // Auditoria: toda execução do pipeline grava linha em bot_log.
+// KAYFABE: o pid 'claude' é o perfil "Ratazana00" = o PRÓPRIO personagem.
+// Ele nunca entra em "faltam palpitar" (é máquina) e o palpite pendente dele
+// nunca é mencionado nos dados.
 // ⚠️ Deploy com "Verify JWT" DESLIGADO — a proteção é o ?token= (BOT_TRIGGER_TOKEN).
 // ═══════════════════════════════════════════════════════════════════════════
 
-// ─── Participantes HUMANOS do mata (ids = coluna pid de mata_palpites) ───────
-// IAs (claude, chatgpt, claudio, chatgptleo, pepe_ia) NUNCA são cobradas.
-const HUMANOS = [
-  { id: "jessica", nome: "Jeca" },
-  { id: "tonius", nome: "Tonius" },
-  { id: "leo", nome: "Leo" },
-  { id: "vinicius", nome: "Vini" },
-  { id: "pepe", nome: "Pepe" },
-  { id: "du", nome: "Du" },
-  { id: "yuri", nome: "Yuri" },
-  { id: "mano", nome: "Mano" },
-  { id: "gi", nome: "Gi" },
+const MODELO_FALLBACK = "claude-haiku-4-5-20251001";
+
+// ─── Participantes do mata (ids = coluna pid de mata_palpites) ───────────────
+// 'claude' era exibido como "Claude Vini"; agora é "Ratazana00", o próprio
+// personagem (a renomeação visual no app será feita em outra sessão).
+// Máquinas NUNCA são cobradas. Pares que nunca se confundem: pepe ≠ pepe_ia,
+// vinicius ≠ claude (Ratazana00), tonius ≠ claudio, jessica ≠ chatgpt, leo ≠ chatgptleo.
+const MATA_PARTS_BOT = [
+  { id: "jessica", nome: "Jeca", tipo: "humano" },
+  { id: "tonius", nome: "Tonius", tipo: "humano" },
+  { id: "leo", nome: "Leo", tipo: "humano" },
+  { id: "pepe", nome: "Pepe", tipo: "humano" },
+  { id: "du", nome: "Du", tipo: "humano" },
+  { id: "mano", nome: "Mano", tipo: "humano" },
+  { id: "yuri", nome: "Yuri", tipo: "humano" },
+  { id: "vinicius", nome: "Vini", tipo: "humano" },
+  { id: "gi", nome: "Gi", tipo: "humano" },
+  { id: "chatgpt", nome: "ChatGPT Jeca", tipo: "maquina" },
+  { id: "claudio", nome: "Claude Tonius", tipo: "maquina" },
+  { id: "chatgptleo", nome: "ChatGPT Leo", tipo: "maquina" },
+  { id: "claude", nome: "Ratazana00", tipo: "maquina" },
+  { id: "pepe_ia", nome: "Pepe IA", tipo: "maquina" },
 ];
+const HUMANOS = MATA_PARTS_BOT.filter((p) => p.tipo === "humano");
+const RATAZANA_ID = "claude";
 
 // ─── Agenda dos 32 jogos (cópia fiel de MM_AGENDA do index.html; hora de Brasília)
 const MM_AGENDA: Record<string, { dt: string; tm: string; ven: string }> = {
@@ -76,6 +94,43 @@ const MM_TURBO = new Set([
   "r16_2", "r16_5", "r16_8", "qf_1", "qf_3", "sf_2",
 ]);
 
+// ─── Multiplicador por fase + colunas (cópias de MM_PHASE_MULT/MM_COLS) ──────
+const MM_PHASE_MULT: Record<string, number> = {
+  "32avos": 1, oitavas: 1.25, quartas: 1.5, semis: 1.75, "3lugar": 1.75, final: 4,
+};
+const MM_COLS: { key: string; ids: string[] }[] = [
+  { key: "32avos", ids: ["r32_3", "r32_6", "r32_1", "r32_4", "r32_12", "r32_11", "r32_10", "r32_9", "r32_2", "r32_5", "r32_7", "r32_8", "r32_15", "r32_14", "r32_13", "r32_16"] },
+  { key: "oitavas", ids: ["r16_2", "r16_1", "r16_5", "r16_6", "r16_3", "r16_4", "r16_7", "r16_8"] },
+  { key: "quartas", ids: ["qf_1", "qf_2", "qf_3", "qf_4"] },
+  { key: "semis", ids: ["sf_1", "sf_2"] },
+  { key: "3lugar", ids: ["tp_1"] },
+  { key: "final", ids: ["fin_1"] },
+];
+const PH_LABEL: Record<string, string> = {
+  "32avos": "16 avos", oitavas: "Oitavas", quartas: "Quartas",
+  semis: "Semis", "3lugar": "3º lugar", final: "Final",
+};
+function mmPhaseKeyOf(id: string) {
+  const col = MM_COLS.find((c) => c.ids.includes(id));
+  return col ? col.key : "32avos";
+}
+
+// ─── Zebras (cópia de MM_ZEBRA do index.html; azarao = lado A ou B) ──────────
+// Só os 16 avos têm zebra definida por enquanto; novas fases entram aqui
+// quando o Vini definir (sempre espelhando o index.html).
+const MM_ZEBRA: Record<string, { tipo: "zebra" | "zebrao"; azarao: "A" | "B" }> = {
+  r32_3: { tipo: "zebra", azarao: "B" },   // Alemanha × Paraguai      → azarão: Paraguai
+  r32_6: { tipo: "zebra", azarao: "B" },   // França × Suécia          → azarão: Suécia
+  r32_8: { tipo: "zebrao", azarao: "B" },  // Inglaterra × RD Congo    → azarão: RD Congo
+  r32_11: { tipo: "zebra", azarao: "B" },  // Espanha × Áustria        → azarão: Áustria
+  r32_15: { tipo: "zebrao", azarao: "B" }, // Argentina × Cabo Verde   → azarão: Cabo Verde
+};
+// deno-lint-ignore no-explicit-any
+type Conf = any;
+function mmZebra(c: Conf) {
+  return MM_ZEBRA[c && c.id] || null;
+}
+
 // ─── Chave (cópia de MM_BRACKET do index.html): quem alimenta cada vaga ──────
 type Feeder = { g: string; take: "win" | "lose" };
 const MM_BRACKET: Record<string, { phase: string; feeders?: { A: Feeder; B: Feeder } }> = (() => {
@@ -103,9 +158,6 @@ const MM_BRACKET: Record<string, { phase: string; feeders?: { A: Feeder; B: Feed
 })();
 
 // ─── Helpers portados do index.html (mesma lógica, mesmo comportamento) ──────
-// deno-lint-ignore no-explicit-any
-type Conf = any;
-
 function mmIsTest(c: Conf) {
   return /\[TESTE\]/i.test((c.team_a || "") + " " + (c.team_b || "") + " " + (c.phase || ""));
 }
@@ -128,16 +180,16 @@ function mmGameDate(c: Conf): Date | null {
   const p = (n: number) => String(n).padStart(2, "0");
   return new Date(`2026-${p(mm)}-${p(dd)}T${p(h)}:${p(mi)}:00-03:00`);
 }
-// Resolve o nome dos times de uma vaga pela chave + vencedores REAIS
-// (porta mmRealWinner/mmResolveSide/mmOutcome/mmTeams do index.html)
+// Quem AVANÇOU de verdade: placar real (empate → pênaltis via classificado)
+function mmRealWinner(c: Conf): "A" | "B" | null {
+  if (!c || c.real_a == null || c.real_b == null) return null;
+  if (c.real_a > c.real_b) return "A";
+  if (c.real_b > c.real_a) return "B";
+  return (c.classificado === "A" || c.classificado === "B") ? c.classificado : null;
+}
+// Resolve o nome dos times de uma vaga pela chave + vencedores reais
 function makeResolver(confrontos: Conf[]) {
   const confMap = new Map<string, Conf>(confrontos.map((c: Conf) => [c.id, c]));
-  const realWinner = (c: Conf): "A" | "B" | null => {
-    if (!c || c.real_a == null || c.real_b == null) return null;
-    if (c.real_a > c.real_b) return "A";
-    if (c.real_b > c.real_a) return "B";
-    return (c.classificado === "A" || c.classificado === "B") ? c.classificado : null;
-  };
   const resolveSide = (slotId: string, side: "A" | "B"): { name: string } | null => {
     const slot = MM_BRACKET[slotId];
     if (slot && slot.feeders) {
@@ -150,7 +202,7 @@ function makeResolver(confrontos: Conf[]) {
     return nm ? { name: nm } : null;
   };
   const outcome = (gameId: string, take: "win" | "lose"): { name: string } | null => {
-    const w = realWinner(confMap.get(gameId));
+    const w = mmRealWinner(confMap.get(gameId));
     if (w == null) return null;
     const side = take === "win" ? w : (w === "A" ? "B" : "A");
     return resolveSide(gameId, side);
@@ -158,7 +210,67 @@ function makeResolver(confrontos: Conf[]) {
   return (c: Conf) => ({ a: resolveSide(c.id, "A"), b: resolveSide(c.id, "B") });
 }
 
+// ─── Pontuação do mata (porta fiel de mmScore/calcMataPts/mataStats) ─────────
+// Base que MULTIPLICA (fase × turbo): 5 resultado · 1 gol A · 1 gol B ·
+// 2 saldo (só com vencedor) · 3 placar exato · 4 pênaltis (empate + quem passa).
+// Zebra é FIXO (+3/+5), somado no fim, não multiplica.
+function mmScore(pal: Conf, c: Conf) {
+  if (!pal || pal.gols_a == null || pal.gols_b == null) return null;
+  if (c.real_a == null || c.real_b == null) return null;
+  const pa = +pal.gols_a, pb = +pal.gols_b, ra = +c.real_a, rb = +c.real_b;
+  const realDraw = ra === rb;
+  let base = 0;
+  const pres = pa > pb ? "A" : pa < pb ? "B" : "E";
+  const rres = ra > rb ? "A" : ra < rb ? "B" : "E";
+  if (pres === rres) base += 5;
+  if (pa === ra) base += 1;
+  if (pb === rb) base += 1;
+  if (!realDraw && (pa - pb) === (ra - rb)) base += 2;
+  const exato = pa === ra && pb === rb;
+  if (exato) base += 3;
+  if (realDraw && pa === pb && pal.quem_passa && c.classificado && pal.quem_passa === c.classificado) base += 4;
+  const phaseKey = mmPhaseKeyOf(c.id);
+  const phaseMult = MM_PHASE_MULT[phaseKey] || 1;
+  const turbo = MM_TURBO.has(c.id);
+  const partida = Math.round(base * phaseMult * (turbo ? 2 : 1) * 100) / 100;
+  let zebra = 0;
+  let zebraTipo: string | null = null;
+  const z = mmZebra(c);
+  if (z) {
+    const rw = mmRealWinner(c);
+    const palAdv = pa > pb ? "A" : pa < pb ? "B" : (pal.quem_passa || null);
+    if (rw && rw === z.azarao && palAdv === z.azarao) {
+      zebra = z.tipo === "zebrao" ? 5 : 3;
+      zebraTipo = z.tipo;
+    }
+  }
+  return { total: Math.round((partida + zebra) * 100) / 100, exato, base, phaseKey, phaseMult, turbo, partida, zebra, zebraTipo };
+}
+function calcMataPts(pal: Conf, c: Conf) {
+  const s = mmScore(pal, c);
+  return s ? s.total : null;
+}
+// Estatísticas do mata por participante (ignora TESTE e não finalizados)
+function mataStats(pid: string, confrontos: Conf[], PAL: Record<string, Record<string, Conf>>) {
+  let total = 0, rHits = 0, eHits = 0, played = 0;
+  for (const c of confrontos) {
+    if (mmIsTest(c) || !c.finished || c.real_a == null || c.real_b == null) continue;
+    const pal = PAL[c.id]?.[pid];
+    const pts = calcMataPts(pal, c);
+    if (pts == null) continue;
+    total += pts;
+    played++;
+    const ra = +c.real_a, rb = +c.real_b, pa = +pal.gols_a, pb = +pal.gols_b;
+    if ((pa > pb ? "A" : pa < pb ? "B" : "E") === (ra > rb ? "A" : ra < rb ? "B" : "E")) rHits++;
+    if (pa === ra && pb === rb) eHits++;
+  }
+  return { total: Math.round(total * 100) / 100, rHits, eHits, played };
+}
+
 // ─── Utilidades de texto/data (pt-BR, horário de Brasília) ───────────────────
+function fmtPts(n: number) {
+  return ("" + (Math.round(n * 100) / 100)).replace(".", ",");
+}
 function diaSemana(d: Date) {
   return new Intl.DateTimeFormat("pt-BR", { weekday: "short", timeZone: "America/Sao_Paulo" })
     .format(d).replace(".", "");
@@ -203,8 +315,8 @@ async function botLog(row: Record<string, unknown>) {
   }
 }
 
-// ─── IA (Anthropic Messages API) ─────────────────────────────────────────────
-async function chamaIA(systemPrompt: string, userPrompt: string): Promise<string> {
+// ─── IA (Anthropic Messages API); modelo vem de bot_config 'modelo_ia' ───────
+async function chamaIA(modelo: string, systemPrompt: string, userPrompt: string) {
   const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -213,20 +325,20 @@ async function chamaIA(systemPrompt: string, userPrompt: string): Promise<string
       "content-type": "application/json",
     },
     body: JSON.stringify({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 400,
+      model: modelo,
+      max_tokens: 800,
       system: systemPrompt,
       messages: [{ role: "user", content: userPrompt }],
     }),
   });
-  if (!r.ok) throw new Error(`Anthropic → HTTP ${r.status}: ${(await r.text()).slice(0, 300)}`);
+  if (!r.ok) throw new Error(`Anthropic (${modelo}) → HTTP ${r.status}: ${(await r.text()).slice(0, 300)}`);
   const data = await r.json();
   const texto = (data.content || [])
     .filter((b: Conf) => b.type === "text")
     .map((b: Conf) => b.text)
     .join("\n").trim();
   if (!texto) throw new Error(`Anthropic não retornou texto (stop_reason: ${data.stop_reason})`);
-  return texto;
+  return { texto, usage: data.usage || null };
 }
 
 // ─── ZapZap API (docs oficiais: https://api.zapzapapi.com/docs) ──────────────
@@ -301,15 +413,19 @@ Deno.serve(async (req: Request) => {
   let etapa = "consulta_banco";
   let userPrompt: string | null = null;
   let respostaIA: string | null = null;
+  let modelo = MODELO_FALLBACK;
 
   try {
-    // 3a) Banco (produção): confrontos + palpites + system prompt do personagem
+    // 3a) Banco (produção): confrontos + palpites + config (prompt e modelo)
     const [confrontos, palpites, cfg] = await Promise.all([
       sbGet("mata_confrontos?select=*"),
       sbGet("mata_palpites?select=confronto_id,pid,gols_a,gols_b,quem_passa"),
-      sbGet("bot_config?key=eq.system_prompt_ratazana&select=value"),
+      sbGet("bot_config?key=in.(system_prompt_ratazana,modelo_ia)&select=key,value"),
     ]);
-    const systemPrompt = cfg?.[0]?.value;
+    const cfgMap: Record<string, string> = {};
+    for (const row of cfg) cfgMap[row.key] = row.value;
+    const systemPrompt = cfgMap["system_prompt_ratazana"];
+    modelo = (cfgMap["modelo_ia"] || "").trim() || MODELO_FALLBACK;
     if (!systemPrompt) {
       throw new Error("bot_config sem 'system_prompt_ratazana' — rode o supabase_bot.sql no SQL Editor");
     }
@@ -327,18 +443,46 @@ Deno.serve(async (req: Request) => {
       .sort((a: Conf, b: Conf) => a.d.getTime() - b.d.getTime())
       .slice(0, 3);
 
+    // formata um palpite completo: "2×1" ou "1×1 (Time passa nos pênaltis)"
+    const fmtPal = (pal: Conf, tA: string, tB: string): string | null => {
+      if (!mmHasFullPred(pal)) return null;
+      let s = `${pal.gols_a}×${pal.gols_b}`;
+      if (pal.gols_a === pal.gols_b && pal.quem_passa) {
+        s += ` (${pal.quem_passa === "A" ? tA : tB} passa nos pênaltis)`;
+      }
+      return s;
+    };
+
     const jogos = up.map(({ c, d }: Conf) => {
       const i = mmInfo(c);
       const t = teamsOf(c);
+      const nomeA = t.a?.name || "A definir";
+      const nomeB = t.b?.name || "A definir";
+      const phaseKey = mmPhaseKeyOf(c.id);
+      const phaseMult = MM_PHASE_MULT[phaseKey] || 1;
+      const turbo = MM_TURBO.has(c.id);
+      const z = mmZebra(c);
       const faltam = HUMANOS.filter((h) => !mmHasFullPred(PAL[c.id]?.[h.id])).map((h) => h.nome);
+      const palDe = (pid: string) => fmtPal(PAL[c.id]?.[pid], nomeA, nomeB);
+      const palHumanos = HUMANOS.map((h) => ({ nome: h.nome, pal: palDe(h.id) }))
+        .filter((x) => x.pal).map((x) => `${x.nome} ${x.pal}`);
+      const palMaquinas = MATA_PARTS_BOT.filter((p) => p.tipo === "maquina" && p.id !== RATAZANA_ID)
+        .map((m) => ({ nome: m.nome, pal: palDe(m.id) }))
+        .filter((x) => x.pal).map((x) => `${x.nome} ${x.pal}`);
       return {
         id: c.id,
-        fase: c.phase || MM_BRACKET[c.id]?.phase || "",
-        quando: `${diaSemana(d)} ${i.dt} às ${i.tm}`,
+        fase: PH_LABEL[phaseKey] || phaseKey,
+        quando: `${diaSemana(d)} ${i.dt} às *${i.tm}*`,
         onde: i.ven,
-        jogo: `${t.a?.name || "A definir"} × ${t.b?.name || "A definir"}`,
-        turbo: MM_TURBO.has(c.id),
+        jogo: `${nomeA} × ${nomeB}`,
+        turbo,
+        multFinal: fmtPts(phaseMult * (turbo ? 2 : 1)),
+        multFase: fmtPts(phaseMult),
+        zebra: z ? { tipo: z.tipo, azarao: z.azarao === "A" ? nomeA : nomeB, bonus: z.tipo === "zebrao" ? 5 : 3 } : null,
         faltam,
+        seuPalpite: palDe(RATAZANA_ID),  // kayfabe: se pendente, simplesmente não aparece
+        palHumanos,
+        palMaquinas,
       };
     });
     const comPendencia = jogos.filter((j: Conf) => j.faltam.length > 0);
@@ -355,31 +499,111 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // 3d) Monta o prompt de DADOS para a IA
+    // 3d) Enriquecimento: quem completou tudo, último jogo encerrado, ranking
+    etapa = "enriquecimento";
+    const CITAVEIS = [...HUMANOS, MATA_PARTS_BOT.find((p) => p.id === RATAZANA_ID)!];
+    const completaram = CITAVEIS
+      .filter((p) => jogos.length && jogos.every((j: Conf) => mmHasFullPred(PAL[j.id]?.[p.id])))
+      .map((p) => (p.id === RATAZANA_ID ? "Ratazana00 (você)" : p.nome));
+
+    // jogos futuros já com os dois times definidos (dá pra palpitar de verdade)
+    const futurosDef = confrontos
+      .filter((c: Conf) => !mmIsTest(c))
+      .map((c: Conf) => ({ c, d: mmGameDate(c) }))
+      .filter((x: Conf) => x.d && x.d.getTime() > now)
+      .filter((x: Conf) => { const t = teamsOf(x.c); return t.a && t.b; });
+    const adiantados = CITAVEIS.map((p) => ({
+      nome: p.id === RATAZANA_ID ? "Ratazana00 (você)" : p.nome,
+      n: futurosDef.filter((x: Conf) => mmHasFullPred(PAL[x.c.id]?.[p.id])).length,
+    })).filter((x) => x.n > 0).sort((a, b) => b.n - a.n);
+
+    const encerrados = confrontos
+      .filter((c: Conf) => !mmIsTest(c) && c.finished && c.real_a != null && c.real_b != null)
+      .map((c: Conf) => ({ c, d: mmGameDate(c) }))
+      .filter((x: Conf) => x.d)
+      .sort((a: Conf, b: Conf) => b.d.getTime() - a.d.getTime());
+    let ultimoBloco = "";
+    if (encerrados.length) {
+      const { c, d } = encerrados[0];
+      const i = mmInfo(c);
+      const phaseKey = mmPhaseKeyOf(c.id);
+      const turbo = MM_TURBO.has(c.id);
+      const mult = fmtPts((MM_PHASE_MULT[phaseKey] || 1) * (turbo ? 2 : 1));
+      const pontos = MATA_PARTS_BOT.map((p) => ({ p, s: mmScore(PAL[c.id]?.[p.id], c) }))
+        .filter((x) => x.s)
+        .sort((a: Conf, b: Conf) => b.s.total - a.s.total);
+      const linhaPts = pontos.filter((x: Conf) => x.s.total > 0)
+        .map((x: Conf) => `${x.p.nome} ${fmtPts(x.s.total)}`).join("; ") || "ninguém pontuou";
+      const cravaram = pontos.filter((x: Conf) => x.s.exato).map((x: Conf) => x.p.nome);
+      const z = mmZebra(c);
+      const rw = mmRealWinner(c);
+      let zebraTxt = "não havia zebra definida neste jogo";
+      if (z) {
+        const nmAz = z.azarao === "A" ? (c.team_a || "A") : (c.team_b || "B");
+        zebraTxt = rw === z.azarao
+          ? `${z.tipo === "zebrao" ? "ZEBRÃO PAGOU" : "ZEBRA PAGOU"}: o azarão ${nmAz} avançou (+${z.tipo === "zebrao" ? 5 : 3} pra quem apostou nele)`
+          : `havia ${z.tipo === "zebrao" ? "zebrão" : "zebra"} definida (azarão ${nmAz}), mas não pagou`;
+      }
+      const meu = pontos.find((x: Conf) => x.p.id === RATAZANA_ID);
+      const penTxt = (c.real_a === c.real_b && c.classificado)
+        ? ` (${c.classificado === "A" ? c.team_a : c.team_b} passou nos pênaltis)` : "";
+      ultimoBloco =
+        `ÚLTIMO JOGO ENCERRADO: ${c.team_a} ${c.real_a}×${c.real_b} ${c.team_b}${penTxt} (${diaSemana(d)} ${i.dt}, ${PH_LABEL[phaseKey]}, valia ×${mult})\n` +
+        `- Pontuaram: ${linhaPts}\n` +
+        `- Cravaram o placar exato: ${cravaram.length ? listaNomes(cravaram) : "ninguém"}\n` +
+        `- Zebra: ${zebraTxt}\n` +
+        `- Seus pontos nesse jogo (Ratazana00): ${meu ? fmtPts(meu.s.total) : "0"}`;
+    }
+
+    etapa = "ranking";
+    const rank = MATA_PARTS_BOT.map((p) => ({ p, ...mataStats(p.id, confrontos, PAL) }))
+      .sort((a, b) => b.total - a.total || b.eHits - a.eHits || b.rHits - a.rHits);
+    const posRatazana = rank.findIndex((r) => r.p.id === RATAZANA_ID) + 1;
+    const ratStats = rank[posRatazana - 1];
+    const top3 = rank.slice(0, 3)
+      .map((r, ix) => `${ix + 1}º ${r.p.nome} ${fmtPts(r.total)} pts`).join("; ");
+    const rankingBloco =
+      `RANKING DO MATA-MATA (${rank.length} participantes, ${rank[0].played} jogos pontuados):\n` +
+      `- Top 3: ${top3}\n` +
+      `- Líder: ${rank[0].p.nome}\n` +
+      `- Você (Ratazana00): ${posRatazana}º lugar com ${fmtPts(ratStats.total)} pts (${ratStats.eHits} placares cravados)`;
+
+    // 3e) Monta o prompt de DADOS para a IA (tudo pré-calculado, pt-BR)
     etapa = "monta_prompt";
-    const linhas = jogos.map((j: Conf) => {
-      const turbo = j.turbo ? " ⚡TURBO ×2" : "";
-      const pend = j.faltam.length ? `faltam palpitar: ${listaNomes(j.faltam)}` : "todos já palpitaram";
-      return `- ${j.quando} — ${j.fase} — ${j.jogo}${turbo} (${j.onde}) → ${pend}`;
-    }).join("\n");
+    const blocoJogo = (j: Conf) => {
+      const l1 = `- ${j.quando} - ${j.fase} - ${j.jogo} - ${j.onde}` +
+        (j.turbo ? ` - ⚡ TURBO: vale ×${j.multFinal} (multiplicador final)` : ` - vale ×${j.multFase}`) +
+        (j.zebra ? ` - ${j.zebra.tipo === "zebrao" ? "ZEBRÃO" : "ZEBRA"} definido: azarão ${j.zebra.azarao}, bônus +${j.zebra.bonus} pra quem apostar que ele passa e ele passar` : "");
+      const linhas = [l1, `  Faltam palpitar: ${j.faltam.length ? listaNomes(j.faltam) : "ninguém, todos em dia"}`];
+      if (j.seuPalpite) linhas.push(`  Seu palpite (Ratazana00): ${j.seuPalpite}`);
+      if (j.palHumanos.length) linhas.push(`  Palpites dos humanos: ${j.palHumanos.join("; ")}`);
+      else linhas.push(`  Palpites dos humanos: nenhum registrado ainda`);
+      if (j.palMaquinas.length) linhas.push(`  Palpites das outras máquinas: ${j.palMaquinas.join("; ")}`);
+      return linhas.join("\n");
+    };
     const tarefa = comPendencia.length
-      ? `TAREFA: escreva a mensagem de COBRANÇA DE PALPITES para o grupo de WhatsApp do bolão, cutucando quem está devendo. Cite os jogos e horários dos jogos pendentes.`
-      : `TAREFA: ninguém está devendo palpite (mensagem de teste do sistema). Escreva uma mensagem curta para o grupo comemorando que está todo mundo em dia com os palpites.`;
+      ? "TAREFA: escreva a mensagem de COBRANÇA DE PALPITES para o grupo de WhatsApp do bolão, cutucando pelo nome quem está devendo e citando os jogos pendentes com horário. Se render piada, use os palpites públicos, o último jogo encerrado e a sua própria situação no ranking. Inclua o link do bolão."
+      : "TAREFA: ninguém está devendo palpite (mensagem de teste do sistema). Escreva uma mensagem curta comemorando que está todo mundo em dia, provocando com os palpites públicos, o último jogo ou o ranking se render piada. Inclua o link do bolão.";
     userPrompt =
-      `DADOS VERIFICADOS DO BOLÃO (gerados pelo sistema em ${agoraBrasilia()}, horário de Brasília):\n\n` +
-      `Próximos jogos do mata-mata (palpites ainda abertos):\n${linhas}\n\n` +
-      (todosFaltantes.length ? `Resumo de quem falta: ${listaNomes(todosFaltantes)}\n\n` : "") +
+      `DADOS VERIFICADOS DO BOLÃO (gerados pelo sistema em ${agoraBrasilia()}, horário de Brasília). Use somente estes dados. Não calcule nem invente nada.\n\n` +
+      `PRÓXIMOS JOGOS (palpites ainda abertos):\n${jogos.map(blocoJogo).join("\n")}\n\n` +
+      `Já completaram os palpites de todos os jogos citados: ${completaram.length ? listaNomes(completaram) : "ninguém"}\n` +
+      (adiantados.length ? `Palpites completos em jogos futuros já definidos (${futurosDef.length} jogos abertos): ${adiantados.map((x) => `${x.nome} ${x.n}`).join("; ")}\n` : "") +
+      (ultimoBloco ? `\n${ultimoBloco}\n` : "") +
+      `\n${rankingBloco}\n\n` +
+      `LINK DO BOLÃO: https://bolao-ratazana00.pages.dev\n\n` +
       tarefa;
 
-    // 3e) Chama a IA com a personalidade do Ratazana
+    // 3f) Chama a IA com a personalidade do Ratazana
     etapa = "anthropic";
-    respostaIA = await chamaIA(systemPrompt, userPrompt);
+    const ia = await chamaIA(modelo, systemPrompt, userPrompt);
+    respostaIA = ia.texto;
 
-    // 3f) Envia ao grupo de teste via ZapZap
+    // 3g) Envia ao grupo de teste via ZapZap
     etapa = "zapzap";
     const envio = await zapEnviaTexto(GRUPO, respostaIA);
 
-    // 3g) Auditoria
+    // 3h) Auditoria
     etapa = "log";
     await botLog({
       ...logBase,
@@ -393,6 +617,8 @@ Deno.serve(async (req: Request) => {
     return json({
       ok: envio.ok,
       enviado: envio.ok,
+      modelo,
+      uso_tokens: ia.usage,
       faltantes: todosFaltantes,
       jogos,
       mensagem: respostaIA,
@@ -407,6 +633,6 @@ Deno.serve(async (req: Request) => {
       status_envio: "erro",
       erro: `[etapa: ${etapa}] ${msg}`,
     });
-    return json({ ok: false, etapa, erro: msg }, 500);
+    return json({ ok: false, etapa, modelo, erro: msg }, 500);
   }
 });
