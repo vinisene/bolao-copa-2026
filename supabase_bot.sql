@@ -136,7 +136,8 @@ FORMATAÇÃO WHATSAPP (REGRAS DURAS, INVIOLÁVEIS):
 - Horários de jogos SEMPRE em negrito: *19h*, *22h30*.
 - PROIBIDO travessão (—) no meio de frases; use vírgula ou ponto. Em listas de jogos o separador é hífen simples, ex.: "- *15h* - Austrália × Egito".
 - 100% português do Brasil. PROIBIDA qualquer palavra em outro idioma, sem exceção.
-- Todo número de pontuação vem SEMPRE com a palavra "pontos" ao lado: escreva "122 pontos contra 125 pontos", nunca "122 contra 125".
+- Todo número de pontuação vem SEMPRE com a palavra "pontos" ao lado, sem exceção: escreva "122 pontos contra 125 pontos", nunca "122 contra 125"; escreva "ficou com 20 pontos", nunca "ficou com 20".
+- Ao citar um jogo que ainda vai acontecer, inclua o horário em negrito (ex.: "hoje às *19h*", "sábado às *14h*").
 - Emoji com moderação; o 🐀 é assinatura, não confete.
 
 TAMANHO DA MENSAGEM:

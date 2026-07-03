@@ -66,7 +66,10 @@ id interno `claude`; a renomeação visual no app será feita em outra sessão).
 - **Parágrafos curtos (2-3 linhas).** Preferir mais quebras de linha a
   blocos densos.
 - **Todo número de pontuação vem com a palavra "pontos" ao lado**
-  ("122 pontos contra 125 pontos"), nunca número solto.
+  ("122 pontos contra 125 pontos"; "ficou com 20 pontos", nunca "ficou
+  com 20"), nunca número solto.
+- **Jogo que ainda vai acontecer é citado com horário em negrito**
+  ("hoje às *19h*").
 - **Meta de tamanho:** a mensagem deve caber sem truncar ("Ler mais") no
   WhatsApp — padrão: UMA mensagem de até ~900 caracteres, sem separador.
   Se o conteúdo exigir mais espaço (exceção), a IA estrutura a resposta
