@@ -1,0 +1,7 @@
+# Config do Supabase CLI (usado só em deploys via CLI; o app não depende disto)
+project_id = "bolao-copa-2026"
+
+# O disparo do robô é protegido pelo ?token= (BOT_TRIGGER_TOKEN), não por JWT.
+# Sem isto, chamadas do navegador levariam 401 antes do nosso código rodar.
+[functions.ratazana-cobranca]
+verify_jwt = false
