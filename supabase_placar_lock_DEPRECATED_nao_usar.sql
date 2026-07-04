@@ -1,4 +1,18 @@
 -- ============================================================
+-- ⚠️ DEPRECATED — NÃO RODAR ESTE ARQUIVO. NUNCA FOI APLICADO.
+-- ============================================================
+-- Por quê: este REVOKE é um bloqueio GERAL e incondicional das 4 colunas
+-- (real_a/real_b/classificado/finished), em QUALQUER estado do jogo. Isso
+-- quebra a "Prévia Placar" — a sandbox livre que qualquer participante usa
+-- em jogos ainda ABERTOS pra simular placar e ver pontos, sem precisar de
+-- admin. Um bug real de uma sessão anterior deixou a trava ampla demais.
+--
+-- Use no lugar: supabase_placar_lock_v2.sql — trava CONDICIONAL (só bloqueia
+-- quando finished=true; jogo aberto continua 100% livre pra qualquer um).
+-- ============================================================
+
+-- ============================================================
+-- (conteúdo original abaixo, mantido só de referência histórica)
 -- TRAVA DE PLACAR FINAL (mata-mata) — reforço de segurança real (não só front-end)
 -- Rodar em: Supabase Dashboard → SQL Editor → New query → Run
 --

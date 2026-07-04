@@ -63,6 +63,8 @@
   .jogo{background:var(--card);border:1px solid var(--brd);border-radius:4px 16px 4px 4px;padding:12px;}
   .jg-top{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:var(--mu);margin-bottom:6px;flex-wrap:wrap;}
   .jg-fase{font-weight:800;color:var(--gold);}
+  .zebra-badge{background:#5a3d0a;color:#ffd9a8;font-weight:800;padding:2px 6px;border-radius:4px;font-size:10px;}
+  .zebra-badge.zebrao{background:#5a1414;color:#ffb3b3;}
   .jg-id{opacity:.6;}
   .jg-times{display:flex;align-items:center;justify-content:center;gap:7px;font-size:16px;font-weight:800;margin-bottom:10px;flex-wrap:wrap;text-align:center;}
   .jg-times img.flag-img{width:22px;height:16px;object-fit:cover;border-radius:1px 4px 1px 1px;box-shadow:0 1px 2px rgba(0,0,0,.3);}
@@ -203,6 +205,14 @@ function realWinner(c){
   if(c.real_b>c.real_a)return 'B';
   return (c.classificado==='A'||c.classificado==='B')?c.classificado:null;
 }
+// Zebras (cópia de MM_ZEBRA do index.html/edge function; azarao = lado A ou B)
+const MM_ZEBRA={
+  r32_3:{tipo:'zebra',azarao:'B'},r32_6:{tipo:'zebra',azarao:'B'},r32_8:{tipo:'zebrao',azarao:'B'},
+  r32_11:{tipo:'zebra',azarao:'B'},r32_15:{tipo:'zebrao',azarao:'B'},
+  r16_2:{tipo:'zebrao',azarao:'A'},   // Paraguai × França → azarão: Paraguai (lado A)
+  r16_7:{tipo:'zebra',azarao:'B'},    // Argentina × Egito → azarão: Egito (lado B)
+};
+function mmZebra(c){return MM_ZEBRA[c&&c.id]||null;}
 let CONFRONTOS=[];const byId=id=>CONFRONTOS.find(c=>c.id===id);
 // Resolve {name,flag} de um lado (recursivo pela chave) — igual ao mmResolveSide do app.
 function resolveSide(slotId,side){
@@ -300,7 +310,9 @@ function cardJogo(c){
   const flagA=t.a?flagImg(t.a.flag):'', flagB=t.b?flagImg(t.b.flag):'';
   const quando=(c.dt||a.dt?`${c.dt||a.dt} às ${c.tm||a.tm||''}`:'')+(c.id.startsWith('mm_teste')?' · TESTE':'');
   const fase=c.phase||MM_COLS.find(col=>col.key===mmPhaseKeyOf(c.id))?.label||'';
-  const top=`<div class="jg-top"><span class="jg-fase">${esc(fase)}</span><span>${esc(quando)}</span><span class="jg-id">${esc(c.id)}</span></div>`;
+  const z=mmZebra(c);
+  const zebraBadge=z?`<span class="zebra-badge${z.tipo==='zebrao'?' zebrao':''}">🦓 ${z.tipo==='zebrao'?'ZEBRÃO +5':'ZEBRA +3'}</span>`:'';
+  const top=`<div class="jg-top"><span class="jg-fase">${esc(fase)}</span>${zebraBadge}<span>${esc(quando)}</span><span class="jg-id">${esc(c.id)}</span></div>`;
   const timesRow=`<div class="jg-times">${flagA}<span>${esc(nomeA)}</span><span class="jg-x">×</span><span>${esc(nomeB)}</span>${flagB}</div>`;
 
   if(c.finished){

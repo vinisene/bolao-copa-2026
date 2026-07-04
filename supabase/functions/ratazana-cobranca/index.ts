@@ -125,14 +125,16 @@ function mmPhaseKeyOf(id: string) {
 }
 
 // ─── Zebras (cópia de MM_ZEBRA do index.html; azarao = lado A ou B) ──────────
-// Só os 16 avos têm zebra definida por enquanto; novas fases entram aqui
-// quando o Vini definir (sempre espelhando o index.html).
+// Novas fases entram aqui quando o Vini definir (sempre espelhando o index.html).
 const MM_ZEBRA: Record<string, { tipo: "zebra" | "zebrao"; azarao: "A" | "B" }> = {
   r32_3: { tipo: "zebra", azarao: "B" },   // Alemanha × Paraguai      → azarão: Paraguai
   r32_6: { tipo: "zebra", azarao: "B" },   // França × Suécia          → azarão: Suécia
   r32_8: { tipo: "zebrao", azarao: "B" },  // Inglaterra × RD Congo    → azarão: RD Congo
   r32_11: { tipo: "zebra", azarao: "B" },  // Espanha × Áustria        → azarão: Áustria
   r32_15: { tipo: "zebrao", azarao: "B" }, // Argentina × Cabo Verde   → azarão: Cabo Verde
+  // OITAVAS
+  r16_2: { tipo: "zebrao", azarao: "A" },  // Paraguai × França        → azarão: Paraguai (lado A)
+  r16_7: { tipo: "zebra", azarao: "B" },   // Argentina × Egito        → azarão: Egito (lado B)
 };
 // deno-lint-ignore no-explicit-any
 type Conf = any;
