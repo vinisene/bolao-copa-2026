@@ -220,6 +220,21 @@ function makeResolver(confrontos: Conf[]) {
   };
   return (c: Conf) => ({ a: resolveSide(c.id, "A"), b: resolveSide(c.id, "B") });
 }
+// Consequência de um jogo, derivada da chave: pra onde vai o vencedor (take:'win')
+// e, se existir vaga de perdedor (semis → 3º lugar), pra onde vai o perdedor.
+function mmConsequencia(gameId: string): { winPhase: string | null; losePhase: string | null } {
+  let winPhase: string | null = null, losePhase: string | null = null;
+  for (const slot of Object.values(MM_BRACKET)) {
+    if (!slot.feeders) continue;
+    for (const side of ["A", "B"] as const) {
+      const f = slot.feeders[side];
+      if (f.g !== gameId) continue;
+      if (f.take === "win") winPhase = slot.phase;
+      else losePhase = slot.phase;
+    }
+  }
+  return { winPhase, losePhase };
+}
 
 // ─── Pontuação do mata (porta fiel de mmScore/calcMataPts/mataStats) ─────────
 // Base que MULTIPLICA (fase × turbo): 5 resultado · 1 gol A · 1 gol B ·
@@ -551,10 +566,11 @@ Deno.serve(async (req: Request) => {
     let modelo = MODELO_FALLBACK;
     try {
       if (!jogoId) throw new Error("parâmetro ?jogo=<id do confronto> é obrigatório");
-      const [confrontos, palpites, cfg] = await Promise.all([
+      const [confrontos, palpites, cfg, telefones] = await Promise.all([
         sbGet(`${pref}mata_confrontos?select=*`),
         sbGet(`${pref}mata_palpites?select=confronto_id,pid,gols_a,gols_b,quem_passa`),
         sbGet("bot_config?key=in.(system_prompt_ratazana,modelo_ia)&select=key,value"),
+        sbGet("bot_telefones?select=participante_id,nome_exibicao,genero").catch(() => []),
       ]);
       const cfgMap: Record<string, string> = {};
       for (const row of cfg) cfgMap[row.key] = row.value;
@@ -567,32 +583,80 @@ Deno.serve(async (req: Request) => {
         throw new Error(`jogo "${jogoId}" ainda não está fechado com placar final`);
       }
 
-      // Apuração (mesma pontuação do app): pontos, cravadas, zebra, troca de líder
+      // Apuração (mesma pontuação do app): pontos, cravadas, zebra, troca de líder.
+      // ⚠️ Times SEMPRE resolvidos pela chave (makeResolver): de oitavas em diante
+      // team_a/team_b são NULL na tabela — usar a coluna crua deixava a mensagem
+      // sair só com o placar, sem nome de time (bug real do lançamento).
       etapa = "apuracao";
       const PAL: Record<string, Record<string, Conf>> = {};
       for (const p of palpites) (PAL[p.confronto_id] ??= {})[p.pid] = p;
+      const teamsOf = makeResolver(confrontos);
+      const t = teamsOf(c);
+      const nomeA = t.a?.name || c.team_a || "Time A";
+      const nomeB = t.b?.name || c.team_b || "Time B";
       const phaseKey = mmPhaseKeyOf(c.id);
+      const faseNome = PH_LABEL[phaseKey] || phaseKey;
       const turbo = MM_TURBO.has(c.id);
       const mult = fmtPts((MM_PHASE_MULT[phaseKey] || 1) * (turbo ? 2 : 1));
       const pontos = MATA_PARTS_BOT.map((p) => ({ p, s: mmScore(PAL[c.id]?.[p.id], c) }))
         .filter((x) => x.s)
         .sort((a: Conf, b: Conf) => b.s.total - a.s.total);
-      const linhaPts = pontos.filter((x: Conf) => x.s.total > 0)
-        .map((x: Conf) => `${x.p.nome} ${fmtPts(x.s.total)}`).join("; ") || "ninguém pontuou";
       const cravaram = pontos.filter((x: Conf) => x.s.exato).map((x: Conf) => x.p.nome);
-      const z = mmZebra(c);
+      // acertaram o resultado (vencedor/empate), cravando ou não
+      const rres = c.real_a > c.real_b ? "A" : c.real_a < c.real_b ? "B" : "E";
+      const acertaramRes = pontos.filter((x: Conf) => {
+        const pal = PAL[c.id]?.[x.p.id];
+        const pres = pal.gols_a > pal.gols_b ? "A" : pal.gols_a < pal.gols_b ? "B" : "E";
+        return pres === rres;
+      }).map((x: Conf) => x.p.nome);
+      // palpites são públicos: lista completa palpite + pontos deste jogo
+      const palpitesTxt = MATA_PARTS_BOT.map((p) => {
+        const pal = PAL[c.id]?.[p.id];
+        if (!pal || pal.gols_a == null || pal.gols_b == null) return null;
+        const s = mmScore(pal, c);
+        const qp = pal.gols_a === pal.gols_b && pal.quem_passa
+          ? ` (${pal.quem_passa === "A" ? nomeA : nomeB} nos pênaltis)` : "";
+        return `${p.nome} ${pal.gols_a}×${pal.gols_b}${qp} = ${s ? fmtPts(s.total) : "0"} pontos`;
+      }).filter(Boolean).join("; ") || "ninguém tinha palpite registrado";
+
+      // Desfecho: vencedor, pênaltis narráveis (placar do tempo normal = o empate)
       const rw = mmRealWinner(c);
+      const venceuNome = rw === "A" ? nomeA : rw === "B" ? nomeB : nomeA;
+      const perdeuNome = rw === "A" ? nomeB : nomeA;
+      const foiPenaltis = c.real_a === c.real_b && !!c.classificado;
+      const desfechoTxt = foiPenaltis
+        ? `empate em ${c.real_a}×${c.real_b} no tempo normal + prorrogação; ${venceuNome} venceu ${perdeuNome} NOS PÊNALTIS`
+        : `${venceuNome} venceu ${perdeuNome} por ${Math.max(c.real_a, c.real_b)}×${Math.min(c.real_a, c.real_b)}`;
+
+      // Consequência: derivada da chave (quem avança pra onde / quem foi eliminado)
+      let consequenciaTxt: string;
+      if (c.id === "fin_1") {
+        consequenciaTxt = `${venceuNome} é o CAMPEÃO da Copa 2026; ${perdeuNome} fica com o vice`;
+      } else if (c.id === "tp_1") {
+        consequenciaTxt = `${venceuNome} fica com o 3º lugar da Copa; ${perdeuNome} termina em 4º`;
+      } else {
+        const cons = mmConsequencia(c.id);
+        consequenciaTxt = `${venceuNome} está classificado (avança pra fase: ${cons.winPhase || "próxima"})` +
+          (cons.losePhase
+            ? `; ${perdeuNome} vai disputar o ${cons.losePhase}`
+            : `; ${perdeuNome} está ELIMINADO da Copa`);
+      }
+
+      const z = mmZebra(c);
       let zebraTxt = "não havia zebra definida neste jogo";
       if (z) {
-        const nmAz = z.azarao === "A" ? (c.team_a || "A") : (c.team_b || "B");
-        zebraTxt = rw === z.azarao
-          ? `${z.tipo === "zebrao" ? "ZEBRÃO PAGOU" : "ZEBRA PAGOU"}: o azarão ${nmAz} avançou (+${z.tipo === "zebrao" ? 5 : 3} pra quem apostou nele)`
-          : `havia ${z.tipo === "zebrao" ? "zebrão" : "zebra"} definida (azarão ${nmAz}), mas não pagou`;
+        const nmAz = z.azarao === "A" ? nomeA : nomeB;
+        if (rw === z.azarao) {
+          const premiados = pontos.filter((x: Conf) => x.s.zebra > 0).map((x: Conf) => x.p.nome);
+          zebraTxt = `${z.tipo === "zebrao" ? "ZEBRÃO PAGOU" : "ZEBRA PAGOU"}: o azarão ${nmAz} eliminou ${rw === "A" ? nomeB : nomeA}` +
+            ` (+${z.tipo === "zebrao" ? 5 : 3} pra quem apostou nele${premiados.length ? `: ${listaNomes(premiados)}` : "; ninguém apostou"})`;
+        } else {
+          zebraTxt = `havia ${z.tipo === "zebrao" ? "zebrão" : "zebra"} definida (azarão ${nmAz}), mas não pagou`;
+        }
       }
+
       const meu = pontos.find((x: Conf) => x.p.id === RATAZANA_ID);
       const meuPal = PAL[c.id]?.[RATAZANA_ID];
-      const penTxt = (c.real_a === c.real_b && c.classificado)
-        ? ` (${c.classificado === "A" ? c.team_a : c.team_b} passou nos pênaltis)` : "";
       // troca de líder: ranking SEM este jogo vs COM ele (jogos [TESTE] não
       // entram em mataStats, então teste não mexe no ranking real)
       const semEste = confrontos.filter((x: Conf) => x.id !== c.id);
@@ -605,19 +669,24 @@ Deno.serve(async (req: Request) => {
       const liderTxt = liderAntes.p.id !== liderDepois.p.id
         ? `HOUVE TROCA DE LÍDER: ${liderDepois.p.nome} assumiu a ponta com ${fmtPts(liderDepois.total)} pontos (o líder anterior era ${liderAntes.p.nome} com ${fmtPts(liderAntes.total)} pontos)`
         : `sem troca de líder: segue ${liderDepois.p.nome} com ${fmtPts(liderDepois.total)} pontos`;
+      // gêneros de bot_telefones (persona v2.0 calibra intensidade por gênero)
+      const generos = (telefones as Conf[]).filter((x: Conf) => x.genero)
+        .map((x: Conf) => `${x.nome_exibicao || MATA_PARTS_BOT.find((p) => p.id === x.participante_id)?.nome || x.participante_id} (${x.genero})`);
 
       etapa = "monta_prompt";
-      const origemLiberada = Math.random() < 1 / 3;
       userPrompt =
         `DADOS VERIFICADOS DO BOLÃO (fim de jogo, gerados em ${agoraBrasilia()}, horário de Brasília). Use somente estes dados. Não calcule nem invente nada.\n\n` +
-        `Estilo desta mensagem: referência de origem/esgoto ${origemLiberada ? "LIBERADA (no máximo uma)" : "PROIBIDA nesta mensagem"}.\n\n` +
-        `JOGO ENCERRADO AGORA: ${c.team_a} ${c.real_a}×${c.real_b} ${c.team_b}${penTxt} (${c.phase || PH_LABEL[phaseKey]}, valia ×${mult}${turbo ? ", jogo turbo" : ""})\n` +
-        `- Pontuaram: ${linhaPts}\n` +
-        `- Cravaram o placar exato: ${cravaram.length ? listaNomes(cravaram) : "ninguém"}\n` +
+        `JOGO ENCERRADO AGORA (${faseNome}): ${nomeA} ${c.real_a}×${c.real_b} ${nomeB} — valia ×${mult}${turbo ? " (jogo TURBO)" : ""}\n` +
+        `- Desfecho: ${desfechoTxt}\n` +
+        `- Consequência: ${consequenciaTxt}\n` +
         `- Zebra: ${zebraTxt}\n` +
+        `- Cravaram o placar exato: ${cravaram.length ? listaNomes(cravaram) : "ninguém"}\n` +
+        `- Acertaram o resultado: ${acertaramRes.length ? listaNomes(acertaramRes) : "ninguém"}\n` +
+        `- Palpites e pontos neste jogo: ${palpitesTxt}\n` +
         `- Seu palpite (Ratazana00): ${meuPal && meuPal.gols_a != null ? `${meuPal.gols_a}×${meuPal.gols_b}` : "não registrado"}; seus pontos neste jogo: ${meu ? fmtPts(meu.s.total) : "0"}\n` +
-        `- Ranking do mata: ${liderTxt}; você (Ratazana00) está em ${posRat}º com ${fmtPts(rankCom[posRat - 1].total)} pontos\n\n` +
-        `TAREFA: escreva um comentário CURTO de FIM DE JOGO para o grupo de WhatsApp (3 a 5 linhas): placar, destaque de quem pontuou ou cravou, zebra se pagou, troca de líder se houve, e a sua perspectiva de participante (você também pontua ou erra nesses jogos). Sem cobrar palpite de ninguém, sem link do bolão. Mensagem única.`;
+        `- Ranking do mata: ${liderTxt}; você (Ratazana00) está em ${posRat}º com ${fmtPts(rankCom[posRat - 1].total)} pontos\n` +
+        (generos.length ? `- Gênero dos participantes (pra calibrar a intensidade): ${generos.join("; ")}\n` : "") +
+        `\nTAREFA: escreva o comentário de FIM DE JOGO para o grupo de WhatsApp (4 a 7 linhas), seguindo o CONTEXTO OBRIGATÓRIO da persona: cite os DOIS times pelo nome e a fase, o desfecho (se teve pênaltis, narre a emoção), a consequência (quem avança pra qual fase, quem foi eliminado), zebra se pagou (aí abra com o alerta e elogie quem apostou nela), quem cravou/acertou o resultado e os pontos relevantes das pessoas. Sem cobrar palpite de ninguém, sem link do bolão. Mensagem única.`;
 
       etapa = "anthropic";
       const ia = await chamaIA(modelo, systemPrompt, userPrompt);
@@ -669,10 +738,11 @@ Deno.serve(async (req: Request) => {
 
   try {
     // 3a) Banco (produção): confrontos + palpites + config (prompt e modelo)
-    const [confrontos, palpites, cfg] = await Promise.all([
+    const [confrontos, palpites, cfg, telefones] = await Promise.all([
       sbGet("mata_confrontos?select=*"),
       sbGet("mata_palpites?select=confronto_id,pid,gols_a,gols_b,quem_passa"),
       sbGet("bot_config?key=in.(system_prompt_ratazana,modelo_ia,fase_ativa)&select=key,value"),
+      sbGet("bot_telefones?select=participante_id,nome_exibicao,genero").catch(() => []),
     ]);
     const cfgMap: Record<string, string> = {};
     for (const row of cfg) cfgMap[row.key] = row.value;
@@ -884,8 +954,9 @@ Deno.serve(async (req: Request) => {
     if (testeLongo) {
       tarefa = "TAREFA (TESTE DE MENSAGEM LONGA DO SISTEMA): gere uma mensagem COMPLETA e LONGA cobrindo, nesta ordem: o resultado do último jogo encerrado com quem pontuou e quem cravou; o ranking (top 3 e a sua posição); e TODOS os jogos citados nos dados (fase ativa e prévia) com horário e os palpites públicos listados. Use apenas os dados fornecidos, sem inventar nada. Estruture em 2 ou 3 blocos separados por uma linha contendo apenas ---, cada bloco com no máximo 900 caracteres e se sustentando sozinho. Inclua o link do bolão no bloco final.";
     }
-    // referência de origem/esgoto racionada por sorteio (~1 a cada 3 mensagens)
-    const origemLiberada = Math.random() < 1 / 3;
+    // gêneros de bot_telefones (persona v2.0 calibra intensidade por gênero)
+    const generos = (telefones as Conf[]).filter((x: Conf) => x.genero)
+      .map((x: Conf) => `${x.nome_exibicao || MATA_PARTS_BOT.find((p) => p.id === x.participante_id)?.nome || x.participante_id} (${x.genero})`);
     const previaBloco = previaJogos.length
       ? `\nPRÉVIA DA PRÓXIMA FASE (${PH_LABEL[proximaFase!]}) - INFORMATIVO, NÃO COBRAR (a rodada destes jogos ainda não abriu no app; ninguém deve palpite deles):\n` +
         previaJogos.map((j) =>
@@ -896,7 +967,7 @@ Deno.serve(async (req: Request) => {
     userPrompt =
       `DADOS VERIFICADOS DO BOLÃO (gerados pelo sistema em ${agoraBrasilia()}, horário de Brasília). Use somente estes dados. Não calcule nem invente nada.\n\n` +
       `FASE ATIVA DO BOLÃO: ${PH_LABEL[faseAtiva]}. Cobrança de palpite vale SOMENTE para jogos desta fase.\n` +
-      `Estilo desta mensagem: referência de origem/esgoto ${origemLiberada ? "LIBERADA (no máximo uma)" : "PROIBIDA nesta mensagem"}.\n\n` +
+      (generos.length ? `Gênero dos participantes (pra calibrar a intensidade): ${generos.join("; ")}\n` : "") + "\n" +
       `PRÓXIMOS JOGOS DA FASE ATIVA (palpites ainda abertos):\n${jogos.length ? jogos.map(blocoJogo).join("\n") : "- nenhum jogo futuro restante nesta fase"}\n\n` +
       `Já completaram os palpites de todos os jogos citados: ${completaram.length ? listaNomes(completaram) : "ninguém"}\n` +
       (adiantados.length ? `Palpites completos em jogos futuros já definidos (${futurosDef.length} jogos abertos): ${adiantados.map((x) => `${x.nome} ${x.n}`).join("; ")}\n` : "") +
