@@ -1,17 +1,30 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// ROBÔ RATAZANA — Edge Function "ratazana-cobranca" (v1.7: + fechar_placar via service role)
+// ROBÔ RATAZANA — Edge Function "ratazana-cobranca"
+// (v1.8: destino explícito teste|oficial em TODO envio + preview/direção de
+//  cena no fim_de_jogo + modo enviar_texto; v1.7: fechar_placar via service role)
 // ═══════════════════════════════════════════════════════════════════════════
+// ⚠️ TODO envio exige &destino=teste|oficial (sem default). Grupo oficial =
+// secret GRUPO_OFICIAL_ID; nesta fase NENHUM envio automático vai pro oficial:
+// tudo passa por ação do admin.
+//
 // Uso (navegador ou curl):
-//   GET https://<projeto>.supabase.co/functions/v1/ratazana-cobranca?token=XXX
-//     → gera a cobrança de quem falta palpitar e envia ao GRUPO DE TESTE
+//   GET https://<projeto>.supabase.co/functions/v1/ratazana-cobranca?token=XXX&destino=teste
+//     → gera a cobrança de quem falta palpitar e envia ao grupo escolhido
 //   ...&force=1         → se ninguém falta, envia "todo mundo em dia" (teste)
 //   ...&listar_grupos=1 → NÃO envia nada; lista os grupos do WhatsApp da
-//                         instância (para descobrir o ID ...@g.us do grupo)
-//   ...&tipo=fim_de_jogo&jogo=<id>[&env=dev] → comentário curto de fim de
-//                         jogo (chamado pela página admin ao fechar um jogo)
+//                         instância com nome + ID ...@g.us (normalizado em
+//                         "grupos" + resposta crua), pra preencher os secrets
+//   ...&tipo=fim_de_jogo&jogo=<id>[&env=dev][&preview=1][&pessoa=<pid>][&direcao=<txt>]
+//                       → comentário de fim de jogo. preview=1 GERA E DEVOLVE
+//                         sem enviar (fluxo do admin: "Acordar o Ratazana");
+//                         sem preview, exige &destino=. pessoa/direcao são
+//                         direção de cena (nunca copiadas literalmente).
+//   POST ...&tipo=enviar_texto&destino=teste|oficial  body JSON {texto}
+//                       → envia texto PRONTO (preview aprovado / msg inaugural)
 //   ...&tipo=fechar_placar&jogo=<id>&finished=1&real_a=N&real_b=N
 //       [&classificado=A|B][&env=dev] → GRAVA o placar final (única via de
 //       escrita; roda com service role). finished=0 reabre (só destrava).
+//       Fechar NUNCA envia mensagem (o comentário é ação separada do admin).
 //
 // Dados: SEMPRE tabelas de PRODUÇÃO (mata_confrontos / mata_palpites / bot_config).
 // Modelo de IA: lido de bot_config key 'modelo_ia' (fallback Haiku 4.5).
@@ -577,25 +590,46 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  // 2) Confere secrets necessários (nunca mostra valores, só nomes)
+  // 2) Confere secrets necessários (nunca mostra valores, só nomes).
+  // Os IDs de grupo NÃO entram aqui: grupoDestino valida só o do destino pedido.
   const necessarios = listarGrupos
     ? ["ZAPZAP_API_KEY", "ZAPZAP_API_SECRET", "ZAPZAP_ENDPOINT_BASE"]
-    : ["ZAPZAP_API_KEY", "ZAPZAP_API_SECRET", "ZAPZAP_ENDPOINT_BASE", "GRUPO_TESTE_ID", "ANTHROPIC_API_KEY"];
+    : ["ZAPZAP_API_KEY", "ZAPZAP_API_SECRET", "ZAPZAP_ENDPOINT_BASE", "ANTHROPIC_API_KEY"];
   const faltandoSecrets = necessarios.filter((n) => !Deno.env.get(n));
   if (faltandoSecrets.length) {
     return json({ ok: false, erro: `Secrets faltando: ${faltandoSecrets.join(", ")}` }, 500);
   }
 
-  // Modo auxiliar: listar grupos do WhatsApp (pra descobrir o ID ...@g.us)
+  // Modo auxiliar: listar grupos do WhatsApp (pra descobrir o ID ...@g.us).
+  // Devolve também uma lista normalizada [{nome,id}] pro utilitário do admin.
   if (listarGrupos) {
     try {
       const r = await fetch(`${zapBase()}/group/list`, { headers: zapHeaders() });
       const corpo = await r.text();
       let grupos: unknown;
       try { grupos = JSON.parse(corpo); } catch { grupos = corpo.slice(0, 2000); }
+      // normalização best-effort (formato da ZapZap pode variar; o cru vai junto)
+      const achaLista = (o: unknown): Conf[] | null => {
+        if (Array.isArray(o)) return o as Conf[];
+        if (o && typeof o === "object") {
+          for (const v of Object.values(o as Record<string, unknown>)) {
+            const res = achaLista(v);
+            if (res) return res;
+          }
+        }
+        return null;
+      };
+      const bruta = achaLista(grupos);
+      const gruposNorm = bruta
+        ? bruta.map((g: Conf) => ({
+            nome: g?.name || g?.subject || g?.title || g?.groupName || "(sem nome)",
+            id: g?.id || g?.jid || g?.groupId || g?.chatId || "",
+          })).filter((g) => g.id)
+        : [];
       return json({
         ok: r.ok,
-        dica: "Ache o grupo de teste na lista e copie o campo id (termina em @g.us) para o secret GRUPO_TESTE_ID.",
+        dica: "Copie o ID (...@g.us) do grupo da família para o secret GRUPO_OFICIAL_ID (e o do grupo de teste para GRUPO_TESTE_ID).",
+        grupos: gruposNorm,
         resposta_zapzap: grupos,
       }, r.ok ? 200 : 502);
     } catch (e) {
@@ -826,15 +860,22 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  // 3) Pipeline da cobrança — cada etapa em try/catch; tudo vai pro bot_log
-  const GRUPO = Deno.env.get("GRUPO_TESTE_ID") || "";
-  const logBase = { tipo: testeLongo ? "teste_mensagem_longa" : (force ? "cobranca_forcada" : "cobranca"), destino: GRUPO };
-  let etapa = "consulta_banco";
+  // 3) Pipeline da cobrança — cada etapa em try/catch; tudo vai pro bot_log.
+  // Destino EXPLÍCITO obrigatório (?destino=teste|oficial): a URL antiga sem
+  // &destino= passa a dar erro claro — nenhum envio "de default" existe mais.
+  const logBase = { tipo: testeLongo ? "teste_mensagem_longa" : (force ? "cobranca_forcada" : "cobranca"), destino: "" };
+  let etapa = "destino";
+  let GRUPO = "";
   let userPrompt: string | null = null;
   let respostaIA: string | null = null;
   let modelo = MODELO_FALLBACK;
 
   try {
+    const dst = grupoDestino(url);
+    GRUPO = dst.grupo;
+    logBase.destino = `${dst.destino} (${dst.grupo})`;
+
+    etapa = "consulta_banco";
     // 3a) Banco (produção): confrontos + palpites + config (prompt e modelo)
     const [confrontos, palpites, cfg, telefones] = await Promise.all([
       sbGet("mata_confrontos?select=*"),

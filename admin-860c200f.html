@@ -120,6 +120,14 @@
   .pv-actions{display:flex;gap:8px;flex-wrap:wrap;}
   .pv-send{flex:1;background:var(--lime);color:#12250f;border:none;border-radius:4px 12px 4px 4px;padding:9px;font-weight:900;font-size:13.5px;cursor:pointer;}
   .pv-again{background:none;border:1.5px solid var(--brd);color:var(--ink);border-radius:8px;padding:9px 12px;font-size:13px;font-weight:700;cursor:pointer;}
+
+  /* utilitários do topo: listar grupos + mensagem inaugural */
+  .utilbtn{background:var(--card);border:1px solid var(--brd);color:var(--mu);border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer;}
+  .util-box{background:var(--card);border:1px solid var(--brd);border-radius:4px 16px 4px 4px;padding:12px;margin:10px 0;}
+  .util-tit{font-size:12.5px;color:var(--mu);margin-bottom:8px;}
+  .gr-table{width:100%;border-collapse:collapse;font-size:13px;}
+  .gr-table td{padding:6px 8px;border-top:1px solid var(--brd);vertical-align:top;}
+  .gr-table td.gr-id{color:var(--mu);font-size:11.5px;word-break:break-all;}
 </style>
 </head>
 <body>
@@ -134,8 +142,12 @@
 
 <div class="toprow">
   <button id="recarregar" onclick="carregar()">↻ Recarregar</button>
+  <button class="utilbtn" onclick="toggleUtil('grupos')">📡 Listar grupos</button>
+  <button class="utilbtn" onclick="toggleUtil('inaugural')">📣 Mensagem inaugural</button>
   <button class="linklike" onclick="trocarToken()">trocar senha</button>
 </div>
+<div id="util-grupos" class="util-box" hidden></div>
+<div id="util-inaugural" class="util-box" hidden></div>
 
 <div class="controls-row">
   <div class="status-toggle" id="status-wrap">
@@ -159,6 +171,15 @@ function isDevEnv(h){h=h||location.hostname;return h.startsWith('dev.')||h.start
 const IS_DEV=isDevEnv();
 const MM_TCONF=IS_DEV?'dev_mata_confrontos':'mata_confrontos';
 const TOKEN_KEY='ratz_admin_code';
+
+// ─── MENSAGEM INAUGURAL (texto FIXO; edite AQUI quando o Vini fornecer o
+//     definitivo — não passa por IA, é enviada exatamente como está) ─────────
+const MSG_INAUGURAL=`🐀 *Chegou o Ratazana.*
+
+(TEXTO PROVISÓRIO — o Vini vai fornecer a mensagem inaugural definitiva.
+Edite a constante MSG_INAUGURAL no topo do script da página admin.)
+
+Ninguém escapa do Ratazana.`;
 
 // ─── Bandeiras (cópia fiel de flagImg/TAGFLAGS do index.html) ────────────────
 const TAGFLAGS={'🏴󠁧󠁢󠁳󠁣󠁴󠁿':'gb-sct','🏴󠁧󠁢󠁥󠁮󠁧󠁿':'gb-eng'};
@@ -471,6 +492,23 @@ async function gerarComentario(cid){
     <div class="status" id="pvst-${esc(cid)}"></div>
   </div>`;
 }
+// Envio de texto pronto via função (tipo=enviar_texto): compartilhado entre o
+// preview aprovado do "Acordar" e a mensagem inaugural. Escreve o resultado
+// no elemento de status recebido; retorna true se enviou.
+async function postEnviarTexto(dest,texto,st){
+  const token=localStorage.getItem(TOKEN_KEY)||'';
+  st.className='status';st.textContent='Enviando…';
+  let r,res;
+  try{
+    r=await fetch(`${FN_URL}?token=${encodeURIComponent(token)}&tipo=enviar_texto&destino=${encodeURIComponent(dest)}`,{
+      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({texto})});
+    res=await r.json().catch(()=>({}));
+  }catch(e){ st.className='status err'; st.textContent='Erro de rede ao enviar: '+e.message; return false; }
+  if(r.status===401){ trocarToken(); st.className='status err'; st.textContent='Senha do admin inválida.'; return false; }
+  if(!r.ok||!res.ok){ st.className='status err'; st.textContent='Erro ao enviar: '+(res.erro||('HTTP '+r.status)); return false; }
+  st.className='status ok'; st.textContent=`✅ Enviado ao grupo ${dest==='oficial'?'OFICIAL':'de teste'} (${res.n_mensagens||1} mensagem${(res.n_mensagens||1)>1?'s':''}).`;
+  return true;
+}
 async function enviarPreview(cid){
   const d=previewState[cid];
   const st=document.getElementById('pvst-'+cid);
@@ -482,17 +520,58 @@ async function enviarPreview(cid){
     ? '⚠️ Enviar pro grupo OFICIAL? A família toda vai ver.'
     : 'Enviar pro grupo de TESTE?';
   if(!confirm(aviso+'\n\n'+d.texto.slice(0,300)+(d.texto.length>300?'…':'')))return;
+  await postEnviarTexto(dest,d.texto,st);
+}
+
+// ─── Utilitários do topo: listar grupos + mensagem inaugural ─────────────────
+function toggleUtil(qual){
+  for(const k of ['grupos','inaugural']){
+    const el=document.getElementById('util-'+k);
+    if(k===qual){ el.hidden=!el.hidden; if(!el.hidden)(k==='grupos'?renderGrupos():renderInaugural()); }
+    else el.hidden=true;
+  }
+}
+async function renderGrupos(){
+  const el=document.getElementById('util-grupos');
+  el.innerHTML='<div class="status">Consultando os grupos do WhatsApp…</div>';
   const token=localStorage.getItem(TOKEN_KEY)||'';
-  st.className='status';st.textContent='Enviando…';
-  let r,res;
-  try{
-    r=await fetch(`${FN_URL}?token=${encodeURIComponent(token)}&tipo=enviar_texto&destino=${dest}`,{
-      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({texto:d.texto})});
-    res=await r.json().catch(()=>({}));
-  }catch(e){ st.className='status err'; st.textContent='Erro de rede ao enviar: '+e.message; return; }
-  if(r.status===401){ trocarToken(); st.className='status err'; st.textContent='Senha do admin inválida.'; return; }
-  if(!r.ok||!res.ok){ st.className='status err'; st.textContent='Erro ao enviar: '+(res.erro||('HTTP '+r.status)); return; }
-  st.className='status ok'; st.textContent=`✅ Enviado ao grupo ${dest==='oficial'?'OFICIAL':'de teste'} (${res.n_mensagens||1} mensagem${(res.n_mensagens||1)>1?'s':''}).`;
+  let r,d;
+  try{ r=await fetch(`${FN_URL}?token=${encodeURIComponent(token)}&listar_grupos=1`); d=await r.json().catch(()=>({})); }
+  catch(e){ el.innerHTML='<div class="status err">Erro de rede: '+esc(e.message)+'</div>'; return; }
+  if(r.status===401){ trocarToken(); el.innerHTML='<div class="status err">Senha do admin inválida.</div>'; return; }
+  if(!r.ok){ el.innerHTML='<div class="status err">Erro: '+esc(d.erro||('HTTP '+r.status))+'</div>'; return; }
+  if(Array.isArray(d.grupos)&&d.grupos.length){
+    el.innerHTML='<p class="util-tit">Grupos em que o número do robô está. Copie o ID do grupo da família pro secret <b>GRUPO_OFICIAL_ID</b> no Supabase (e confira o <b>GRUPO_TESTE_ID</b>):</p>'+
+      '<table class="gr-table">'+d.grupos.map(g=>`<tr><td>${esc(g.nome)}</td><td class="gr-id">${esc(g.id)}</td><td><button class="linklike" onclick="navigator.clipboard.writeText(this.dataset.gid)" data-gid="${esc(g.id)}">copiar</button></td></tr>`).join('')+'</table>';
+  }else{
+    el.innerHTML='<p class="util-tit">Não consegui montar a lista nome+ID; resposta crua da API (procure o campo id ...@g.us):</p><pre class="pv-text">'+esc(JSON.stringify(d.resposta_zapzap||d,null,2).slice(0,4000))+'</pre>';
+  }
+}
+function renderInaugural(){
+  const el=document.getElementById('util-inaugural');
+  el.innerHTML=`<div class="preview-box">
+    <div class="pv-label">MENSAGEM INAUGURAL — TEXTO FIXO (pra trocar, edite a constante MSG_INAUGURAL no script desta página)</div>
+    <pre class="pv-text">${esc(MSG_INAUGURAL)}</pre>
+    <div class="pv-dest">
+      <label><input type="radio" name="dest-inaugural" value="teste" checked> Grupo de TESTE</label>
+      <label><input type="radio" name="dest-inaugural" value="oficial"> <span class="of">Grupo OFICIAL</span></label>
+    </div>
+    <div class="pv-actions">
+      <button class="pv-send" onclick="enviarInaugural()">📤 Enviar mensagem inaugural</button>
+    </div>
+    <div class="status" id="pvst-inaugural"></div>
+  </div>`;
+}
+async function enviarInaugural(){
+  const st=document.getElementById('pvst-inaugural');
+  const sel=document.querySelector('input[name="dest-inaugural"]:checked');
+  const dest=sel?sel.value:'';
+  if(!dest){ st.className='status err'; st.textContent='Escolha o destino.'; return; }
+  const aviso=dest==='oficial'
+    ? '⚠️ Enviar a MENSAGEM INAUGURAL pro grupo OFICIAL? É a estreia do Ratazana pra família toda.'
+    : 'Enviar a mensagem inaugural pro grupo de TESTE?';
+  if(!confirm(aviso))return;
+  await postEnviarTexto(dest,MSG_INAUGURAL,st);
 }
 async function reabrirJogo(cid){
   const t=teams(byId(cid)||{id:cid});
