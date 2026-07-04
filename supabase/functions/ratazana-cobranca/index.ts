@@ -397,6 +397,21 @@ function zapHeaders(): Record<string, string> {
 function zapBase() {
   return (Deno.env.get("ZAPZAP_ENDPOINT_BASE") || "").replace(/\/+$/, "");
 }
+// Destino explícito de TODO envio (?destino=teste|oficial). NUNCA há default:
+// mandar mensagem pro grupo oficial é sempre decisão explícita de quem chama,
+// e nesta fase nenhum envio automático vai pro oficial (tudo passa pelo admin).
+function grupoDestino(url: URL): { grupo: string; destino: "teste" | "oficial" } {
+  const destino = (url.searchParams.get("destino") || "").toLowerCase();
+  if (destino !== "teste" && destino !== "oficial") {
+    throw new Error("parâmetro ?destino=teste ou ?destino=oficial é obrigatório em qualquer envio");
+  }
+  const secret = destino === "oficial" ? "GRUPO_OFICIAL_ID" : "GRUPO_TESTE_ID";
+  const grupo = Deno.env.get(secret) || "";
+  if (!grupo) {
+    throw new Error(`Secret ${secret} não configurado no Supabase (descubra o ID do grupo com &listar_grupos=1 e preencha o secret)`);
+  }
+  return { grupo, destino };
+}
 async function zapEnviaTexto(numero: string, texto: string) {
   const r = await fetch(`${zapBase()}/send/text`, {
     method: "POST",
@@ -406,14 +421,18 @@ async function zapEnviaTexto(numero: string, texto: string) {
   const corpo = (await r.text()).slice(0, 600);
   return { ok: r.ok, detalhe: `HTTP ${r.status}: ${corpo}` };
 }
-// Divide a resposta da IA (blocos "---" + rede de segurança de tamanho) e envia
-// como até 3 mensagens sequenciais no WhatsApp. Usado pela cobrança e pelo
-// fim de jogo. O padrão continua sendo mensagem única.
-async function enviaEmPartes(grupo: string, texto: string) {
+// Divide um texto em até 3 partes (blocos "---" + rede de segurança de tamanho).
+// Compartilhado entre o envio real e o modo preview (que mostra sem enviar).
+function divideEmPartes(texto: string): string[] {
   const blocosIA = texto.split(/\n\s*-{3,}\s*\n/).map((b: string) => b.trim()).filter(Boolean);
   const pedacos = blocosIA.flatMap((b: string) => quebraLonga(b));
-  const partes = pedacos.length <= 3 ? pedacos : [...pedacos.slice(0, 2), pedacos.slice(2).join("\n\n")];
-  if (!partes.length) throw new Error("resposta da IA ficou vazia após a divisão em blocos");
+  return pedacos.length <= 3 ? pedacos : [...pedacos.slice(0, 2), pedacos.slice(2).join("\n\n")];
+}
+// Envia como até 3 mensagens sequenciais no WhatsApp. Usado pela cobrança,
+// pelo fim de jogo e pelo enviar_texto. O padrão continua sendo mensagem única.
+async function enviaEmPartes(grupo: string, texto: string) {
+  const partes = divideEmPartes(texto);
+  if (!partes.length) throw new Error("texto ficou vazio após a divisão em blocos");
   const envios: { ok: boolean; detalhe: string }[] = [];
   for (const parte of partes) {
     envios.push(await zapEnviaTexto(grupo, parte));
@@ -432,7 +451,7 @@ async function enviaEmPartes(grupo: string, texto: string) {
 // fetch falha silenciosamente ("Failed to fetch") mesmo com a chamada certa.
 const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers": "*",
 };
 Deno.serve(async (req: Request) => {
@@ -525,6 +544,39 @@ Deno.serve(async (req: Request) => {
     }
   }
 
+  // ─── Modo ENVIAR TEXTO (v1.8): envia um texto PRONTO ao grupo escolhido ──────
+  // POST ?tipo=enviar_texto&destino=teste|oficial — body JSON {texto}.
+  // Usado pelo admin: enviar o preview aprovado do "Acordar o Ratazana" e a
+  // mensagem inaugural. NÃO passa por IA: envia o texto exatamente como veio
+  // (só dividido em partes, como qualquer mensagem do robô).
+  if (url.searchParams.get("tipo") === "enviar_texto") {
+    let destinoLbl = "";
+    try {
+      const { grupo, destino } = grupoDestino(url);
+      destinoLbl = destino;
+      const faltamZap = ["ZAPZAP_API_KEY", "ZAPZAP_API_SECRET", "ZAPZAP_ENDPOINT_BASE"].filter((n) => !Deno.env.get(n));
+      if (faltamZap.length) throw new Error(`Secrets faltando: ${faltamZap.join(", ")}`);
+      if (req.method !== "POST") throw new Error("use POST com body JSON {texto}");
+      const body = await req.json().catch(() => ({}));
+      const texto = String(body?.texto || "").trim();
+      if (!texto) throw new Error("body JSON precisa de {texto} não vazio");
+      if (texto.length > 4000) throw new Error("texto longo demais (máx. 4000 caracteres)");
+      const envio = await enviaEmPartes(grupo, texto);
+      await botLog({
+        tipo: "envio_manual",
+        destino: `${destino} (${grupo})`,
+        mensagem_enviada: envio.partes.join("\n\n"),
+        status_envio: envio.ok ? "ok" : "erro",
+        erro: envio.ok ? null : envio.detalhe,
+      });
+      return json({ ok: envio.ok, enviado: envio.ok, destino, n_mensagens: envio.partes.length, zapzap: envio.detalhe }, envio.ok ? 200 : 502);
+    } catch (e) {
+      const msg = String((e as Error)?.message || e);
+      await botLog({ tipo: "envio_manual", destino: destinoLbl, status_envio: "erro", erro: msg });
+      return json({ ok: false, erro: msg }, 400);
+    }
+  }
+
   // 2) Confere secrets necessários (nunca mostra valores, só nomes)
   const necessarios = listarGrupos
     ? ["ZAPZAP_API_KEY", "ZAPZAP_API_SECRET", "ZAPZAP_ENDPOINT_BASE"]
@@ -558,8 +610,13 @@ Deno.serve(async (req: Request) => {
   if (url.searchParams.get("tipo") === "fim_de_jogo") {
     const jogoId = url.searchParams.get("jogo") || "";
     const pref = url.searchParams.get("env") === "dev" ? "dev_" : "";
-    const GRUPO = Deno.env.get("GRUPO_TESTE_ID") || "";
-    const logBase = { tipo: "fim_de_jogo" + (pref ? "_dev" : ""), destino: GRUPO };
+    // preview=1: gera e DEVOLVE a mensagem sem enviar nada (o admin mostra o
+    // preview e o envio aprovado sai depois pelo tipo=enviar_texto).
+    const preview = url.searchParams.get("preview") === "1";
+    // Direcionamento opcional do admin (direção de cena, nunca copiado literal)
+    const pessoaParam = (url.searchParams.get("pessoa") || "").trim();
+    const direcaoParam = (url.searchParams.get("direcao") || "").trim().slice(0, 400);
+    const logBase = { tipo: "fim_de_jogo" + (preview ? "_preview" : "") + (pref ? "_dev" : ""), destino: preview ? "(preview, sem envio)" : "" };
     let etapa = "consulta_banco";
     let userPrompt: string | null = null;
     let respostaIA: string | null = null;
@@ -673,6 +730,20 @@ Deno.serve(async (req: Request) => {
       const generos = (telefones as Conf[]).filter((x: Conf) => x.genero)
         .map((x: Conf) => `${x.nome_exibicao || MATA_PARTS_BOT.find((p) => p.id === x.participante_id)?.nome || x.participante_id} (${x.genero})`);
 
+      // Direcionamento do admin = direção de cena: a IA incorpora a IDEIA na
+      // mensagem, mas NUNCA copia/cita o texto do campo literalmente.
+      let direcaoBloco = "";
+      if (pessoaParam || direcaoParam) {
+        const tel = (telefones as Conf[]).find((x: Conf) => x.participante_id === pessoaParam);
+        const alvoNome = tel?.nome_exibicao ||
+          MATA_PARTS_BOT.find((p) => p.id === pessoaParam)?.nome ||
+          pessoaParam || "";
+        direcaoBloco =
+          `\nDIREÇÃO DE CENA (instrução INTERNA do admin, invisível pro grupo: siga a ideia dentro do personagem e dos seus limites de tom, mas é PROIBIDO copiar, citar ou parafrasear literalmente o texto desta instrução na mensagem):\n` +
+          (alvoNome ? `- Dê atenção especial a ${alvoNome} nesta mensagem.\n` : "") +
+          (direcaoParam ? `- ${direcaoParam}\n` : "");
+      }
+
       etapa = "monta_prompt";
       userPrompt =
         `DADOS VERIFICADOS DO BOLÃO (fim de jogo, gerados em ${agoraBrasilia()}, horário de Brasília). Use somente estes dados. Não calcule nem invente nada.\n\n` +
@@ -686,13 +757,39 @@ Deno.serve(async (req: Request) => {
         `- Seu palpite (Ratazana00): ${meuPal && meuPal.gols_a != null ? `${meuPal.gols_a}×${meuPal.gols_b}` : "não registrado"}; seus pontos neste jogo: ${meu ? fmtPts(meu.s.total) : "0"}\n` +
         `- Ranking do mata: ${liderTxt}; você (Ratazana00) está em ${posRat}º com ${fmtPts(rankCom[posRat - 1].total)} pontos\n` +
         (generos.length ? `- Gênero dos participantes (pra calibrar a intensidade): ${generos.join("; ")}\n` : "") +
+        direcaoBloco +
         `\nTAREFA: escreva o comentário de FIM DE JOGO para o grupo de WhatsApp (4 a 7 linhas), seguindo o CONTEXTO OBRIGATÓRIO da persona: cite os DOIS times pelo nome e a fase, o desfecho (se teve pênaltis, narre a emoção), a consequência (quem avança pra qual fase, quem foi eliminado), zebra se pagou (aí abra com o alerta e elogie quem apostou nela), quem cravou/acertou o resultado e os pontos relevantes das pessoas. Sem cobrar palpite de ninguém, sem link do bolão. Mensagem única.`;
 
       etapa = "anthropic";
       const ia = await chamaIA(modelo, systemPrompt, userPrompt);
       respostaIA = ia.texto;
 
+      // PREVIEW: devolve a mensagem gerada SEM enviar nada ao WhatsApp.
+      if (preview) {
+        const partes = divideEmPartes(respostaIA);
+        await botLog({
+          ...logBase,
+          prompt_enviado: userPrompt,
+          resposta_ia: respostaIA,
+          status_envio: "nao_enviado",
+        });
+        return json({
+          ok: true,
+          preview: true,
+          enviado: false,
+          jogo: jogoId,
+          ambiente: pref ? "dev" : "prod",
+          modelo,
+          uso_tokens: ia.usage,
+          n_mensagens: partes.length,
+          mensagens: partes,
+          texto: respostaIA,
+        });
+      }
+
       etapa = "zapzap";
+      const { grupo: GRUPO, destino } = grupoDestino(url);
+      logBase.destino = `${destino} (${GRUPO})`;
       const envio = await enviaEmPartes(GRUPO, respostaIA);
 
       etapa = "log";
@@ -708,6 +805,7 @@ Deno.serve(async (req: Request) => {
         ok: envio.ok,
         enviado: envio.ok,
         jogo: jogoId,
+        destino,
         ambiente: pref ? "dev" : "prod",
         modelo,
         uso_tokens: ia.usage,
