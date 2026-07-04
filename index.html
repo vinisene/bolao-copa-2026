@@ -221,6 +221,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 .rr-finish{flex:0 0 auto;padding:8px 12px;border-radius:var(--r-q-sm);border:1.5px solid rgba(255,255,255,.45);background:rgba(255,255,255,.12);color:#fff;font-size:12px;font-weight:800;white-space:nowrap;cursor:pointer;transition:background .15s;}
 .rr-finish:active{background:rgba(255,255,255,.22);}
 .rr-finish.done{background:var(--gold);color:#5c4708;border-color:var(--gold);}
+span.rr-finish{cursor:default;}   /* selo de estado (jogo fechado), não é mais botão */
 .rr-finish .chk-off{color:rgba(255,255,255,.55);font-weight:900;}
 .real-row input{width:44px;height:36px;text-align:center;border:1.5px solid rgba(255,255,255,.35);border-radius:9px;font-size:17px;font-weight:700;background:rgba(255,255,255,.16);color:#fff;-moz-appearance:textfield;}
 .real-row input::-webkit-outer-spin-button,.real-row input::-webkit-inner-spin-button{-webkit-appearance:none;}
@@ -640,6 +641,8 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 .mm-fbtn .fb-lbl{display:block;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .mm-fbtn sup{font-size:.72em;}
 .mm-fbtn.active{background:var(--lime);border-color:var(--lime);color:var(--ink);}
+.mm-fbtn.past{opacity:.5;}   /* fase encerrada (ex.: 16avos): visual apagado, 100% clicável igual */
+.mm-fbtn.past.active{opacity:1;}   /* mas se o usuário escolher ver essa fase, volta ao normal */
 /* Selo do multiplicador de fase (×1 · ×1,25 · ×1,5 · ×1,75 · ×4) — etiqueta inclinada "saltando" do canto
    superior direito. Puramente visual: pointer-events:none (não rouba o toque da pílula/card). */
 .mm-mult-seal{position:absolute;top:-8px;right:-3px;transform:rotate(-6deg);background:var(--frame);color:var(--lime);font-family:var(--font-body);font-size:9px;font-weight:800;line-height:1;padding:3px 6px;border-radius:6px;pointer-events:none;z-index:2;letter-spacing:.2px;box-shadow:0 2px 6px -2px rgba(0,0,0,.55);white-space:nowrap;}
@@ -754,7 +757,10 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 .mm-po.on{border-color:var(--g);background:#e7f3ea;box-shadow:inset 0 0 0 1px var(--g);}
 .mm-passa.pen .mm-po.on{border-color:#c0392b;background:#fdeae8;box-shadow:inset 0 0 0 1px #c0392b;}
 /* Rodapé numa LINHA só (Parte 2): PLACAR FINAL · placar A×B · rótulo + 2 bandeiras menores (quem passou) · Finalizar */
-.real-row.mm-footer{display:flex;flex-direction:row;align-items:center;gap:9px;flex-wrap:wrap;}
+.real-row.mm-footer{display:flex;flex-direction:row;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap;}
+/* Conteúdo (rótulo+placar+quem avança) ocupa o espaço que sobra e se centraliza NELE — assim o
+   selo "🔒 Fechado" (flex:0, fica no fim) não puxa tudo pra esquerda com um vão vazio no meio. */
+.mm-foot-main{display:flex;flex:1 1 auto;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap;min-width:0;}
 /* Parte 1: "PLACAR FINAL" + prévia EMPILHADOS (prévia embaixo) — largura fixa do rótulo, não empurra o placar */
 .mm-foot-fl{display:inline-flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.05;flex-shrink:0;}
 .mm-foot-fl .prev-tag{display:none;margin-left:0;align-self:flex-start;}
@@ -952,7 +958,7 @@ const PARTICIPANTS = [
   {id:'leo',       name:'Leo',           type:'human', color:'#00897b', init:'L',  team:'leo',    editable:true, img:'fotos/leo.jpg'},
   {id:'chatgptleo',name:'ChatGPT Leo',   type:'ia',    color:'#26a69a', init:'GL', team:'leo',    img:'fotos/leo-ia.jpeg'},
   {id:'vinicius',  name:'Vini',          type:'human', color:'#3d8ef0', init:'V',  team:'vini',   editable:true, img:'fotos/vini.jpg'},
-  {id:'claude',    name:'Claude Vini',   type:'ia',    color:'#cc6b2c', init:'CV', team:'vini',   img:'fotos/vini-ia.jpg'},
+  {id:'claude',    name:'Ratazana00',    type:'ia',    color:'#cc6b2c', init:'CV', team:'vini',   img:'Imagens/Ratazana-perfil.jpg'},   // ex-"Claude Vini": só nome/foto mudaram (id, máquina, time e histórico intactos)
 ];
 const TEAMS = [
   {id:'jeca',   name:'Time Jeca',   human:'jessica', ia:'chatgpt',    color:'#e05c8b'},
@@ -1880,7 +1886,7 @@ function histUnits(tab,unit){
   if(unit==='jogos'){
     const u=[];
     grp.forEach(g=>u.push({perPid:groupPtsByPid(g),label:{fA:g.fA,fB:g.fB}}));
-    mata.forEach(c=>u.push({perPid:mataPtsByPid(c),label:{fA:c.flag_a,fB:c.flag_b}}));
+    mata.forEach(c=>{const tm=mmTeams(c);u.push({perPid:mataPtsByPid(c),label:{fA:tm.a?tm.a.flag:undefined,fB:tm.b?tm.b.flag:undefined}});});   // resolve via chave (mmTeams) — c.flag_a/flag_b cru é NULL em rodadas alimentadas por vencedor (oitavas+), quebrava o gráfico
     return u;
   }
   // Por Rodada (ordem fixa: 1ª/2ª/3ª grupos · 16 avos · oitavas · quartas · semis · 3º · final)
@@ -1951,7 +1957,7 @@ function histChart(steps,parts){
   steps.forEach((s,i)=>{
     const x=X(i),L=s.label||{};
     if(L.fA!==undefined||L.fB!==undefined){           // visão "Por Jogos": bandeiras dos times
-      const ua=flagUrl(L.fA),ub=flagUrl(L.fB);
+      const ua=L.fA?flagUrl(L.fA):'',ub=L.fB?flagUrl(L.fB):'';   // guarda: nunca chama flagUrl com null/vazio (evita crash se faltar bandeira)
       if(ua)svg+=`<image href="${ua}" x="${x-flagW/2}" y="${fy}" width="${flagW}" height="${flagH}"/>`;
       svg+=`<text x="${x}" y="${fy+flagH+xGap-3}" class="hist-x">×</text>`;
       if(ub)svg+=`<image href="${ub}" x="${x-flagW/2}" y="${fy+flagH+xGap}" width="${flagW}" height="${flagH}"/>`;
@@ -2048,7 +2054,7 @@ function rankingNew(){
   html+=`<div class="scoring">Como pontua: <b>placar cravado = 10 pts</b> · acerto do ganhador/empate = 5 pts · acerto dos gols de cada time = +1 cada</div>`;
   html+=`<div class="tiebreak">Empate na pontuação? Desempate: 1º mais placares cravados · 2º mais acertos de ganhador/empate.</div>`;
   html+=`<div class="section-title">⚔️ COMPARATIVOS</div>`;
-  html+=versus('🤝 Humanos vs Máquinas','👤 Humanos','Jeca + Tonius + Leo + Vini',hP,'#3d8ef0','🤖 Máquinas','ChatGPT Jeca + Claude Tonius + ChatGPT Leo + Claude Vini',iP,'#e8c44a');
+  html+=versus('🤝 Humanos vs Máquinas','👤 Humanos','Jeca + Tonius + Leo + Vini',hP,'#3d8ef0','🤖 Máquinas','ChatGPT Jeca + Claude Tonius + ChatGPT Leo + Ratazana00',iP,'#e8c44a');
   html+=teamRace('👥 Times', TEAMS.map(t=>{
     const hu=PARTICIPANTS.find(x=>x.id===t.human), ia=PARTICIPANTS.find(x=>x.id===t.ia);
     return {name:t.name, mem:hu.name+' + '+ia.name, pts:byId(t.human)+byId(t.ia), col:t.color, human:hu, ia:ia};
@@ -2111,8 +2117,8 @@ function rankingOld(){
   html+=`<div class="scoring">Como pontua: <b>placar cravado = 10 pts</b> · acerto do ganhador/empate = 5 pts · acerto dos gols de cada time = +1 cada</div>`;
   html+=`<div class="tiebreak">Empate na pontuação? Desempate: 1º mais placares cravados · 2º mais acertos de ganhador/empate.</div>`;
   html+=`<div class="section-title">⚔️ COMPARATIVOS</div>`;
-  html+=versus('🤝 Humanos vs Máquinas','👤 Humanos','Jeca + Vini',hP,'#3d8ef0','🤖 Máquinas','ChatGPT Jeca + Claude Vini',iP,'#e8c44a');
-  html+=versus('👥 Time Jeca vs Time Vini','Time Jeca','Jeca + ChatGPT Jeca',byId('jessica')+byId('chatgpt'),'#e05c8b','Time Vini','Vini + Claude Vini',byId('vinicius')+byId('claude'),'#3d8ef0');
+  html+=versus('🤝 Humanos vs Máquinas','👤 Humanos','Jeca + Vini',hP,'#3d8ef0','🤖 Máquinas','ChatGPT Jeca + Ratazana00',iP,'#e8c44a');
+  html+=versus('👥 Time Jeca vs Time Vini','Time Jeca','Jeca + ChatGPT Jeca',byId('jessica')+byId('chatgpt'),'#e05c8b','Time Vini','Vini + Ratazana00',byId('vinicius')+byId('claude'),'#3d8ef0');
 
   // Estatísticas individuais: em popup via clique na pessoa (openStats).
   // Tarefa C: jogos considerados no Bolão JxV — mesma regra do ranking (rankingOld/getStats):
@@ -2264,26 +2270,32 @@ async function mmSaveEdit(cid){
   if(error){showErr('Erro ao salvar: '+error.message);return;}
   delete mmEditing[cid]; await loadMata(); renderMata();
 }
+// Prévia do Placar: sandbox 100% LOCAL (qualquer participante simula e vê pontos só na própria
+// tela). NUNCA grava no banco e NUNCA muda o confronto compartilhado (MM_CONFRONTOS) — vive só
+// em mmPreviaLocal (memória, sem localStorage/sessionStorage), então some sozinho ao recarregar
+// a página. TRAVA só depois que a página admin fecha o jogo (finished=true); a partir daí o placar
+// vem 100% do banco (gravado via fechar_placar) e mmEffConf ignora qualquer prévia local restante.
+let mmPreviaLocal={};   // { confronto_id -> {real_a,real_b,classificado} }, só enquanto o jogo está aberto
+function mmPreviaOf(cid){return mmPreviaLocal[cid]||(mmPreviaLocal[cid]={real_a:null,real_b:null,classificado:null});}
+// Confronto "efetivo" pra exibição: oficial (do banco) se fechado, com a prévia local por cima se aberto.
+function mmEffConf(c){
+  if(!c||c.finished)return c;
+  const pv=mmPreviaLocal[c.id]; if(!pv)return c;
+  return {...c,real_a:pv.real_a,real_b:pv.real_b,classificado:pv.classificado};
+}
 function mmSetReal(cid,side,val){
-  const c=MM_CONFRONTOS.find(x=>x.id===cid); if(!c)return;
-  const num=val===''?null:parseInt(val); c['real_'+side]=num;
+  const c=MM_CONFRONTOS.find(x=>x.id===cid); if(!c||c.finished)return;   // fechado: só admin reabre
+  const num=val===''?null:parseInt(val);
+  mmPreviaOf(cid)['real_'+side]=num;
   mmRefreshPts(cid);
-  clearTimeout(mmDeb[cid+'real'+side]);
-  mmDeb[cid+'real'+side]=setTimeout(()=>{mmUpsertConfronto({id:cid,['real_'+side]:num});if(activeTab==='ranking')renderRanking();},700);
 }
 function mmSetClassificado(cid,side){
-  const c=MM_CONFRONTOS.find(x=>x.id===cid); if(!c)return;
-  c.classificado=c.classificado===side?null:side;
+  const c=MM_CONFRONTOS.find(x=>x.id===cid); if(!c||c.finished)return;
+  const pv=mmPreviaOf(cid); pv.classificado=pv.classificado===side?null:side;
   mmRefreshPts(cid);   // re-renderiza o "quem passou" do rodapé (bandeiras/rótulo) e os pontos
-  mmUpsertConfronto({id:cid,classificado:c.classificado});
-  if(activeTab==='ranking')renderRanking();
 }
-function mmSetFinished(cid){
-  const c=MM_CONFRONTOS.find(x=>x.id===cid); if(!c)return;
-  c.finished=!c.finished; renderMata();
-  mmUpsertConfronto({id:cid,finished:c.finished});
-  if(activeTab==='ranking')renderRanking();
-}
+// finished NUNCA é setado pela home — só a Edge Function (fechar_placar) via página admin.
+function mmSetFinished(){console.warn('Finalizar é feito pela página admin (fechar/reabrir jogo).');}
 function mmUpdPalpite(cid,pid,field,val){
   const c=MM_CONFRONTOS.find(x=>x.id===cid); if(c&&mmIsKickoff(c))return;   // kickoff: palpite travado
   const num=val===''?null:parseInt(val);
@@ -2346,7 +2358,7 @@ function mmPtsTipHTML(s){
 }
 function mmShowPtsTip(ev,cid,pid){
   ev.stopPropagation();
-  const c=MM_CONFRONTOS.find(x=>x.id===cid); if(!c)return;
+  const c=mmEffConf(MM_CONFRONTOS.find(x=>x.id===cid)); if(!c)return;
   const s=mmScore((MM_PALPITES[cid]||{})[pid],c); if(!s)return;
   let el=document.getElementById('floating-tip');
   if(!el){el=document.createElement('div');el.id='floating-tip';document.body.appendChild(el);}
@@ -2438,7 +2450,7 @@ function mmRenderQuemPassa(cid,pid){
 }
 function mmRefreshPts(cid){
   const card=document.querySelector(`#tab-mata [data-cid="${cid}"]`); if(!card)return;
-  const c=MM_CONFRONTOS.find(x=>x.id===cid); if(!c)return;
+  const c=mmEffConf(MM_CONFRONTOS.find(x=>x.id===cid)); if(!c)return;
   const hasScore=c.real_a!=null&&c.real_b!=null;
   MATA_PARTS.forEach(p=>{
     const badge=card.querySelector(`.mm-pts[data-pid="${p.id}"]`); if(!badge)return;
@@ -2500,12 +2512,18 @@ function mmCard(c){
   });
   preds+=`</div>`;
   const tmc=mmTeams(c);
-  const cbtn=side=>{const t=side==='A'?tmc.a:tmc.b;return `<button class="mm-qpb${c.classificado===side?' on':''}" data-side="${side}" onclick="mmSetClassificado('${c.id}','${side}')">${t&&t.flag?flagImg(t.flag):''} ${esc((t&&t.name)||side)}</button>`;};
+  // Prévia Placar: sandbox LIVRE em jogo aberto (qualquer participante edita e simula pontos).
+  // Só trava quando o jogo é fechado pela página admin (finished=true) — aí vira somente leitura.
+  const locked=c.finished;
+  const cbtn=side=>{const t=side==='A'?tmc.a:tmc.b;
+    const cls='mm-qpb'+(c.classificado===side?' on':'')+(locked?' ro':'');
+    const click=locked?'':` onclick="mmSetClassificado('${c.id}','${side}')"`;
+    return `<button class="${cls}" data-side="${side}"${locked?' disabled':''}${click}>${t&&t.flag?flagImg(t.flag):''} ${esc((t&&t.name)||side)}</button>`;};
   const classRow=`<div class="mm-class"><span class="mm-class-lbl">Quem passou nos pênaltis (se empatar após a prorrogação):</span><div class="mm-class-btns">${cbtn('A')}${cbtn('B')}</div></div>`;
-  const realInp=side=>`<input type="number" min="0" max="99" inputmode="numeric" value="${c['real_'+side]!=null?c['real_'+side]:''}" placeholder="–" oninput="mmSetReal('${c.id}','${side}',this.value)">`;
+  const realInp=side=>`<input type="number" min="0" max="99" inputmode="numeric" value="${c['real_'+side]!=null?c['real_'+side]:''}" placeholder="–"${locked?' disabled readonly':` oninput="mmSetReal('${c.id}','${side}',this.value)"`}>`;
   const resultRow=`<div class="real-row${c.finished?'':' pending'}">
       <div class="rr-line"><span class="rr-label">PLACAR FINAL${(!c.finished&&hasScore)?' <span class="prev-tag">prévia</span>':''}</span>${realInp('a')}<span class="sep">×</span>${realInp('b')}</div>
-      <button class="rr-finish${c.finished?' done':''}" onclick="mmSetFinished('${c.id}')">${c.finished?'Finalizado ✅':'Finalizar <span class="chk-off">✓</span>'}</button>
+      ${c.finished?'<span class="rr-finish done">🔒 Fechado</span>':''}
     </div>`;
   return `<div class="${cls.join(' ')}" data-cid="${c.id}">${head}${mid}${preds}${editing?'':classRow}${editing?'':resultRow}</div>`;
 }
@@ -2551,7 +2569,7 @@ const MM_COLS=[
   {key:'final',  label:'Final',   short:'Final 🏆',        ids:['fin_1']},
 ];
 const mmOpen=new Set();   // confrontos expandidos na lista (preserva estado entre re-renders)
-let mmPhaseFilter='32avos';   // filtro de fase da lista (3.1) — padrão 16 avos (key interna '32avos')
+let mmPhaseFilter='oitavas';   // filtro de fase da lista (3.1) — padrão OITAVAS (16avos encerrado)
 let mmBracketOpen=false;            // A1: seção do chaveamento — COLAPSADA por padrão (Tarefa 2)
 // AGENDA dos 16 avos (data/hora/local) por VAGA (slot). Fica no código (a anon key não cria coluna
 // nova no banco). O app lê isto OU os campos dt/tm/venue do confronto, se existirem no banco.
@@ -2598,6 +2616,9 @@ const MM_ZEBRA={
   r32_8: {tipo:'zebrao', azarao:'B'},   // Inglaterra × RD Congo    → azarão: RD Congo
   r32_11:{tipo:'zebra',  azarao:'B'},   // Espanha × Áustria        → azarão: Áustria
   r32_15:{tipo:'zebrao', azarao:'B'},   // Argentina × Cabo Verde   → azarão: Cabo Verde
+  // OITAVAS (vagas r16_*, azarao pelo LADO da vaga — ver MM_BRACKET pra saber quem cai em cada lado)
+  r16_2: {tipo:'zebrao', azarao:'A'},   // Paraguai × França        → azarão: Paraguai (lado A da vaga)
+  r16_7: {tipo:'zebra',  azarao:'B'},   // Argentina × Egito        → azarão: Egito (lado B da vaga)
 };
 function mmZebra(c){return MM_ZEBRA[c&&c.id]||null;}   // leitor (pra próxima etapa); por enquanto não é chamado
 // data/hora/local de um confronto: prioriza o banco (dt/tm/venue) e cai pra agenda em código.
@@ -2606,6 +2627,13 @@ function mmWeekday(dt){if(!dt)return '';const [dd,mm]=dt.split('/').map(Number);
 // chave cronológica pra ordenar a lista (sem data → fim)
 function mmSchedKey(c){const i=mmInfo(c);if(!i.dt)return Number.MAX_SAFE_INTEGER;const [dd,mm]=i.dt.split('/').map(Number);const h=i.tm?parseInt(i.tm)||0:0;const mi=(i.tm&&i.tm.split('h')[1])?parseInt(i.tm.split('h')[1]):0;return (mm*100+dd)*10000+h*100+mi;}
 function mmConf(id){return MM_CONFRONTOS.find(c=>c.id===id);}
+// Fase 100% encerrada = todo confronto dessa coluna existe e está finalizado (sem [TESTE]).
+// Usada pra: (a) não auto-abrir cards individuais de uma fase encerrada, (b) manter os grupos
+// por data dessa fase sempre expandidos (ver mmInitOpenCards/mmEnsureDaysInit), (c) pill "passado".
+function mmPhaseFullyEnded(key){
+  const col=MM_COLS.find(c=>c.key===key); if(!col)return false;
+  return col.ids.every(id=>{const c=mmConf(id); return c&&c.finished;});
+}
 // Quem AVANÇOU de verdade — pelo PLACAR REAL (empate → pênaltis via classificado). NUNCA por palpite.
 function mmRealWinner(c){
   if(!c||c.real_a==null||c.real_b==null)return null;
@@ -2646,6 +2674,7 @@ function mmMatchupHTML(c){
 }
 // Área COLAPSÁVEL: só os palpites (humanos + IAs). Cabeçalho/bandeiras/placar ficam fora (sempre visíveis).
 function mmCardBody(c){
+  c=mmEffConf(c);
   const hasScore=c.real_a!=null&&c.real_b!=null;
   const cell=p=>{
     const pid=p.id, isHuman=p.type==='human';
@@ -2672,32 +2701,40 @@ function mmCardBody(c){
   const ias=MATA_PARTS.filter(p=>p.type==='ia');
   return `<div class="mm-preds-wrap"><div class="mm-humans">${humans.map(cell).join('')}</div><div class="mm-ias">${ias.map(cell).join('')}</div></div>`;
 }
-// Rodapé sempre visível: "quem passou" REAL + bandeiras SEMPRE visíveis (idle se sem placar; ro se vencedor; clicáveis se empate).
+// Rodapé sempre visível: "quem passou" REAL + bandeiras SEMPRE visíveis (idle se sem placar; ro se vencedor).
+// Clicável (sandbox) enquanto o jogo está aberto; trava só depois de fechado pela página admin.
 function mmFootQpHTML(c){
+  c=mmEffConf(c);
   const complete=c.real_a!=null&&c.real_b!=null, tmc=mmTeams(c);
   const draw=complete&&c.real_a===c.real_b;
   const sel=!complete?null:(draw?c.classificado:(c.real_a>c.real_b?'A':'B'));
   const selTeam=sel?(sel==='A'?tmc.a:tmc.b):null;
-  const clickable=draw;
+  const clickable=draw&&!c.finished;   // trava: só editável enquanto o jogo não foi fechado
   const cflag=side=>{const t=side==='A'?tmc.a:tmc.b,on=sel===side;
     const cls='mm-cqp'+(draw?' pen':'')+(on?' on':'')+(clickable?'':' ro')+(complete?'':' idle');
     const click=clickable?` onclick="mmSetClassificado('${c.id}','${side}')"`:'';
-    return `<button class="${cls}" data-side="${side}"${click} title="Passou: ${esc((t&&t.name)||side)}">${t&&t.flag?flagImg(t.flag):'<b>'+side+'</b>'}</button>`;};
+    return `<button class="${cls}" data-side="${side}"${clickable?'':' disabled'}${click} title="Passou: ${esc((t&&t.name)||side)}">${t&&t.flag?flagImg(t.flag):'<b>'+side+'</b>'}</button>`;};
   let lbl='';
   if(complete&&!draw)lbl=`<span class="mm-foot-qplbl won">${esc((selTeam&&selTeam.name)||sel)} avança</span>`;
   else if(complete&&draw&&sel)lbl=`<span class="mm-foot-qplbl pen chosen">${esc((selTeam&&selTeam.name)||sel)} avança</span>`;
   else if(complete&&draw)lbl=`<span class="mm-foot-qplbl pen">Quem passa?</span>`;
   return `<div class="mm-foot-qp${draw?' pen':''}${complete?'':' idle'}">${lbl}<div class="mm-foot-flags">${cflag('A')}${cflag('B')}</div></div>`;
 }
-// Rodapé TUDO numa linha (2.1): PLACAR FINAL · placar A × B · rótulo + bandeiras (quem passou) · Finalizar.
+// Rodapé TUDO numa linha (2.1): PLACAR FINAL · placar A × B · rótulo + bandeiras (quem passou).
+// Sem botão Finalizar: o fechamento agora é SÓ pela página admin (conteúdo centralizado, com o
+// selo "🔒 Fechado" fixo à direita — ver .mm-foot-main). Jogo ABERTO mostra a Prévia do Placar
+// (100% local, ver mmEffConf) até a página admin fechar o jogo de verdade.
 function mmResultHTML(c){
+  c=mmEffConf(c);
   const hasScore=c.real_a!=null&&c.real_b!=null;
-  const realInp=side=>`<input type="number" min="0" max="99" inputmode="numeric" value="${c['real_'+side]!=null?c['real_'+side]:''}" placeholder="–" oninput="mmSetReal('${c.id}','${side}',this.value)">`;
+  const realInp=side=>`<input type="number" min="0" max="99" inputmode="numeric" value="${c['real_'+side]!=null?c['real_'+side]:''}" placeholder="–"${c.finished?' disabled readonly':` oninput="mmSetReal('${c.id}','${side}',this.value)"`}>`;
   return `<div class="real-row mm-footer${c.finished?'':' pending'}">
-      <span class="mm-foot-fl"><span class="rr-label">${c.finished?'PLACAR FINAL':'PRÉVIA PLACAR'}</span></span>
-      <div class="mm-foot-scores">${realInp('a')}<span class="mm-foot-x">×</span>${realInp('b')}</div>
-      ${mmFootQpHTML(c)}
-      <button class="rr-finish${c.finished?' done':''}" onclick="mmSetFinished('${c.id}')">${c.finished?'🔒 Fechado':'Finalizar <span class="chk-off">✓</span>'}</button>
+      <div class="mm-foot-main">
+        <span class="mm-foot-fl"><span class="rr-label">${c.finished?'PLACAR FINAL':'PRÉVIA DO PLACAR'}</span></span>
+        <div class="mm-foot-scores">${realInp('a')}<span class="mm-foot-x">×</span>${realInp('b')}</div>
+        ${mmFootQpHTML(c)}
+      </div>
+      ${c.finished?'<span class="rr-finish done">🔒 Fechado</span>':''}
     </div>`;
 }
 
@@ -3024,7 +3061,10 @@ function mmGhostCard(c){
 function mmInitOpenCards(){
   const now=Date.now(), THREE_H=3*3600*1000;
   const getTs=c=>{const d=mmGameDate(c);return d?d.getTime():null;};
-  const real=MM_CONFRONTOS.filter(c=>!mmIsTest(c));
+  // Fase 100% encerrada (ex.: 16avos): cards individuais nascem MINIMIZADOS, sem exceção —
+  // só os grupos por data dessa fase é que ficam abertos (ver mmEnsureDaysInit). Por isso
+  // esses jogos ficam fora da elegibilidade de auto-abertura abaixo.
+  const real=MM_CONFRONTOS.filter(c=>!mmIsTest(c)&&!mmPhaseFullyEnded(mmPhaseKeyOf(c.id)));
   const past=   real.filter(c=>{const t=getTs(c);return t!=null&&now>=t+THREE_H;}).sort((a,b)=>getTs(b)-getTs(a));
   const ongoing=real.filter(c=>{const t=getTs(c);return t!=null&&now>=t&&now<t+THREE_H;});
   const future= real.filter(c=>{const t=getTs(c);return t!=null&&now<t;}).sort((a,b)=>getTs(a)-getTs(b));
@@ -3035,11 +3075,13 @@ function mmInitOpenCards(){
   if(noDate.length)console.warn('[mmInitOpenCards] confrontos sem horário (tratados como colapsados):',noDate.map(c=>c.id));
 }
 // Na 1ª vez, recolhe dias cujo ÚLTIMO jogo terminou há mais de 24h (fim=último início+3h+24h).
+// Fase 100% encerrada fica de fora: seus grupos por data ficam SEMPRE expandidos (só os
+// cards individuais é que nascem minimizados — ver mmInitOpenCards).
 function mmEnsureDaysInit(){
   if(mmDaysInit)return; mmDaysInit=true;
   const now=Date.now(), THREE_H=3*3600*1000, TWENTY_FOUR_H=24*3600*1000;
   const byDay={};
-  MM_CONFRONTOS.forEach(c=>{const d=mmGameDate(c),dt=mmInfo(c).dt;if(!d||!dt)return;if(!byDay[dt]||d.getTime()>byDay[dt])byDay[dt]=d.getTime();});
+  MM_CONFRONTOS.forEach(c=>{if(mmPhaseFullyEnded(mmPhaseKeyOf(c.id)))return;const d=mmGameDate(c),dt=mmInfo(c).dt;if(!d||!dt)return;if(!byDay[dt]||d.getTime()>byDay[dt])byDay[dt]=d.getTime();});
   Object.entries(byDay).forEach(([dt,lastTs])=>{if(now>=lastTs+THREE_H+TWENTY_FOUR_H)mmCollapsedDays.add(dt);});
 }
 function mmToggleDay(dt){if(mmCollapsedDays.has(dt))mmCollapsedDays.delete(dt);else mmCollapsedDays.add(dt);const l=document.getElementById('mm-list');if(l)l.innerHTML=mmListHTML();}
@@ -3121,7 +3163,7 @@ function renderMata(){
   html+=`<div id="mm-bracket-section">${mmBracketSectionHTML()}</div>`;   // chave (não afetada pelo filtro)
   // título da seção de palpites (3.8): marca onde termina o chaveamento e começam os palpites
   html+=`<div class="mm-sec-head mm-list-title"><span class="mm-sec-title">🎯 Palpites de placares</span></div>`;
-  html+=`<div class="mm-filters">${MM_COLS.map(col=>`<button class="mm-fbtn${col.key===mmPhaseFilter?' active':''}" data-key="${col.key}" onclick="mmSetPhase('${col.key}')">${mmMultSeal(col.key)}<span class="fb-lbl">${col.short}</span></button>`).join('')}</div>`;
+  html+=`<div class="mm-filters">${MM_COLS.map(col=>`<button class="mm-fbtn${col.key===mmPhaseFilter?' active':''}${mmPhaseFullyEnded(col.key)?' past':''}" data-key="${col.key}" onclick="mmSetPhase('${col.key}')">${mmMultSeal(col.key)}<span class="fb-lbl">${col.short}</span></button>`).join('')}</div>`;
   html+=`<div id="mm-list">${mmListHTML()}</div>`;
   document.getElementById('tab-mata').innerHTML=html;
   mmvBindDrag();   // swipe do visor (se a seção estiver aberta)
