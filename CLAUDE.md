@@ -7,7 +7,7 @@
 > - **Dado direto (palpites/placares):** vai na produção sem passar por `ratazana`.
 > - **Sempre crie safepoint (tag) antes de merge pra `main`**.
 > - Não toque na `congelado-fase-grupos` (museu) nem na `dev` (backup antigo congelado).
-> - **Robô Ratazana (bot WhatsApp) EM PRODUÇÃO**, ainda apontando pro grupo de TESTE — ver §13. Admin de placares no ar — ver §14.
+> - **Robô Ratazana (bot WhatsApp) EM PRODUÇÃO**, ainda só no grupo de TESTE — ver §13. Admin de placares no ar — ver §14. **Leva do lançamento (persona v2.0, Acordar com preview, grupo oficial) commitada na `ratazana`; ⚠️ Edge Function v1.8 AINDA NÃO deployada — ver §15 item 0.**
 > - **⚠️ Repo é PÚBLICO** — nada sensível em arquivo versionado (ver armadilha 9).
 
 Guia de navegação do projeto — para saber **onde mexer sem explorar o código**.
@@ -429,32 +429,50 @@ Fala em primeira pessoa dos próprios palpites, pontos e posição.
 - **KAYFABE INVIOLÁVEL:** nunca menciona que os palpites dele são inseridos pelo Vini;
   nunca se cobra por palpite pendente (a função exclui o pid `claude` de "faltam palpitar"
   e esconde palpite pendente dele dos dados); nunca explica a própria mecânica.
-- **Alma v1.6** — doc interna completa em `bot/RATAZANA-ALMA.md`; o que a IA recebe é o
-  **destilado** em `bot_config.system_prompt_ratazana`. Essência: apaixonado por futebol,
-  veio do esgoto e subiu na vida (tempero, nunca muleta), malandro/sagaz/político. v1.6 =
-  acidez alta (estufa o peito quando líder, ironia afiada, callbacks ousados) — mas a
-  **Lei inviolável permanece: NUNCA xingar nem apelidar pejorativamente**; a provocação
-  mira comportamento, não pessoa. Rivalidade cômica com as outras IAs, sem dar palco a
-  elas fora de ranking/estatística.
-- **Estilo WhatsApp (regras de formatação):** parágrafos curtos; 1–2 negritos de destaque
-  além do horário; emojis temáticos com teto (~3–4 por mensagem: ⚡ turbo, 🎯 cravada,
-  🔥 jogo quente); "pontos" sempre junto do número; referência a esgoto racionada;
-  mensagem longa dividida em blocos "---" → vira até 3 mensagens sequenciais (rede de
-  segurança ~900 chars/parte no código); cobrança limitada à FASE ATIVA.
+- **Persona v2.0 (lançamento, jul/2026)** — bloco operativo fornecido pelo Vini;
+  fonte da verdade é o seed em `supabase_bot.sql` (key `system_prompt_ratazana`),
+  **já aplicado em `bot_config` prod+dev via REST**. Essência: fiscal autonomeado do
+  bolão, malandro paulistano com pose de auditor, memória de elefante/caderninho
+  eterno; **jamais admite ser robô** ("robô é o teu palpite").
+  **HIERARQUIA DE ASSUNTO (anti-estrelismo, regra crítica):** 1º o jogo/Copa · 2º as
+  pessoas e seus palpites · 3º ranking · 4º ele mesmo (nunca abre falando de si; máx.
+  1 frase sobre si por mensagem; fala de si em no máx. 1 a cada 3 mensagens; autoironia
+  em vez de se gabar; alerta de liderança detalhado só na futura mensagem de agenda das 9h).
+  Tom ácido sem xingar (zoa o palpite/escolha, nunca a pessoa; sem palavrão);
+  **intensidade por gênero** (coluna `genero` de `bot_telefones`: homem leva alfinetada
+  forte, mulher zoeira leve + incentivo); gramática de rua ocasional (máx. 1/mensagem);
+  formato 4–7 linhas, negrito com *asteriscos* colados, 🐀 sempre + máx. 1–2 emojis;
+  bordões rotativos sem repetir em mensagens seguidas.
+  **Contexto obrigatório em mensagem de jogo:** os DOIS times pelo nome + fase,
+  consequência (quem avança/eliminado), pênaltis narrados com emoção, zebra abrindo
+  com alerta + elogio a quem apostou, cravadas/acertos de resultado/pontos.
+  `bot/RATAZANA-ALMA.md` virou **histórico/backstory** — não é mais o texto operativo.
+- Split de mensagem longa continua no código: blocos "---" → até 3 mensagens
+  sequenciais (rede de segurança ~900 chars/parte). Cobrança limitada à FASE ATIVA.
 
-**Edge Function `ratazana-cobranca`** (v1.7 — `supabase/functions/ratazana-cobranca/index.ts`):
-- Dados: SEMPRE tabelas de produção (`mata_*`/`bot_config`), salvo `&env=dev` nos modos que aceitam.
+**Edge Function `ratazana-cobranca`** (v1.8 — `supabase/functions/ratazana-cobranca/index.ts`):
+- ⚠️ **TODO envio exige `&destino=teste|oficial`** (sem default; `oficial` usa o secret
+  `GRUPO_OFICIAL_ID`). A URL antiga de cobrança sem `&destino=` passa a dar erro claro.
+  **Nenhum envio automático vai pro oficial nesta fase** — tudo passa por ação do admin.
+- Dados: SEMPRE tabelas de produção (`mata_*`/`bot_config`/`bot_telefones`), salvo `&env=dev` nos modos que aceitam.
 - A função **PRÉ-CALCULA tudo** (ranking, pontos, zebra, multiplicadores, palpites públicos)
   e entrega pronto no prompt — **a IA nunca calcula**. Lógica portada do `index.html`
   (`mmScore`/`mataStats`/`MM_*`) — ver armadilha 5 (3 cópias). Jogos de grupos nunca entram.
-- **Modos** (GET, `?token=<BOT_TRIGGER_TOKEN>` obrigatório em todos):
-  - *(sem tipo)* → cobrança de quem falta palpitar na fase ativa. `&force=1` = envia "todo mundo em dia" mesmo sem pendência (teste). `&teste_longo=1` existe pra testar split.
-  - `&listar_grupos=1` → só lista os IDs `...@g.us` dos grupos da instância (não envia nada).
-  - `&tipo=fim_de_jogo&jogo=<id>[&env=dev]` → comentário curto de fim de jogo (a página admin chama ao fechar).
+  ⚠️ No fim de jogo, os times são resolvidos **PELA CHAVE** (`makeResolver`): `team_a/team_b`
+  crus são NULL de oitavas em diante. Contexto completo no prompt: desfecho (pênaltis
+  narráveis), consequência (`mmConsequencia`: quem avança pra onde / eliminado / semi →
+  3º lugar / final → campeão), zebra com quem levou bônus, cravadas, acertos de resultado,
+  palpites+pontos de todos e gêneros de `bot_telefones`.
+- **Modos** (`?token=<BOT_TRIGGER_TOKEN>` obrigatório em todos):
+  - *(sem tipo)* `&destino=...` → cobrança de quem falta palpitar na fase ativa. `&force=1` = envia "todo mundo em dia" mesmo sem pendência (teste). `&teste_longo=1` existe pra testar split.
+  - `&listar_grupos=1` → não envia nada; devolve `grupos` normalizado `[{nome,id}]` + resposta crua da ZapZap (pra preencher `GRUPO_OFICIAL_ID`/`GRUPO_TESTE_ID`).
+  - `&tipo=fim_de_jogo&jogo=<id>[&env=dev]` → comentário de fim de jogo. Com **`&preview=1`** GERA E DEVOLVE sem enviar (fluxo "Acordar o Ratazana" do admin; loga `fim_de_jogo_preview`); sem preview exige `&destino=`. **`&pessoa=<pid>`** e **`&direcao=<texto>`** = direção de cena (instrução interna no prompt; PROIBIDO copiar/citar literalmente).
+  - **POST** `&tipo=enviar_texto&destino=...` com body JSON `{texto}` → envia texto PRONTO sem passar por IA (preview aprovado / mensagem inaugural). Loga `envio_manual`.
   - `&tipo=fechar_placar&jogo=<id>&finished=1&real_a=N&real_b=N[&classificado=A|B][&env=dev]`
     → **ÚNICA via de escrita do placar final** (roda com service role). `finished=0` reabre
     (só destrava; mantém placar). Valida server-side: empate exige `classificado`; recusa
-    confronto inexistente (não cria linha fantasma). CORS habilitado (OPTIONS → 204).
+    confronto inexistente (não cria linha fantasma). **Fechar NUNCA envia mensagem.**
+    CORS habilitado (OPTIONS → 204; GET e POST liberados).
 - Deploy com **"Verify JWT" DESLIGADO** — proteção é o `?token=`. Ver armadilhas 6 e 8.
 - Auditoria: toda execução grava linha em `bot_log`.
 
@@ -471,7 +489,9 @@ servirá pra @menções reais na Fase 2) · `bot_log` (auditoria).
 **Secrets** (Edge Function secrets no Supabase — só os NOMES aqui; valores NUNCA em
 arquivo, o repo é público): `BOT_TRIGGER_TOKEN` (protege o disparo; é também a senha do
 admin, §14) · `ANTHROPIC_API_KEY` · `ZAPZAP_API_KEY` · `ZAPZAP_API_SECRET` ·
-`ZAPZAP_ENDPOINT_BASE` · `GRUPO_TESTE_ID` · `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` (automáticos).
+`ZAPZAP_ENDPOINT_BASE` · `GRUPO_TESTE_ID` · **`GRUPO_OFICIAL_ID`** (grupo da família —
+ainda VAZIO, preencher via utilitário "Listar grupos" do admin) ·
+`SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` (automáticos).
 
 **Custo:** ~US$ 0,012–0,022 por mensagem gerada (Sonnet). ZapZap: docs em
 `api.zapzapapi.com/docs` (consultar com User-Agent de navegador).
@@ -492,14 +512,30 @@ Cloudflare também serve na URL sem `.html`.
    no código). Senha = o secret `BOT_TRIGGER_TOKEN` (referência; valor só no Supabase e no
    navegador de quem administra).
 2. Fechar jogo → chama a Edge Function `?tipo=fechar_placar` (service role, §13), que
-   grava `real_a`/`real_b`/`classificado`/`finished` e dispara o comentário
-   `fim_de_jogo` do robô no grupo.
+   grava `real_a`/`real_b`/`classificado`/`finished`. **Fechar NUNCA envia mensagem**
+   (o checkbox "Mandar comentário ao fechar" foi extinto na leva do lançamento).
 3. Jogo fechado **continua na lista**: placar somente-leitura + "quem avança" (bandeiras)
    + botão "✏️ Reabrir para corrigir" (`finished=0`, mantém placar; corrigir e refechar).
 4. UI: pills de fase portadas 1:1 da tela de palpites (vars `--pill-*`), filtro
    Todos/Abertos/Fechados, busca por time (acentos normalizados), bandeiras via bracket
    (`resolveSide`), 920px/2 colunas. Tem cópia própria de `MM_AGENDA`/`MM_ZEBRA` etc. —
    armadilha 5.
+
+**🐀 Acordar o Ratazana (leva do lançamento; só em card de jogo FECHADO):**
+- Campos opcionais de direcionamento: seletor de pessoa (lido de `bot_telefones`, tabela
+  de produção) + texto livre "Direcionamento (opcional)" — viram direção de cena no
+  prompt (`&pessoa=`/`&direcao=`, §13); a IA incorpora a ideia, nunca copia literal.
+- Fluxo: botão gera via `&preview=1` (nada enviado) → PREVIEW na tela → "📤 Enviar ao
+  grupo" (confirmação + destino teste/oficial EXPLÍCITO, via POST `enviar_texto`) ou
+  "🔁 Gerar de novo". Estado do preview em memória (`previewState`).
+
+**Utilitários no topo do admin:**
+- "📡 Listar grupos" → chama `&listar_grupos=1` e mostra tabela nome + ID + botão
+  copiar (pra preencher o secret `GRUPO_OFICIAL_ID`); se a normalização falhar, mostra
+  a resposta crua da ZapZap.
+- "📣 Mensagem inaugural" → texto FIXO na constante `MSG_INAUGURAL` do script (hoje é
+  PLACEHOLDER — trocar quando o Vini fornecer o definitivo), preview na tela, destino
+  explícito e confirmação. Não passa por IA.
 
 **Travas de integridade do placar (3 camadas):**
 1. **Home (`index.html`):** placar final e "quem passou" são somente leitura pra QUALQUER
@@ -523,12 +559,25 @@ o banco.
 
 ## 15. Pendências abertas (jul/2026)
 
-1. **Ligar o robô no grupo OFICIAL** — trocar o secret `GRUPO_TESTE_ID` pro ID do grupo
-   real (descobrir com `&listar_grupos=1`). Decisão e ação do Vini.
+0. **⚠️ DEPLOY da Edge Function v1.8 — fazer ANTES de usar o admin novo.** O código
+   novo (destino explícito, preview, enviar_texto, contexto completo) está commitado
+   na `ratazana`, mas a função NO AR ainda é a anterior. Na função velha, o botão
+   "Acordar o Ratazana" enviaria direto ao grupo de teste SEM preview, e o
+   `enviar_texto` cairia no pipeline de cobrança. Deploy via API (armadilha 8) — o
+   classificador de segurança bloqueou o deploy automático na sessão do lançamento
+   (mudança de produção fora do pedido); fazer manualmente ou pedir explicitamente
+   numa sessão futura. Após o deploy, a URL de disparo da cobrança precisa de
+   `&destino=teste` (a antiga sem o parâmetro passa a dar erro claro, de propósito).
+1. **Ligar o robô no grupo OFICIAL** — descobrir o ID com o utilitário "📡 Listar
+   grupos" do admin e preencher o secret novo `GRUPO_OFICIAL_ID`; daí enviar com
+   `&destino=oficial` (sempre ação explícita). Fornecer também o texto definitivo da
+   `MSG_INAUGURAL` (constante no admin). Decisão e ação do Vini.
 2. **Fases 2–4 do bot** — webhook (responder mensagens), conversa, agendamentos
-   automáticos. Ainda não começadas; virão em prompts futuros.
-3. **`bot_telefones` vazia** — aguardando a lista do Vini (nome + telefone + gênero) pra
-   habilitar @menções reais (Fase 2).
+   automáticos (incl. a mensagem de agenda das 9h citada na persona). Ainda não
+   começadas; virão em prompts futuros.
+3. **`bot_telefones` vazia** — aguardando a lista do Vini (nome + telefone + gênero).
+   Agora ela alimenta TRÊS coisas: @menções reais (Fase 2), o seletor de pessoa do
+   "Acordar o Ratazana" no admin e a intensidade por gênero da persona v2.0.
 4. **FK sem cascade em `mata_palpites` (PRODUÇÃO)** — apagar confronto em prod deixa
    palpites órfãos (em dev o cascade funciona; constraint desalinhada do schema). Tarefa
    registrada; exige DDL manual do Vini.
