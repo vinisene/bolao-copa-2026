@@ -544,7 +544,9 @@ async function renderGrupos(){
     el.innerHTML='<p class="util-tit">Grupos em que o número do robô está. Copie o ID do grupo da família pro secret <b>GRUPO_OFICIAL_ID</b> no Supabase (e confira o <b>GRUPO_TESTE_ID</b>):</p>'+
       '<table class="gr-table">'+d.grupos.map(g=>`<tr><td>${esc(g.nome)}</td><td class="gr-id">${esc(g.id)}</td><td><button class="linklike" onclick="navigator.clipboard.writeText(this.dataset.gid)" data-gid="${esc(g.id)}">copiar</button></td></tr>`).join('')+'</table>';
   }else{
-    el.innerHTML='<p class="util-tit">Não consegui montar a lista nome+ID; resposta crua da API (procure o campo id ...@g.us):</p><pre class="pv-text">'+esc(JSON.stringify(d.resposta_zapzap||d,null,2).slice(0,4000))+'</pre>';
+    // Dump cru só no console (nunca mais como texto exibido pro usuário).
+    console.error('Listar grupos: não consegui montar a lista nome+ID. Resposta crua da ZapZap:', d.resposta_zapzap||d);
+    el.innerHTML='<p class="status err">Não consegui montar a lista de grupos com nome + ID. Abra o console do navegador (F12) para ver o detalhe técnico da resposta da API.</p>';
   }
 }
 function renderInaugural(){

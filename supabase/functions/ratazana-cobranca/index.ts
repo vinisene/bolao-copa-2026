@@ -1,7 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // ROBÔ RATAZANA — Edge Function "ratazana-cobranca"
-// (v1.8: destino explícito teste|oficial em TODO envio + preview/direção de
-//  cena no fim_de_jogo + modo enviar_texto; v1.7: fechar_placar via service role)
+// (v1.9: filtro de sanidade de caracteres antes de qualquer envio + fix do
+//  parser de listar_grupos (campos JID/Name); v1.8: destino explícito
+//  teste|oficial em TODO envio + preview/direção de cena no fim_de_jogo +
+//  modo enviar_texto; v1.7: fechar_placar via service role)
 // ═══════════════════════════════════════════════════════════════════════════
 // ⚠️ TODO envio exige &destino=teste|oficial (sem default). Grupo oficial =
 // secret GRUPO_OFICIAL_ID; nesta fase NENHUM envio automático vai pro oficial:
@@ -319,9 +321,13 @@ function agoraBrasilia() {
     dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo",
   }).format(new Date());
 }
+// Única função que monta listas de nomes pro prompt — usar sempre esta, nunca
+// concatenar manualmente (evita nome colado sem separador). Filtra vazios (uma
+// string "" na lista quebraria o "X, , Y" ou o " e " sem nome antes).
 function listaNomes(nomes: string[]) {
-  if (nomes.length <= 1) return nomes[0] || "";
-  return nomes.slice(0, -1).join(", ") + " e " + nomes[nomes.length - 1];
+  const validos = nomes.map((n) => n.trim()).filter(Boolean);
+  if (validos.length <= 1) return validos[0] || "";
+  return validos.slice(0, -1).join(", ") + " e " + validos[validos.length - 1];
 }
 // Rede de segurança de tamanho: parte acima de ~1100 caracteres é quebrada em
 // pedaços de até ~900, cortando só em quebra de parágrafo (nunca no meio da
@@ -441,9 +447,42 @@ function divideEmPartes(texto: string): string[] {
   const pedacos = blocosIA.flatMap((b: string) => quebraLonga(b));
   return pedacos.length <= 3 ? pedacos : [...pedacos.slice(0, 2), pedacos.slice(2).join("\n\n")];
 }
+
+// ─── Filtro de sanidade (v1.9) ────────────────────────────────────────────────
+// Achado real em produção: um caractere CJK solto no meio de uma frase coerente
+// em português ("...os 30 pontos肥: *Du, Yuri...") — texto íntegro antes e depois,
+// não é truncamento cortando um emoji multibyte; é glitch de amostragem do
+// modelo (Sonnet). Não dá pra "consertar" o modelo por código; a rede de
+// segurança é BARRAR o envio quando aparecer um caractere fora do conjunto
+// esperado: ASCII + acentuação/pontuação PT-BR + os emojis já usados no app.
+const EMOJI_SEGUROS = new Set([
+  "🐀", "✅", "🎯", "📋", "⏱️", "⚡", "🔥", "🦓", "🏆", "📅", "😏", "🔒", "✏️",
+  "📤", "🔁", "📡", "📣", "🪞", "⚠️", "🎉", "🥇", "🥈", "🥉", "⚽",
+]);
+function sanidadeTexto(texto: string): string[] {
+  const suspeitos = new Set<string>();
+  for (const ch of texto) {
+    const cp = ch.codePointAt(0) ?? 0;
+    if (cp <= 0x7f) continue;                        // ASCII puro
+    if (cp === 0xfe0f || cp === 0x200d || cp === 0xa0) continue; // variation selector / ZWJ / NBSP (parte de emoji composto)
+    if (EMOJI_SEGUROS.has(ch)) continue;              // emoji já aprovado no app
+    if (cp >= 0xa1 && cp <= 0x24f) continue;          // Latin-1 Suppl. + Latin Ext-A: acentos PT-BR, ×, º/ª
+    if (cp >= 0x2010 && cp <= 0x2027) continue;       // pontuação tipográfica comum (aspas curvas, travessões, reticências)
+    suspeitos.add(ch);
+  }
+  return [...suspeitos];
+}
 // Envia como até 3 mensagens sequenciais no WhatsApp. Usado pela cobrança,
 // pelo fim de jogo e pelo enviar_texto. O padrão continua sendo mensagem única.
 async function enviaEmPartes(grupo: string, texto: string) {
+  const suspeitos = sanidadeTexto(texto);
+  if (suspeitos.length) {
+    const detalhe = suspeitos
+      .map((c) => `'${c}' (U+${(c.codePointAt(0) ?? 0).toString(16).toUpperCase().padStart(4, "0")})`)
+      .join(", ");
+    console.error("[filtro de sanidade] caractere(s) suspeito(s) — envio BLOQUEADO:", detalhe, "| texto:", texto.slice(0, 300));
+    throw new Error(`Filtro de sanidade bloqueou o envio: caractere(s) suspeito(s) detectado(s) (${detalhe}) — provável glitch do modelo. Gere a mensagem de novo.`);
+  }
   const partes = divideEmPartes(texto);
   if (!partes.length) throw new Error("texto ficou vazio após a divisão em blocos");
   const envios: { ok: boolean; detalhe: string }[] = [];
@@ -620,10 +659,12 @@ Deno.serve(async (req: Request) => {
         return null;
       };
       const bruta = achaLista(grupos);
+      // Campos confirmados na resposta real da ZapZap: "JID" e "Name" (maiúsculos).
+      // Fallbacks de nomes alternativos mantidos por robustez (formato pode variar).
       const gruposNorm = bruta
         ? bruta.map((g: Conf) => ({
-            nome: g?.name || g?.subject || g?.title || g?.groupName || "(sem nome)",
-            id: g?.id || g?.jid || g?.groupId || g?.chatId || "",
+            nome: g?.Name || g?.name || g?.subject || g?.title || g?.groupName || "(sem nome)",
+            id: g?.JID || g?.jid || g?.Jid || g?.id || g?.groupId || g?.chatId || "",
           })).filter((g) => g.id)
         : [];
       return json({
