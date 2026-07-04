@@ -448,6 +448,13 @@ Deno.serve(async (req: Request) => {
       if (!SERVICE_KEY) throw new Error("Secret SUPABASE_SERVICE_ROLE_KEY não configurado");
       if (!jogoId) throw new Error("parâmetro ?jogo=<id do confronto> é obrigatório");
       if (finishedParam !== "0" && finishedParam !== "1") throw new Error("parâmetro ?finished= deve ser 0 ou 1");
+      // Confronto precisa já existir: nunca criar linha nova aqui (um upsert às
+      // cegas criaria uma linha "fantasma" sem team_a/team_b/phase se o id não
+      // existisse — já aconteceu em teste com um confronto [TESTE] apagado).
+      const existentes = await sbGet(`${pref}mata_confrontos?id=eq.${encodeURIComponent(jogoId)}&select=id`);
+      if (!Array.isArray(existentes) || !existentes.length) {
+        throw new Error(`confronto "${jogoId}" não existe em ${pref}mata_confrontos — nada foi gravado`);
+      }
       // deno-lint-ignore no-explicit-any
       const row: Record<string, any> = { id: jogoId, updated_at: new Date().toISOString() };
       if (finishedParam === "0") {
