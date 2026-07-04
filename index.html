@@ -221,6 +221,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 .rr-finish{flex:0 0 auto;padding:8px 12px;border-radius:var(--r-q-sm);border:1.5px solid rgba(255,255,255,.45);background:rgba(255,255,255,.12);color:#fff;font-size:12px;font-weight:800;white-space:nowrap;cursor:pointer;transition:background .15s;}
 .rr-finish:active{background:rgba(255,255,255,.22);}
 .rr-finish.done{background:var(--gold);color:#5c4708;border-color:var(--gold);}
+span.rr-finish{cursor:default;}   /* selo de estado (jogo fechado), não é mais botão */
 .rr-finish .chk-off{color:rgba(255,255,255,.55);font-weight:900;}
 .real-row input{width:44px;height:36px;text-align:center;border:1.5px solid rgba(255,255,255,.35);border-radius:9px;font-size:17px;font-weight:700;background:rgba(255,255,255,.16);color:#fff;-moz-appearance:textfield;}
 .real-row input::-webkit-outer-spin-button,.real-row input::-webkit-inner-spin-button{-webkit-appearance:none;}
@@ -754,7 +755,7 @@ main{padding:12px 14px;max-width:920px;margin:0 auto;padding-bottom:calc(120px +
 .mm-po.on{border-color:var(--g);background:#e7f3ea;box-shadow:inset 0 0 0 1px var(--g);}
 .mm-passa.pen .mm-po.on{border-color:#c0392b;background:#fdeae8;box-shadow:inset 0 0 0 1px #c0392b;}
 /* Rodapé numa LINHA só (Parte 2): PLACAR FINAL · placar A×B · rótulo + 2 bandeiras menores (quem passou) · Finalizar */
-.real-row.mm-footer{display:flex;flex-direction:row;align-items:center;gap:9px;flex-wrap:wrap;}
+.real-row.mm-footer{display:flex;flex-direction:row;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap;}
 /* Parte 1: "PLACAR FINAL" + prévia EMPILHADOS (prévia embaixo) — largura fixa do rótulo, não empurra o placar */
 .mm-foot-fl{display:inline-flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.05;flex-shrink:0;}
 .mm-foot-fl .prev-tag{display:none;margin-left:0;align-self:flex-start;}
@@ -952,7 +953,7 @@ const PARTICIPANTS = [
   {id:'leo',       name:'Leo',           type:'human', color:'#00897b', init:'L',  team:'leo',    editable:true, img:'fotos/leo.jpg'},
   {id:'chatgptleo',name:'ChatGPT Leo',   type:'ia',    color:'#26a69a', init:'GL', team:'leo',    img:'fotos/leo-ia.jpeg'},
   {id:'vinicius',  name:'Vini',          type:'human', color:'#3d8ef0', init:'V',  team:'vini',   editable:true, img:'fotos/vini.jpg'},
-  {id:'claude',    name:'Claude Vini',   type:'ia',    color:'#cc6b2c', init:'CV', team:'vini',   img:'fotos/vini-ia.jpg'},
+  {id:'claude',    name:'Ratazana00',    type:'ia',    color:'#cc6b2c', init:'CV', team:'vini',   img:'Imagens/Ratazana-perfil.jpg'},   // ex-"Claude Vini": só nome/foto mudaram (id, máquina, time e histórico intactos)
 ];
 const TEAMS = [
   {id:'jeca',   name:'Time Jeca',   human:'jessica', ia:'chatgpt',    color:'#e05c8b'},
@@ -2048,7 +2049,7 @@ function rankingNew(){
   html+=`<div class="scoring">Como pontua: <b>placar cravado = 10 pts</b> · acerto do ganhador/empate = 5 pts · acerto dos gols de cada time = +1 cada</div>`;
   html+=`<div class="tiebreak">Empate na pontuação? Desempate: 1º mais placares cravados · 2º mais acertos de ganhador/empate.</div>`;
   html+=`<div class="section-title">⚔️ COMPARATIVOS</div>`;
-  html+=versus('🤝 Humanos vs Máquinas','👤 Humanos','Jeca + Tonius + Leo + Vini',hP,'#3d8ef0','🤖 Máquinas','ChatGPT Jeca + Claude Tonius + ChatGPT Leo + Claude Vini',iP,'#e8c44a');
+  html+=versus('🤝 Humanos vs Máquinas','👤 Humanos','Jeca + Tonius + Leo + Vini',hP,'#3d8ef0','🤖 Máquinas','ChatGPT Jeca + Claude Tonius + ChatGPT Leo + Ratazana00',iP,'#e8c44a');
   html+=teamRace('👥 Times', TEAMS.map(t=>{
     const hu=PARTICIPANTS.find(x=>x.id===t.human), ia=PARTICIPANTS.find(x=>x.id===t.ia);
     return {name:t.name, mem:hu.name+' + '+ia.name, pts:byId(t.human)+byId(t.ia), col:t.color, human:hu, ia:ia};
@@ -2111,8 +2112,8 @@ function rankingOld(){
   html+=`<div class="scoring">Como pontua: <b>placar cravado = 10 pts</b> · acerto do ganhador/empate = 5 pts · acerto dos gols de cada time = +1 cada</div>`;
   html+=`<div class="tiebreak">Empate na pontuação? Desempate: 1º mais placares cravados · 2º mais acertos de ganhador/empate.</div>`;
   html+=`<div class="section-title">⚔️ COMPARATIVOS</div>`;
-  html+=versus('🤝 Humanos vs Máquinas','👤 Humanos','Jeca + Vini',hP,'#3d8ef0','🤖 Máquinas','ChatGPT Jeca + Claude Vini',iP,'#e8c44a');
-  html+=versus('👥 Time Jeca vs Time Vini','Time Jeca','Jeca + ChatGPT Jeca',byId('jessica')+byId('chatgpt'),'#e05c8b','Time Vini','Vini + Claude Vini',byId('vinicius')+byId('claude'),'#3d8ef0');
+  html+=versus('🤝 Humanos vs Máquinas','👤 Humanos','Jeca + Vini',hP,'#3d8ef0','🤖 Máquinas','ChatGPT Jeca + Ratazana00',iP,'#e8c44a');
+  html+=versus('👥 Time Jeca vs Time Vini','Time Jeca','Jeca + ChatGPT Jeca',byId('jessica')+byId('chatgpt'),'#e05c8b','Time Vini','Vini + Ratazana00',byId('vinicius')+byId('claude'),'#3d8ef0');
 
   // Estatísticas individuais: em popup via clique na pessoa (openStats).
   // Tarefa C: jogos considerados no Bolão JxV — mesma regra do ranking (rankingOld/getStats):
@@ -2505,7 +2506,7 @@ function mmCard(c){
   const realInp=side=>`<input type="number" min="0" max="99" inputmode="numeric" value="${c['real_'+side]!=null?c['real_'+side]:''}" placeholder="–" oninput="mmSetReal('${c.id}','${side}',this.value)">`;
   const resultRow=`<div class="real-row${c.finished?'':' pending'}">
       <div class="rr-line"><span class="rr-label">PLACAR FINAL${(!c.finished&&hasScore)?' <span class="prev-tag">prévia</span>':''}</span>${realInp('a')}<span class="sep">×</span>${realInp('b')}</div>
-      <button class="rr-finish${c.finished?' done':''}" onclick="mmSetFinished('${c.id}')">${c.finished?'Finalizado ✅':'Finalizar <span class="chk-off">✓</span>'}</button>
+      ${c.finished?'<span class="rr-finish done">Finalizado ✅</span>':''}
     </div>`;
   return `<div class="${cls.join(' ')}" data-cid="${c.id}">${head}${mid}${preds}${editing?'':classRow}${editing?'':resultRow}</div>`;
 }
@@ -2689,7 +2690,9 @@ function mmFootQpHTML(c){
   else if(complete&&draw)lbl=`<span class="mm-foot-qplbl pen">Quem passa?</span>`;
   return `<div class="mm-foot-qp${draw?' pen':''}${complete?'':' idle'}">${lbl}<div class="mm-foot-flags">${cflag('A')}${cflag('B')}</div></div>`;
 }
-// Rodapé TUDO numa linha (2.1): PLACAR FINAL · placar A × B · rótulo + bandeiras (quem passou) · Finalizar.
+// Rodapé TUDO numa linha (2.1): PLACAR FINAL · placar A × B · rótulo + bandeiras (quem passou).
+// Sem botão Finalizar: o fechamento agora é SÓ pela página admin (conteúdo centralizado);
+// jogo fechado ganha o selo "🔒 Fechado" (mesmo visual de antes, sem clique).
 function mmResultHTML(c){
   const hasScore=c.real_a!=null&&c.real_b!=null;
   const realInp=side=>`<input type="number" min="0" max="99" inputmode="numeric" value="${c['real_'+side]!=null?c['real_'+side]:''}" placeholder="–" oninput="mmSetReal('${c.id}','${side}',this.value)">`;
@@ -2697,7 +2700,7 @@ function mmResultHTML(c){
       <span class="mm-foot-fl"><span class="rr-label">${c.finished?'PLACAR FINAL':'PRÉVIA PLACAR'}</span></span>
       <div class="mm-foot-scores">${realInp('a')}<span class="mm-foot-x">×</span>${realInp('b')}</div>
       ${mmFootQpHTML(c)}
-      <button class="rr-finish${c.finished?' done':''}" onclick="mmSetFinished('${c.id}')">${c.finished?'🔒 Fechado':'Finalizar <span class="chk-off">✓</span>'}</button>
+      ${c.finished?'<span class="rr-finish done">🔒 Fechado</span>':''}
     </div>`;
 }
 

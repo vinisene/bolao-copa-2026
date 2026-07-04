@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Placares — Bolão Ratazana00</title>
+<style>
+  /* Página ADMIN (não linkada no site). Fechar jogo usa a MESMA mecânica do
+     antigo botão Finalizar do card: upsert em mata_confrontos/dev_mata_confrontos
+     com real_a/real_b (+classificado se empate) e finished=true. */
+  :root{--bg:#101410;--card:#1a221a;--brd:#2c372c;--ink:#eef3ee;--mu:#9fb09f;--lime:#AFEA00;--verde:#004D3F;--gold:#e8c44a;--red:#ff6b5e;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font:15px/1.45 -apple-system,'Segoe UI',Roboto,'Noto Sans',sans-serif;padding:14px;max-width:560px;margin:0 auto;}
+  h1{font-size:19px;margin:6px 0 2px;letter-spacing:.3px;}
+  .sub{color:var(--mu);font-size:12px;margin-bottom:14px;}
+  .badge{display:inline-block;background:var(--verde);color:var(--lime);font-size:11px;font-weight:800;padding:2px 8px;border-radius:4px 12px 4px 4px;margin-left:6px;vertical-align:2px;}
+  .badge.dev{background:#5a1414;color:#ffd9a8;}
+  section{margin:18px 0 8px;}
+  h2{font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--mu);margin-bottom:8px;}
+  .jogo{background:var(--card);border:1px solid var(--brd);border-radius:4px 16px 4px 4px;padding:12px;margin-bottom:10px;}
+  .jg-top{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:var(--mu);margin-bottom:6px;flex-wrap:wrap;}
+  .jg-fase{font-weight:800;color:var(--gold);}
+  .jg-times{font-size:16px;font-weight:800;margin-bottom:10px;}
+  .placar{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .placar input{width:56px;height:44px;text-align:center;font-size:20px;font-weight:800;background:#0c100c;color:var(--ink);border:1.5px solid var(--brd);border-radius:8px;-moz-appearance:textfield;}
+  .placar input::-webkit-outer-spin-button,.placar input::-webkit-inner-spin-button{-webkit-appearance:none;}
+  .placar input:focus{outline:none;border-color:var(--lime);}
+  .placar .x{color:var(--mu);font-weight:800;}
+  .pen{display:none;margin-bottom:10px;}
+  .pen.show{display:block;}
+  .pen .lbl{font-size:11px;color:var(--gold);font-weight:700;margin-bottom:5px;}
+  .pen button{background:#0c100c;color:var(--ink);border:1.5px solid var(--brd);border-radius:8px;padding:8px 12px;margin-right:6px;font-size:13px;font-weight:700;cursor:pointer;}
+  .pen button.on{border-color:var(--lime);color:var(--lime);}
+  .fechar{width:100%;background:var(--lime);color:#12250f;border:none;border-radius:4px 14px 4px 4px;padding:11px;font-size:15px;font-weight:900;cursor:pointer;}
+  .fechar:disabled{opacity:.45;cursor:default;}
+  .status{font-size:12px;margin-top:8px;color:var(--mu);white-space:pre-line;}
+  .status.ok{color:var(--lime);}
+  .status.err{color:var(--red);}
+  .fechado-li{background:var(--card);border:1px solid var(--brd);border-radius:6px;padding:8px 12px;margin-bottom:6px;font-size:13px;color:var(--mu);}
+  .fechado-li b{color:var(--ink);}
+  #token-box{background:var(--card);border:1px solid var(--gold);border-radius:4px 16px 4px 4px;padding:14px;margin:14px 0;}
+  #token-box p{font-size:13px;color:var(--mu);margin-bottom:8px;}
+  #token-box input{width:100%;padding:10px;background:#0c100c;color:var(--ink);border:1.5px solid var(--brd);border-radius:8px;font-size:14px;margin-bottom:8px;}
+  #token-box button{background:var(--gold);color:#3a2e00;border:none;border-radius:8px;padding:10px 14px;font-weight:800;cursor:pointer;}
+  .linklike{background:none;border:none;color:var(--mu);font-size:11px;text-decoration:underline;cursor:pointer;padding:0;margin-top:4px;}
+  label.chk{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--mu);margin:10px 0 2px;}
+  #recarregar{background:none;border:1px solid var(--brd);color:var(--mu);border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer;margin-top:4px;}
+</style>
+</head>
+<body>
+<h1>🐀 Lançar placares <span id="env-badge" class="badge"></span></h1>
+<div class="sub">Fechar jogo grava o placar final e finaliza (mesma mecânica do card). O comentário do Ratazana é acessório: se falhar, o jogo continua fechado.</div>
+
+<div id="token-box" style="display:none">
+  <p><b>Código de admin</b> (primeira vez neste navegador): cole o código e salve. Ele fica guardado só aqui no seu aparelho e é usado pra acionar o comentário do Ratazana.</p>
+  <input id="token-input" type="password" placeholder="código de admin" autocomplete="off">
+  <button onclick="salvarToken()">Salvar código</button>
+</div>
+
+<label class="chk"><input type="checkbox" id="chk-coment" checked> Mandar comentário do Ratazana no grupo ao fechar</label>
+<button id="recarregar" onclick="carregar()">↻ Recarregar lista</button>
+<button class="linklike" onclick="trocarToken()">trocar código de admin</button>
+
+<div id="lista">Carregando…</div>
+
+<script>
+// ─── CONFIG (mesmo projeto/chave pública do app) ─────────────────────────────
+const SUPABASE_URL='https://jgnmenwtxybaqshvxyer.supabase.co';
+const SUPABASE_KEY='sb_publishable_-4B34BzFkro0ve-J-OMBKQ_9xO3C5tr';
+const FN_URL=SUPABASE_URL+'/functions/v1/ratazana-cobranca';
+// Detecção de ambiente IGUAL à do app (index.html): dev./ratazana. = DEV → tabelas dev_
+function isDevEnv(h){h=h||location.hostname;return h.startsWith('dev.')||h.startsWith('ratazana.');}
+const IS_DEV=isDevEnv();
+const MM_TCONF=IS_DEV?'dev_mata_confrontos':'mata_confrontos';
+const TOKEN_KEY='ratz_admin_code';
+
+// ─── Agenda + chave (cópias do app, pra ordenar e resolver nomes) ────────────
+const MM_AGENDA={
+  r32_1:{dt:'28/06',tm:'16h'},r32_2:{dt:'29/06',tm:'14h'},r32_3:{dt:'29/06',tm:'17h30'},
+  r32_4:{dt:'29/06',tm:'22h'},r32_5:{dt:'30/06',tm:'14h'},r32_6:{dt:'30/06',tm:'18h'},
+  r32_7:{dt:'30/06',tm:'22h'},r32_8:{dt:'01/07',tm:'13h'},r32_9:{dt:'01/07',tm:'17h'},
+  r32_10:{dt:'01/07',tm:'21h'},r32_11:{dt:'02/07',tm:'16h'},r32_12:{dt:'02/07',tm:'20h'},
+  r32_13:{dt:'03/07',tm:'00h'},r32_14:{dt:'03/07',tm:'15h'},r32_15:{dt:'03/07',tm:'19h'},
+  r32_16:{dt:'03/07',tm:'22h30'},r16_1:{dt:'04/07',tm:'14h'},r16_2:{dt:'04/07',tm:'18h'},
+  r16_3:{dt:'05/07',tm:'17h'},r16_4:{dt:'05/07',tm:'21h'},r16_5:{dt:'06/07',tm:'16h'},
+  r16_6:{dt:'06/07',tm:'21h'},r16_7:{dt:'07/07',tm:'13h'},r16_8:{dt:'07/07',tm:'17h'},
+  qf_1:{dt:'09/07',tm:'17h'},qf_2:{dt:'10/07',tm:'16h'},qf_3:{dt:'11/07',tm:'18h'},
+  qf_4:{dt:'11/07',tm:'22h'},sf_1:{dt:'14/07',tm:'16h'},sf_2:{dt:'15/07',tm:'16h'},
+  tp_1:{dt:'18/07',tm:'18h'},fin_1:{dt:'19/07',tm:'16h'},
+};
+const MM_BRACKET=(()=>{
+  const b={},W=g=>({g,take:'win'}),L=g=>({g,take:'lose'});
+  for(let i=1;i<=16;i++)b['r32_'+i]={};
+  b.r16_1={feeders:{A:W('r32_1'),B:W('r32_4')}};b.r16_2={feeders:{A:W('r32_3'),B:W('r32_6')}};
+  b.r16_3={feeders:{A:W('r32_2'),B:W('r32_5')}};b.r16_4={feeders:{A:W('r32_7'),B:W('r32_8')}};
+  b.r16_5={feeders:{A:W('r32_12'),B:W('r32_11')}};b.r16_6={feeders:{A:W('r32_10'),B:W('r32_9')}};
+  b.r16_7={feeders:{A:W('r32_15'),B:W('r32_14')}};b.r16_8={feeders:{A:W('r32_13'),B:W('r32_16')}};
+  b.qf_1={feeders:{A:W('r16_1'),B:W('r16_2')}};b.qf_2={feeders:{A:W('r16_5'),B:W('r16_6')}};
+  b.qf_3={feeders:{A:W('r16_3'),B:W('r16_4')}};b.qf_4={feeders:{A:W('r16_7'),B:W('r16_8')}};
+  b.sf_1={feeders:{A:W('qf_1'),B:W('qf_2')}};b.sf_2={feeders:{A:W('qf_3'),B:W('qf_4')}};
+  b.tp_1={feeders:{A:L('sf_1'),B:L('sf_2')}};b.fin_1={feeders:{A:W('sf_1'),B:W('sf_2')}};
+  return b;
+})();
+function gameDate(c){
+  const a=MM_AGENDA[c.id]||{};const dt=c.dt||a.dt,tm=c.tm||a.tm;
+  if(!dt)return null;
+  const p=dt.split('/').map(Number);
+  const h=tm?parseInt(tm)||0:0,mi=(tm&&tm.split('h')[1])?parseInt(tm.split('h')[1]):0;
+  return new Date(2026,p[1]-1,p[0],h,mi);   // hora local, igual ao app
+}
+function realWinner(c){
+  if(!c||c.real_a==null||c.real_b==null)return null;
+  if(c.real_a>c.real_b)return 'A';
+  if(c.real_b>c.real_a)return 'B';
+  return (c.classificado==='A'||c.classificado==='B')?c.classificado:null;
+}
+let CONFRONTOS=[];const byId=id=>CONFRONTOS.find(c=>c.id===id);
+function resolveSide(slotId,side){
+  const slot=MM_BRACKET[slotId];
+  if(slot&&slot.feeders){const f=slot.feeders[side];const w=realWinner(byId(f.g));if(w==null)return null;
+    return resolveSide(f.g,f.take==='win'?w:(w==='A'?'B':'A'));}
+  const c=byId(slotId);if(!c)return null;
+  const nm=side==='A'?c.team_a:c.team_b;return nm||null;
+}
+function nomes(c){return {a:resolveSide(c.id,'A')||'A definir',b:resolveSide(c.id,'B')||'A definir'};}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+
+// ─── Código de admin (localStorage; NUNCA embutido no código) ────────────────
+function temToken(){return !!localStorage.getItem(TOKEN_KEY);}
+function salvarToken(){
+  const v=document.getElementById('token-input').value.trim();
+  if(!v){alert('Cole o código de admin.');return;}
+  localStorage.setItem(TOKEN_KEY,v);
+  document.getElementById('token-box').style.display='none';
+}
+function trocarToken(){
+  localStorage.removeItem(TOKEN_KEY);
+  document.getElementById('token-box').style.display='block';
+  document.getElementById('token-input').value='';
+}
+
+// ─── Dados ───────────────────────────────────────────────────────────────────
+async function carregar(){
+  const el=document.getElementById('lista');el.textContent='Carregando…';
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/${MM_TCONF}?select=*&order=created_at`,{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY}});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    CONFRONTOS=await r.json();
+    render();
+  }catch(e){el.innerHTML='<div class="status err">Erro ao carregar: '+esc(e.message)+'</div>';}
+}
+function render(){
+  const now=Date.now();
+  const abertos=CONFRONTOS.filter(c=>!c.finished);
+  // prioridade: já começaram (ou sem data, ex.: [TESTE]) e sem fechamento
+  const comecaram=abertos.filter(c=>{const d=gameDate(c);return !d||d.getTime()<=now;});
+  const futuros=abertos.filter(c=>{const d=gameDate(c);return d&&d.getTime()>now;})
+    .sort((x,y)=>gameDate(x)-gameDate(y));
+  const fechados=CONFRONTOS.filter(c=>c.finished)
+    .sort((x,y)=>(gameDate(y)||0)-(gameDate(x)||0));
+  let h='';
+  h+=secao('🔴 Já começaram · sem placar final',comecaram,true);
+  h+=secao('⏳ Ainda não começaram',futuros,true);
+  if(fechados.length){
+    h+='<section><h2>🔒 Fechados ('+fechados.length+')</h2>';
+    fechados.forEach(c=>{const n=nomes(c);
+      const pen=(c.real_a===c.real_b&&c.classificado)?' · pênaltis: '+esc(c.classificado==='A'?n.a:n.b):'';
+      h+=`<div class="fechado-li"><b>${esc(n.a)} ${c.real_a}×${c.real_b} ${esc(n.b)}</b> · ${esc(c.phase||'')}${pen}</div>`;});
+    h+='</section>';
+  }
+  document.getElementById('lista').innerHTML=h||'Nenhum jogo encontrado.';
+}
+function secao(titulo,lista,editavel){
+  if(!lista.length)return '';
+  let h='<section><h2>'+titulo+' ('+lista.length+')</h2>';
+  lista.forEach(c=>{h+=cardJogo(c);});
+  return h+'</section>';
+}
+function cardJogo(c){
+  const n=nomes(c);const a=MM_AGENDA[c.id]||{};
+  const quando=(a.dt?a.dt+' às '+a.tm:'')+(c.id.startsWith('mm_teste')?' · JOGO DE TESTE':'');
+  return `<div class="jogo" id="jg-${esc(c.id)}">
+    <div class="jg-top"><span class="jg-fase">${esc(c.phase||'')}</span><span>${esc(quando)}</span><span>${esc(c.id)}</span></div>
+    <div class="jg-times">${esc(n.a)} × ${esc(n.b)}</div>
+    <div class="placar">
+      <input type="number" min="0" max="99" inputmode="numeric" id="ra-${esc(c.id)}" placeholder="–" value="${c.real_a!=null?c.real_a:''}" oninput="mudouPlacar('${esc(c.id)}')">
+      <span class="x">×</span>
+      <input type="number" min="0" max="99" inputmode="numeric" id="rb-${esc(c.id)}" placeholder="–" value="${c.real_b!=null?c.real_b:''}" oninput="mudouPlacar('${esc(c.id)}')">
+    </div>
+    <div class="pen" id="pen-${esc(c.id)}">
+      <div class="lbl">Empate: quem passou nos pênaltis?</div>
+      <button type="button" id="pa-${esc(c.id)}" onclick="escolhePen('${esc(c.id)}','A')">${esc(n.a)}</button>
+      <button type="button" id="pb-${esc(c.id)}" onclick="escolhePen('${esc(c.id)}','B')">${esc(n.b)}</button>
+    </div>
+    <button class="fechar" onclick="fecharJogo('${esc(c.id)}')">Fechar jogo</button>
+    <div class="status" id="st-${esc(c.id)}"></div>
+  </div>`;
+}
+const penEscolha={};
+function mudouPlacar(cid){
+  const ra=document.getElementById('ra-'+cid).value,rb=document.getElementById('rb-'+cid).value;
+  const empate=ra!==''&&rb!==''&&parseInt(ra)===parseInt(rb);
+  document.getElementById('pen-'+cid).classList.toggle('show',empate);
+  if(!empate){delete penEscolha[cid];pintaPen(cid);}
+}
+function escolhePen(cid,side){
+  penEscolha[cid]=penEscolha[cid]===side?null:side;
+  pintaPen(cid);
+}
+function pintaPen(cid){
+  const pa=document.getElementById('pa-'+cid),pb=document.getElementById('pb-'+cid);
+  if(pa)pa.classList.toggle('on',penEscolha[cid]==='A');
+  if(pb)pb.classList.toggle('on',penEscolha[cid]==='B');
+}
+
+// ─── Fechar jogo (MESMA mecânica do antigo Finalizar do card) ────────────────
+async function fecharJogo(cid){
+  const st=document.getElementById('st-'+cid);
+  const ra=document.getElementById('ra-'+cid).value,rb=document.getElementById('rb-'+cid).value;
+  if(ra===''||rb===''){st.className='status err';st.textContent='Preencha o placar final dos dois lados.';return;}
+  const A=parseInt(ra),B=parseInt(rb);
+  const empate=A===B;const passa=penEscolha[cid]||null;
+  if(empate&&!passa){st.className='status err';st.textContent='Empate: escolha quem passou nos pênaltis.';return;}
+  const n=nomes(byId(cid)||{id:cid});
+  const resumo=`${n.a} ${A}×${B} ${n.b}`+(empate?` (${passa==='A'?n.a:n.b} passa nos pênaltis)`:'');
+  if(!confirm(`Fechar jogo?\n\n${resumo}\n\nIsso grava o placar FINAL e trava a pontuação${IS_DEV?' (ambiente DEV)':' (PRODUÇÃO)'}.`))return;
+  st.className='status';st.textContent='Fechando…';
+  // 1) grava e finaliza — mesmo upsert do app (mmSetReal/mmSetClassificado/mmSetFinished)
+  const row={id:cid,real_a:A,real_b:B,finished:true,updated_at:new Date().toISOString()};
+  if(empate)row.classificado=passa;   // fora do empate o campo fica como está (igual ao app)
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/${MM_TCONF}?on_conflict=id`,{
+      method:'POST',
+      headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},
+      body:JSON.stringify([row])});
+    if(!r.ok)throw new Error('HTTP '+r.status+': '+(await r.text()).slice(0,150));
+  }catch(e){st.className='status err';st.textContent='ERRO ao fechar: '+e.message;return;}
+  st.className='status ok';st.textContent='✅ Jogo fechado.';
+  // 2) comentário do Ratazana (acessório: falha NÃO desfaz o fechamento)
+  if(document.getElementById('chk-coment').checked){
+    st.textContent+='\n🐀 Chamando o Ratazana…';
+    try{
+      const token=localStorage.getItem(TOKEN_KEY)||'';
+      const fr=await fetch(`${FN_URL}?token=${encodeURIComponent(token)}&tipo=fim_de_jogo&jogo=${encodeURIComponent(cid)}&env=${IS_DEV?'dev':'prod'}`);
+      const fd=await fr.json().catch(()=>({}));
+      if(fr.status===401){trocarToken();st.textContent+='\n⚠️ Código de admin inválido: comentário não saiu (o jogo segue fechado). Salve o código e use "tentar de novo" fechando outro jogo.';}
+      else if(fd.ok)st.textContent+=`\n🐀 Comentário enviado ao grupo (${fd.n_mensagens||1} mensagem${(fd.n_mensagens||1)>1?'s':''}).`;
+      else st.textContent+='\n⚠️ Comentário falhou ('+esc(fd.erro||('HTTP '+fr.status))+'). O jogo segue fechado; veja o bot_log.';
+    }catch(e){st.textContent+='\n⚠️ Comentário falhou ('+esc(e.message)+'). O jogo segue fechado.';}
+  }
+  setTimeout(carregar,1600);
+}
+
+// ─── Boot ────────────────────────────────────────────────────────────────────
+document.getElementById('env-badge').textContent=IS_DEV?'DEV (tabelas dev_)':'PRODUÇÃO';
+document.getElementById('env-badge').className='badge'+(IS_DEV?' dev':'');
+if(IS_DEV)document.title='TESTES - '+document.title;
+if(!temToken())document.getElementById('token-box').style.display='block';
+carregar();
+</script>
+</body>
+</html>

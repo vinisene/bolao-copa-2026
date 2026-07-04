@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// ROBÔ RATAZANA — Edge Function "ratazana-cobranca" (v1.4: fase ativa + estilo)
+// ROBÔ RATAZANA — Edge Function "ratazana-cobranca" (v1.6: cobrança + fim de jogo)
 // ═══════════════════════════════════════════════════════════════════════════
 // Uso (navegador ou curl):
 //   GET https://<projeto>.supabase.co/functions/v1/ratazana-cobranca?token=XXX
@@ -7,6 +7,8 @@
 //   ...&force=1         → se ninguém falta, envia "todo mundo em dia" (teste)
 //   ...&listar_grupos=1 → NÃO envia nada; lista os grupos do WhatsApp da
 //                         instância (para descobrir o ID ...@g.us do grupo)
+//   ...&tipo=fim_de_jogo&jogo=<id>[&env=dev] → comentário curto de fim de
+//                         jogo (chamado pela página admin ao fechar um jogo)
 //
 // Dados: SEMPRE tabelas de PRODUÇÃO (mata_confrontos / mata_palpites / bot_config).
 // Modelo de IA: lido de bot_config key 'modelo_ia' (fallback Haiku 4.5).
@@ -384,6 +386,25 @@ async function zapEnviaTexto(numero: string, texto: string) {
   const corpo = (await r.text()).slice(0, 600);
   return { ok: r.ok, detalhe: `HTTP ${r.status}: ${corpo}` };
 }
+// Divide a resposta da IA (blocos "---" + rede de segurança de tamanho) e envia
+// como até 3 mensagens sequenciais no WhatsApp. Usado pela cobrança e pelo
+// fim de jogo. O padrão continua sendo mensagem única.
+async function enviaEmPartes(grupo: string, texto: string) {
+  const blocosIA = texto.split(/\n\s*-{3,}\s*\n/).map((b: string) => b.trim()).filter(Boolean);
+  const pedacos = blocosIA.flatMap((b: string) => quebraLonga(b));
+  const partes = pedacos.length <= 3 ? pedacos : [...pedacos.slice(0, 2), pedacos.slice(2).join("\n\n")];
+  if (!partes.length) throw new Error("resposta da IA ficou vazia após a divisão em blocos");
+  const envios: { ok: boolean; detalhe: string }[] = [];
+  for (const parte of partes) {
+    envios.push(await zapEnviaTexto(grupo, parte));
+    if (partes.length > 1) await new Promise((res) => setTimeout(res, 900));
+  }
+  return {
+    partes,
+    ok: envios.every((e) => e.ok),
+    detalhe: envios.map((e, ix) => `msg ${ix + 1}/${partes.length} ${e.detalhe}`).join(" | "),
+  };
+}
 
 // ─── Handler ─────────────────────────────────────────────────────────────────
 Deno.serve(async (req: Request) => {
@@ -430,6 +451,129 @@ Deno.serve(async (req: Request) => {
       }, r.ok ? 200 : 502);
     } catch (e) {
       return json({ ok: false, erro: `Falha ao listar grupos: ${String((e as Error)?.message || e)}` }, 500);
+    }
+  }
+
+  // ─── Modo FIM DE JOGO (v1.6): comentário curto após fechar pela página admin ─
+  // ?tipo=fim_de_jogo&jogo=<id>[&env=dev]. Quem FECHA o jogo é a página admin,
+  // direto na tabela; este modo só comenta. Falha aqui NUNCA desfaz nem
+  // bloqueia o fechamento (erro fica no bot_log e a vida segue).
+  if (url.searchParams.get("tipo") === "fim_de_jogo") {
+    const jogoId = url.searchParams.get("jogo") || "";
+    const pref = url.searchParams.get("env") === "dev" ? "dev_" : "";
+    const GRUPO = Deno.env.get("GRUPO_TESTE_ID") || "";
+    const logBase = { tipo: "fim_de_jogo" + (pref ? "_dev" : ""), destino: GRUPO };
+    let etapa = "consulta_banco";
+    let userPrompt: string | null = null;
+    let respostaIA: string | null = null;
+    let modelo = MODELO_FALLBACK;
+    try {
+      if (!jogoId) throw new Error("parâmetro ?jogo=<id do confronto> é obrigatório");
+      const [confrontos, palpites, cfg] = await Promise.all([
+        sbGet(`${pref}mata_confrontos?select=*`),
+        sbGet(`${pref}mata_palpites?select=confronto_id,pid,gols_a,gols_b,quem_passa`),
+        sbGet("bot_config?key=in.(system_prompt_ratazana,modelo_ia)&select=key,value"),
+      ]);
+      const cfgMap: Record<string, string> = {};
+      for (const row of cfg) cfgMap[row.key] = row.value;
+      const systemPrompt = cfgMap["system_prompt_ratazana"];
+      modelo = (cfgMap["modelo_ia"] || "").trim() || MODELO_FALLBACK;
+      if (!systemPrompt) throw new Error("bot_config sem 'system_prompt_ratazana' — rode o supabase_bot.sql");
+      const c = confrontos.find((x: Conf) => x.id === jogoId);
+      if (!c) throw new Error(`jogo "${jogoId}" não encontrado em ${pref}mata_confrontos`);
+      if (c.real_a == null || c.real_b == null || !c.finished) {
+        throw new Error(`jogo "${jogoId}" ainda não está fechado com placar final`);
+      }
+
+      // Apuração (mesma pontuação do app): pontos, cravadas, zebra, troca de líder
+      etapa = "apuracao";
+      const PAL: Record<string, Record<string, Conf>> = {};
+      for (const p of palpites) (PAL[p.confronto_id] ??= {})[p.pid] = p;
+      const phaseKey = mmPhaseKeyOf(c.id);
+      const turbo = MM_TURBO.has(c.id);
+      const mult = fmtPts((MM_PHASE_MULT[phaseKey] || 1) * (turbo ? 2 : 1));
+      const pontos = MATA_PARTS_BOT.map((p) => ({ p, s: mmScore(PAL[c.id]?.[p.id], c) }))
+        .filter((x) => x.s)
+        .sort((a: Conf, b: Conf) => b.s.total - a.s.total);
+      const linhaPts = pontos.filter((x: Conf) => x.s.total > 0)
+        .map((x: Conf) => `${x.p.nome} ${fmtPts(x.s.total)}`).join("; ") || "ninguém pontuou";
+      const cravaram = pontos.filter((x: Conf) => x.s.exato).map((x: Conf) => x.p.nome);
+      const z = mmZebra(c);
+      const rw = mmRealWinner(c);
+      let zebraTxt = "não havia zebra definida neste jogo";
+      if (z) {
+        const nmAz = z.azarao === "A" ? (c.team_a || "A") : (c.team_b || "B");
+        zebraTxt = rw === z.azarao
+          ? `${z.tipo === "zebrao" ? "ZEBRÃO PAGOU" : "ZEBRA PAGOU"}: o azarão ${nmAz} avançou (+${z.tipo === "zebrao" ? 5 : 3} pra quem apostou nele)`
+          : `havia ${z.tipo === "zebrao" ? "zebrão" : "zebra"} definida (azarão ${nmAz}), mas não pagou`;
+      }
+      const meu = pontos.find((x: Conf) => x.p.id === RATAZANA_ID);
+      const meuPal = PAL[c.id]?.[RATAZANA_ID];
+      const penTxt = (c.real_a === c.real_b && c.classificado)
+        ? ` (${c.classificado === "A" ? c.team_a : c.team_b} passou nos pênaltis)` : "";
+      // troca de líder: ranking SEM este jogo vs COM ele (jogos [TESTE] não
+      // entram em mataStats, então teste não mexe no ranking real)
+      const semEste = confrontos.filter((x: Conf) => x.id !== c.id);
+      const rankSem = MATA_PARTS_BOT.map((p) => ({ p, ...mataStats(p.id, semEste, PAL) }))
+        .sort((a, b) => b.total - a.total || b.eHits - a.eHits || b.rHits - a.rHits);
+      const rankCom = MATA_PARTS_BOT.map((p) => ({ p, ...mataStats(p.id, confrontos, PAL) }))
+        .sort((a, b) => b.total - a.total || b.eHits - a.eHits || b.rHits - a.rHits);
+      const liderAntes = rankSem[0], liderDepois = rankCom[0];
+      const posRat = rankCom.findIndex((r) => r.p.id === RATAZANA_ID) + 1;
+      const liderTxt = liderAntes.p.id !== liderDepois.p.id
+        ? `HOUVE TROCA DE LÍDER: ${liderDepois.p.nome} assumiu a ponta com ${fmtPts(liderDepois.total)} pontos (o líder anterior era ${liderAntes.p.nome} com ${fmtPts(liderAntes.total)} pontos)`
+        : `sem troca de líder: segue ${liderDepois.p.nome} com ${fmtPts(liderDepois.total)} pontos`;
+
+      etapa = "monta_prompt";
+      const origemLiberada = Math.random() < 1 / 3;
+      userPrompt =
+        `DADOS VERIFICADOS DO BOLÃO (fim de jogo, gerados em ${agoraBrasilia()}, horário de Brasília). Use somente estes dados. Não calcule nem invente nada.\n\n` +
+        `Estilo desta mensagem: referência de origem/esgoto ${origemLiberada ? "LIBERADA (no máximo uma)" : "PROIBIDA nesta mensagem"}.\n\n` +
+        `JOGO ENCERRADO AGORA: ${c.team_a} ${c.real_a}×${c.real_b} ${c.team_b}${penTxt} (${c.phase || PH_LABEL[phaseKey]}, valia ×${mult}${turbo ? ", jogo turbo" : ""})\n` +
+        `- Pontuaram: ${linhaPts}\n` +
+        `- Cravaram o placar exato: ${cravaram.length ? listaNomes(cravaram) : "ninguém"}\n` +
+        `- Zebra: ${zebraTxt}\n` +
+        `- Seu palpite (Ratazana00): ${meuPal && meuPal.gols_a != null ? `${meuPal.gols_a}×${meuPal.gols_b}` : "não registrado"}; seus pontos neste jogo: ${meu ? fmtPts(meu.s.total) : "0"}\n` +
+        `- Ranking do mata: ${liderTxt}; você (Ratazana00) está em ${posRat}º com ${fmtPts(rankCom[posRat - 1].total)} pontos\n\n` +
+        `TAREFA: escreva um comentário CURTO de FIM DE JOGO para o grupo de WhatsApp (3 a 5 linhas): placar, destaque de quem pontuou ou cravou, zebra se pagou, troca de líder se houve, e a sua perspectiva de participante (você também pontua ou erra nesses jogos). Sem cobrar palpite de ninguém, sem link do bolão. Mensagem única.`;
+
+      etapa = "anthropic";
+      const ia = await chamaIA(modelo, systemPrompt, userPrompt);
+      respostaIA = ia.texto;
+
+      etapa = "zapzap";
+      const envio = await enviaEmPartes(GRUPO, respostaIA);
+
+      etapa = "log";
+      await botLog({
+        ...logBase,
+        prompt_enviado: userPrompt,
+        resposta_ia: respostaIA,
+        mensagem_enviada: envio.partes.join("\n\n"),
+        status_envio: envio.ok ? "ok" : "erro",
+        erro: envio.ok ? null : envio.detalhe,
+      });
+      return json({
+        ok: envio.ok,
+        enviado: envio.ok,
+        jogo: jogoId,
+        ambiente: pref ? "dev" : "prod",
+        modelo,
+        uso_tokens: ia.usage,
+        n_mensagens: envio.partes.length,
+        mensagens: envio.partes,
+        zapzap: envio.detalhe,
+      }, envio.ok ? 200 : 502);
+    } catch (e) {
+      const msg = String((e as Error)?.message || e);
+      await botLog({
+        ...logBase,
+        prompt_enviado: userPrompt,
+        resposta_ia: respostaIA,
+        status_envio: "erro",
+        erro: `[etapa: ${etapa}] ${msg}`,
+      });
+      return json({ ok: false, etapa, jogo: jogoId, erro: msg }, 500);
     }
   }
 
@@ -685,23 +829,11 @@ Deno.serve(async (req: Request) => {
     const ia = await chamaIA(modelo, systemPrompt, userPrompt, testeLongo ? 1400 : 800);
     respostaIA = ia.texto;
 
-    // 3g) Envia ao grupo de teste via ZapZap. Se a IA separou blocos com uma
-    // linha "---" (exceção prevista na alma v1.4), cada bloco vira uma
-    // mensagem separada (máximo 3); o padrão continua sendo mensagem única.
+    // 3g) Envia ao grupo de teste via ZapZap (mensagem única por padrão;
+    // blocos "---" ou texto longo viram até 3 mensagens — ver enviaEmPartes)
     etapa = "zapzap";
-    const blocosIA = respostaIA.split(/\n\s*-{3,}\s*\n/).map((b: string) => b.trim()).filter(Boolean);
-    const pedacos = blocosIA.flatMap((b: string) => quebraLonga(b));
-    const partes = pedacos.length <= 3 ? pedacos : [...pedacos.slice(0, 2), pedacos.slice(2).join("\n\n")];
-    if (!partes.length) throw new Error("resposta da IA ficou vazia após a divisão em blocos");
-    const envios: { ok: boolean; detalhe: string }[] = [];
-    for (const parte of partes) {
-      envios.push(await zapEnviaTexto(GRUPO, parte));
-      if (partes.length > 1) await new Promise((res) => setTimeout(res, 900));
-    }
-    const envio = {
-      ok: envios.every((e) => e.ok),
-      detalhe: envios.map((e, ix) => `msg ${ix + 1}/${partes.length} ${e.detalhe}`).join(" | "),
-    };
+    const envio = await enviaEmPartes(GRUPO, respostaIA);
+    const partes = envio.partes;
 
     // 3h) Auditoria
     etapa = "log";
