@@ -291,6 +291,18 @@ function calcMataPts(pal: Conf, c: Conf) {
   const s = mmScore(pal, c);
   return s ? s.total : null;
 }
+// ─── Regra de existência das IAs concorrentes (persona v2.1) ─────────────────
+// Uma IA que não seja você (RATAZANA_ID) só é citável no texto quando estiver
+// no TOP 3 do ranking geral do mata-mata (o mesmo ranking da aba Ranking do
+// app, misturando humanos e máquinas). Fora do top 3, ela "não existe": nunca
+// aparece em Pontuaram/Cravaram/Acertaram/zebra/palpites públicos. Isso é
+// filtro de DADOS (antes do prompt), não só instrução de estilo pra IA —
+// participantesCitaveis() devolve o subconjunto visível de MATA_PARTS_BOT;
+// usar esse array (nunca o MATA_PARTS_BOT cru) em toda lista nome-a-nome.
+function participantesCitaveis(rank: { p: Conf }[]) {
+  const top3 = new Set(rank.slice(0, 3).map((r) => r.p.id));
+  return MATA_PARTS_BOT.filter((p) => p.tipo !== "maquina" || p.id === RATAZANA_ID || top3.has(p.id));
+}
 // Estatísticas do mata por participante (ignora TESTE e não finalizados)
 function mataStats(pid: string, confrontos: Conf[], PAL: Record<string, Record<string, Conf>>) {
   let total = 0, rHits = 0, eHits = 0, played = 0;
@@ -730,7 +742,24 @@ Deno.serve(async (req: Request) => {
       const faseNome = PH_LABEL[phaseKey] || phaseKey;
       const turbo = MM_TURBO.has(c.id);
       const mult = fmtPts((MM_PHASE_MULT[phaseKey] || 1) * (turbo ? 2 : 1));
-      const pontos = MATA_PARTS_BOT.map((p) => ({ p, s: mmScore(PAL[c.id]?.[p.id], c) }))
+
+      // Ranking ANTES de montar qualquer lista de nomes: precisa do top 3 pra
+      // saber quais IAs concorrentes existem no texto (regra v2.1, ver
+      // participantesCitaveis). Calculado aqui (não só lá embaixo pra troca de
+      // líder) porque pontos/palpitesTxt de baixo já dependem do filtro.
+      const semEste = confrontos.filter((x: Conf) => x.id !== c.id);
+      const rankSem = MATA_PARTS_BOT.map((p) => ({ p, ...mataStats(p.id, semEste, PAL) }))
+        .sort((a, b) => b.total - a.total || b.eHits - a.eHits || b.rHits - a.rHits);
+      const rankCom = MATA_PARTS_BOT.map((p) => ({ p, ...mataStats(p.id, confrontos, PAL) }))
+        .sort((a, b) => b.total - a.total || b.eHits - a.eHits || b.rHits - a.rHits);
+      const liderAntes = rankSem[0], liderDepois = rankCom[0];
+      const posRat = rankCom.findIndex((r) => r.p.id === RATAZANA_ID) + 1;
+      const liderTxt = liderAntes.p.id !== liderDepois.p.id
+        ? `HOUVE TROCA DE LÍDER: ${liderDepois.p.nome} assumiu a ponta com ${fmtPts(liderDepois.total)} pontos (o líder anterior era ${liderAntes.p.nome} com ${fmtPts(liderAntes.total)} pontos)`
+        : `sem troca de líder: segue ${liderDepois.p.nome} com ${fmtPts(liderDepois.total)} pontos`;
+      const citaveis = participantesCitaveis(rankCom);
+
+      const pontos = citaveis.map((p) => ({ p, s: mmScore(PAL[c.id]?.[p.id], c) }))
         .filter((x) => x.s)
         .sort((a: Conf, b: Conf) => b.s.total - a.s.total);
       const cravaram = pontos.filter((x: Conf) => x.s.exato).map((x: Conf) => x.p.nome);
@@ -742,7 +771,8 @@ Deno.serve(async (req: Request) => {
         return pres === rres;
       }).map((x: Conf) => x.p.nome);
       // palpites são públicos: lista completa palpite + pontos deste jogo
-      const palpitesTxt = MATA_PARTS_BOT.map((p) => {
+      // (só de quem é citável — IA concorrente fora do top 3 nem aparece aqui)
+      const palpitesTxt = citaveis.map((p) => {
         const pal = PAL[c.id]?.[p.id];
         if (!pal || pal.gols_a == null || pal.gols_b == null) return null;
         const s = mmScore(pal, c);
@@ -789,19 +819,7 @@ Deno.serve(async (req: Request) => {
 
       const meu = pontos.find((x: Conf) => x.p.id === RATAZANA_ID);
       const meuPal = PAL[c.id]?.[RATAZANA_ID];
-      // troca de líder: ranking SEM este jogo vs COM ele (jogos [TESTE] não
-      // entram em mataStats, então teste não mexe no ranking real)
-      const semEste = confrontos.filter((x: Conf) => x.id !== c.id);
-      const rankSem = MATA_PARTS_BOT.map((p) => ({ p, ...mataStats(p.id, semEste, PAL) }))
-        .sort((a, b) => b.total - a.total || b.eHits - a.eHits || b.rHits - a.rHits);
-      const rankCom = MATA_PARTS_BOT.map((p) => ({ p, ...mataStats(p.id, confrontos, PAL) }))
-        .sort((a, b) => b.total - a.total || b.eHits - a.eHits || b.rHits - a.rHits);
-      const liderAntes = rankSem[0], liderDepois = rankCom[0];
-      const posRat = rankCom.findIndex((r) => r.p.id === RATAZANA_ID) + 1;
-      const liderTxt = liderAntes.p.id !== liderDepois.p.id
-        ? `HOUVE TROCA DE LÍDER: ${liderDepois.p.nome} assumiu a ponta com ${fmtPts(liderDepois.total)} pontos (o líder anterior era ${liderAntes.p.nome} com ${fmtPts(liderAntes.total)} pontos)`
-        : `sem troca de líder: segue ${liderDepois.p.nome} com ${fmtPts(liderDepois.total)} pontos`;
-      // gêneros de bot_telefones (persona v2.0 calibra intensidade por gênero)
+      // gêneros de bot_telefones (persona calibra intensidade por gênero)
       const generos = (telefones as Conf[]).filter((x: Conf) => x.genero)
         .map((x: Conf) => `${x.nome_exibicao || MATA_PARTS_BOT.find((p) => p.id === x.participante_id)?.nome || x.participante_id} (${x.genero})`);
 
@@ -829,8 +847,8 @@ Deno.serve(async (req: Request) => {
         `- Cravaram o placar exato: ${cravaram.length ? listaNomes(cravaram) : "ninguém"}\n` +
         `- Acertaram o resultado: ${acertaramRes.length ? listaNomes(acertaramRes) : "ninguém"}\n` +
         `- Palpites e pontos neste jogo: ${palpitesTxt}\n` +
-        `- Seu palpite (Ratazana00): ${meuPal && meuPal.gols_a != null ? `${meuPal.gols_a}×${meuPal.gols_b}` : "não registrado"}; seus pontos neste jogo: ${meu ? fmtPts(meu.s.total) : "0"}\n` +
-        `- Ranking do mata: ${liderTxt}; você (Ratazana00) está em ${posRat}º com ${fmtPts(rankCom[posRat - 1].total)} pontos\n` +
+        `- Seu palpite: ${meuPal && meuPal.gols_a != null ? `${meuPal.gols_a}×${meuPal.gols_b}` : "não registrado"}; seus pontos neste jogo: ${meu ? fmtPts(meu.s.total) : "0"}\n` +
+        `- Ranking do Bolão: ${liderTxt}; você está em ${posRat}º com ${fmtPts(rankCom[posRat - 1].total)} pontos\n` +
         (generos.length ? `- Gênero dos participantes (pra calibrar a intensidade): ${generos.join("; ")}\n` : "") +
         direcaoBloco +
         `\nTAREFA: escreva o comentário de FIM DE JOGO para o grupo de WhatsApp (4 a 7 linhas), seguindo o CONTEXTO OBRIGATÓRIO da persona: cite os DOIS times pelo nome e a fase, o desfecho (se teve pênaltis, narre a emoção), a consequência (quem avança pra qual fase, quem foi eliminado), zebra se pagou (aí abra com o alerta e elogie quem apostou nela), quem cravou/acertou o resultado e os pontos relevantes das pessoas. Sem cobrar palpite de ninguém, sem link do bolão. Mensagem única.`;
@@ -952,6 +970,12 @@ Deno.serve(async (req: Request) => {
     const PAL: Record<string, Record<string, Conf>> = {};
     for (const p of palpites) (PAL[p.confronto_id] ??= {})[p.pid] = p;
     const teamsOf = makeResolver(confrontos);
+    // Ranking calculado aqui (não só lá embaixo em "3e"): jogos/ultimoBloco
+    // logo abaixo já precisam saber o top 3 pra aplicar a regra de existência
+    // das IAs concorrentes (participantesCitaveis, persona v2.1).
+    const rank = MATA_PARTS_BOT.map((p) => ({ p, ...mataStats(p.id, confrontos, PAL) }))
+      .sort((a, b) => b.total - a.total || b.eHits - a.eHits || b.rHits - a.rHits);
+    const citaveis = participantesCitaveis(rank);
     const now = Date.now();
     const futuros = confrontos
       .filter((c: Conf) => !mmIsTest(c))
@@ -990,7 +1014,8 @@ Deno.serve(async (req: Request) => {
       const palDe = (pid: string) => fmtPal(PAL[c.id]?.[pid], nomeA, nomeB);
       const palHumanos = HUMANOS.map((h) => ({ nome: h.nome, pal: palDe(h.id) }))
         .filter((x) => x.pal).map((x) => `${x.nome} ${x.pal}`);
-      const palMaquinas = MATA_PARTS_BOT.filter((p) => p.tipo === "maquina" && p.id !== RATAZANA_ID)
+      // só as IAs citáveis (top 3 do ranking geral) — regra v2.1
+      const palMaquinas = citaveis.filter((p) => p.tipo === "maquina" && p.id !== RATAZANA_ID)
         .map((m) => ({ nome: m.nome, pal: palDe(m.id) }))
         .filter((x) => x.pal).map((x) => `${x.nome} ${x.pal}`);
       return {
@@ -1051,7 +1076,7 @@ Deno.serve(async (req: Request) => {
     const CITAVEIS = [...HUMANOS, MATA_PARTS_BOT.find((p) => p.id === RATAZANA_ID)!];
     const completaram = CITAVEIS
       .filter((p) => jogos.length && jogos.every((j: Conf) => mmHasFullPred(PAL[j.id]?.[p.id])))
-      .map((p) => (p.id === RATAZANA_ID ? "Ratazana00 (você)" : p.nome));
+      .map((p) => (p.id === RATAZANA_ID ? "você" : p.nome));
 
     // jogos futuros já com os dois times definidos (dá pra palpitar de verdade)
     const futurosDef = confrontos
@@ -1060,7 +1085,7 @@ Deno.serve(async (req: Request) => {
       .filter((x: Conf) => x.d && x.d.getTime() > now)
       .filter((x: Conf) => { const t = teamsOf(x.c); return t.a && t.b; });
     const adiantados = CITAVEIS.map((p) => ({
-      nome: p.id === RATAZANA_ID ? "Ratazana00 (você)" : p.nome,
+      nome: p.id === RATAZANA_ID ? "você" : p.nome,
       n: futurosDef.filter((x: Conf) => mmHasFullPred(PAL[x.c.id]?.[p.id])).length,
     })).filter((x) => x.n > 0).sort((a, b) => b.n - a.n);
 
@@ -1076,7 +1101,8 @@ Deno.serve(async (req: Request) => {
       const phaseKey = mmPhaseKeyOf(c.id);
       const turbo = MM_TURBO.has(c.id);
       const mult = fmtPts((MM_PHASE_MULT[phaseKey] || 1) * (turbo ? 2 : 1));
-      const pontos = MATA_PARTS_BOT.map((p) => ({ p, s: mmScore(PAL[c.id]?.[p.id], c) }))
+      // só as IAs citáveis (top 3 do ranking geral) — regra v2.1
+      const pontos = citaveis.map((p) => ({ p, s: mmScore(PAL[c.id]?.[p.id], c) }))
         .filter((x) => x.s)
         .sort((a: Conf, b: Conf) => b.s.total - a.s.total);
       const linhaPts = pontos.filter((x: Conf) => x.s.total > 0)
@@ -1099,21 +1125,20 @@ Deno.serve(async (req: Request) => {
         `- Pontuaram: ${linhaPts}\n` +
         `- Cravaram o placar exato: ${cravaram.length ? listaNomes(cravaram) : "ninguém"}\n` +
         `- Zebra: ${zebraTxt}\n` +
-        `- Seus pontos nesse jogo (Ratazana00): ${meu ? fmtPts(meu.s.total) : "0"}`;
+        `- Seus pontos nesse jogo: ${meu ? fmtPts(meu.s.total) : "0"}`;
     }
 
     etapa = "ranking";
-    const rank = MATA_PARTS_BOT.map((p) => ({ p, ...mataStats(p.id, confrontos, PAL) }))
-      .sort((a, b) => b.total - a.total || b.eHits - a.eHits || b.rHits - a.rHits);
+    // (rank já foi calculado lá em cima, antes de jogos/ultimoBloco — reaproveita)
     const posRatazana = rank.findIndex((r) => r.p.id === RATAZANA_ID) + 1;
     const ratStats = rank[posRatazana - 1];
     const top3 = rank.slice(0, 3)
       .map((r, ix) => `${ix + 1}º ${r.p.nome} ${fmtPts(r.total)} pts`).join("; ");
     const rankingBloco =
-      `RANKING DO MATA-MATA (${rank.length} participantes, ${rank[0].played} jogos pontuados):\n` +
+      `RANKING DO BOLÃO (${rank.length} participantes, ${rank[0].played} jogos pontuados):\n` +
       `- Top 3: ${top3}\n` +
       `- Líder: ${rank[0].p.nome}\n` +
-      `- Você (Ratazana00): ${posRatazana}º lugar com ${fmtPts(ratStats.total)} pts (${ratStats.eHits} placares cravados)`;
+      `- Você: ${posRatazana}º lugar com ${fmtPts(ratStats.total)} pts (${ratStats.eHits} placares cravados)`;
 
     // 3e) Monta o prompt de DADOS para a IA (tudo pré-calculado, pt-BR)
     etapa = "monta_prompt";
@@ -1122,7 +1147,7 @@ Deno.serve(async (req: Request) => {
         (j.turbo ? ` - ⚡ TURBO: vale ×${j.multFinal} (multiplicador final)` : ` - vale ×${j.multFase}`) +
         (j.zebra ? ` - ${j.zebra.tipo === "zebrao" ? "ZEBRÃO" : "ZEBRA"} definido: azarão ${j.zebra.azarao}, bônus +${j.zebra.bonus} pra quem apostar que ele passa e ele passar` : "");
       const linhas = [l1, `  Faltam palpitar: ${j.faltam.length ? listaNomes(j.faltam) : "ninguém, todos em dia"}`];
-      if (j.seuPalpite) linhas.push(`  Seu palpite (Ratazana00): ${j.seuPalpite}`);
+      if (j.seuPalpite) linhas.push(`  Seu palpite: ${j.seuPalpite}`);
       if (j.palHumanos.length) linhas.push(`  Palpites dos humanos: ${j.palHumanos.join("; ")}`);
       else linhas.push(`  Palpites dos humanos: nenhum registrado ainda`);
       if (j.palMaquinas.length) linhas.push(`  Palpites das outras máquinas: ${j.palMaquinas.join("; ")}`);
@@ -1134,7 +1159,7 @@ Deno.serve(async (req: Request) => {
     if (testeLongo) {
       tarefa = "TAREFA (TESTE DE MENSAGEM LONGA DO SISTEMA): gere uma mensagem COMPLETA e LONGA cobrindo, nesta ordem: o resultado do último jogo encerrado com quem pontuou e quem cravou; o ranking (top 3 e a sua posição); e TODOS os jogos citados nos dados (fase ativa e prévia) com horário e os palpites públicos listados. Use apenas os dados fornecidos, sem inventar nada. Estruture em 2 ou 3 blocos separados por uma linha contendo apenas ---, cada bloco com no máximo 900 caracteres e se sustentando sozinho. Inclua o link do bolão no bloco final.";
     }
-    // gêneros de bot_telefones (persona v2.0 calibra intensidade por gênero)
+    // gêneros de bot_telefones (persona calibra intensidade por gênero)
     const generos = (telefones as Conf[]).filter((x: Conf) => x.genero)
       .map((x: Conf) => `${x.nome_exibicao || MATA_PARTS_BOT.find((p) => p.id === x.participante_id)?.nome || x.participante_id} (${x.genero})`);
     const previaBloco = previaJogos.length
