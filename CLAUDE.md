@@ -7,7 +7,7 @@
 > - **Dado direto (palpites/placares):** vai na produção sem passar por `ratazana`.
 > - **Sempre crie safepoint (tag) antes de merge pra `main`**.
 > - Não toque na `congelado-fase-grupos` (museu) nem na `dev` (backup antigo congelado).
-> - **Robô Ratazana (bot WhatsApp) EM PRODUÇÃO**, ainda só no grupo de TESTE — ver §13. Admin de placares no ar — ver §14. **Persona v2.1 + Edge Function v1.9 + admin (Acordar sem preview) commitados na `ratazana`; ⚠️ Edge Function AINDA NÃO deployada — ver §15 item 0.**
+> - **Robô Ratazana (bot WhatsApp) EM PRODUÇÃO**, ainda só no grupo de TESTE — ver §13. Admin de placares no ar — ver §14. **Persona v2.1 aplicada em `bot_config` + Edge Function v1.9 DEPLOYADA (versão 11, jul/2026, com autorização explícita do Vini) + admin (Acordar sem preview) na `ratazana`.** ⚠️ A URL de disparo da cobrança agora exige `&destino=teste` — ver §15 item 0.
 > - **⚠️ Repo é PÚBLICO** — nada sensível em arquivo versionado (ver armadilha 9).
 
 Guia de navegação do projeto — para saber **onde mexer sem explorar o código**.
@@ -583,19 +583,13 @@ o banco.
 
 ## 15. Pendências abertas (jul/2026)
 
-0. **⚠️ DEPLOY da Edge Function v1.9 — fazer ANTES de usar o admin.** O código
-   novo (destino explícito, filtro de sanidade, fix do parser de grupos, IAs
-   concorrentes só se top 3, persona v2.1) está commitado na `ratazana`, mas a
-   função NO AR ainda é uma versão anterior (nem a v1.8 chegou a ser deployada).
-   Com a função velha: `enviar_texto`/`listar_grupos` corrigido não existem, o
-   admin (que já manda `&destino=` sem preview) não vai funcionar direito, e a
-   persona antiga continua valendo (mas isso já foi corrigido à parte — a
-   persona é aplicada direto em `bot_config` via REST, independente do deploy
-   do código da function). Deploy via API (armadilha 8) — o classificador de
-   segurança bloqueou o deploy automático (mudança de produção fora do pedido);
-   fazer manualmente ou pedir explicitamente numa sessão futura. Após o deploy,
-   a URL de disparo da cobrança precisa de `&destino=teste` (a antiga sem o
-   parâmetro passa a dar erro claro, de propósito).
+0. **✅ Edge Function v1.9 DEPLOYADA (jul/2026, autorização explícita do Vini)** —
+   versão 11 no ar (deploy via API do dashboard, armadilha 8; fonte = commit
+   `a3e9ed7` da `ratazana`), verificada sem enviar nada: 401 nosso sem token
+   (Verify JWT segue OFF) e `listar_grupos` devolvendo `grupos` normalizado com
+   o parser JID/Name novo. **AÇÃO RESTANTE DO VINI: a URL salva de disparo da
+   cobrança precisa ganhar `&destino=teste`** — a antiga sem o parâmetro passa a
+   dar erro claro, de propósito (nenhum envio sem destino explícito).
 1. **Ligar o robô no grupo OFICIAL** — descobrir o ID com o utilitário "📡 Listar
    grupos" do admin e preencher o secret novo `GRUPO_OFICIAL_ID`; daí enviar com
    `&destino=oficial` (sempre ação explícita). Fornecer também o texto definitivo da
