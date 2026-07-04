@@ -6,6 +6,12 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["serve", "-p", "3333", "."],
       "port": 3333
+    },
+    {
+      "name": "bolao-auto",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["-y", "http-server", "-c-1", "."],
+      "autoPort": true
     }
   ]
 }
