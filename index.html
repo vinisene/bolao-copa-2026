@@ -758,6 +758,9 @@ span.rr-finish{cursor:default;}   /* selo de estado (jogo fechado), não é mais
 .mm-passa.pen .mm-po.on{border-color:#c0392b;background:#fdeae8;box-shadow:inset 0 0 0 1px #c0392b;}
 /* Rodapé numa LINHA só (Parte 2): PLACAR FINAL · placar A×B · rótulo + 2 bandeiras menores (quem passou) · Finalizar */
 .real-row.mm-footer{display:flex;flex-direction:row;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap;}
+/* Conteúdo (rótulo+placar+quem avança) ocupa o espaço que sobra e se centraliza NELE — assim o
+   selo "🔒 Fechado" (flex:0, fica no fim) não puxa tudo pra esquerda com um vão vazio no meio. */
+.mm-foot-main{display:flex;flex:1 1 auto;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap;min-width:0;}
 /* Parte 1: "PLACAR FINAL" + prévia EMPILHADOS (prévia embaixo) — largura fixa do rótulo, não empurra o placar */
 .mm-foot-fl{display:inline-flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.05;flex-shrink:0;}
 .mm-foot-fl .prev-tag{display:none;margin-left:0;align-self:flex-start;}
@@ -2267,23 +2270,29 @@ async function mmSaveEdit(cid){
   if(error){showErr('Erro ao salvar: '+error.message);return;}
   delete mmEditing[cid]; await loadMata(); renderMata();
 }
-// Placar final: sandbox LIVRE em jogo aberto (qualquer participante simula e vê pontos,
-// como sempre funcionou); TRAVA só depois que a página admin fecha o jogo (finished=true).
-// A trava de "finished" em si nunca é escrita por aqui — só a função do robô (via admin)
-// muda esse campo; ver supabase_placar_lock_v2.sql pro reforço no banco.
+// Prévia do Placar: sandbox 100% LOCAL (qualquer participante simula e vê pontos só na própria
+// tela). NUNCA grava no banco e NUNCA muda o confronto compartilhado (MM_CONFRONTOS) — vive só
+// em mmPreviaLocal (memória, sem localStorage/sessionStorage), então some sozinho ao recarregar
+// a página. TRAVA só depois que a página admin fecha o jogo (finished=true); a partir daí o placar
+// vem 100% do banco (gravado via fechar_placar) e mmEffConf ignora qualquer prévia local restante.
+let mmPreviaLocal={};   // { confronto_id -> {real_a,real_b,classificado} }, só enquanto o jogo está aberto
+function mmPreviaOf(cid){return mmPreviaLocal[cid]||(mmPreviaLocal[cid]={real_a:null,real_b:null,classificado:null});}
+// Confronto "efetivo" pra exibição: oficial (do banco) se fechado, com a prévia local por cima se aberto.
+function mmEffConf(c){
+  if(!c||c.finished)return c;
+  const pv=mmPreviaLocal[c.id]; if(!pv)return c;
+  return {...c,real_a:pv.real_a,real_b:pv.real_b,classificado:pv.classificado};
+}
 function mmSetReal(cid,side,val){
   const c=MM_CONFRONTOS.find(x=>x.id===cid); if(!c||c.finished)return;   // fechado: só admin reabre
-  const num=val===''?null:parseInt(val); c['real_'+side]=num;
+  const num=val===''?null:parseInt(val);
+  mmPreviaOf(cid)['real_'+side]=num;
   mmRefreshPts(cid);
-  clearTimeout(mmDeb[cid+'real'+side]);
-  mmDeb[cid+'real'+side]=setTimeout(()=>{mmUpsertConfronto({id:cid,['real_'+side]:num});if(activeTab==='ranking')renderRanking();},700);
 }
 function mmSetClassificado(cid,side){
   const c=MM_CONFRONTOS.find(x=>x.id===cid); if(!c||c.finished)return;
-  c.classificado=c.classificado===side?null:side;
+  const pv=mmPreviaOf(cid); pv.classificado=pv.classificado===side?null:side;
   mmRefreshPts(cid);   // re-renderiza o "quem passou" do rodapé (bandeiras/rótulo) e os pontos
-  mmUpsertConfronto({id:cid,classificado:c.classificado});
-  if(activeTab==='ranking')renderRanking();
 }
 // finished NUNCA é setado pela home — só a Edge Function (fechar_placar) via página admin.
 function mmSetFinished(){console.warn('Finalizar é feito pela página admin (fechar/reabrir jogo).');}
@@ -2349,7 +2358,7 @@ function mmPtsTipHTML(s){
 }
 function mmShowPtsTip(ev,cid,pid){
   ev.stopPropagation();
-  const c=MM_CONFRONTOS.find(x=>x.id===cid); if(!c)return;
+  const c=mmEffConf(MM_CONFRONTOS.find(x=>x.id===cid)); if(!c)return;
   const s=mmScore((MM_PALPITES[cid]||{})[pid],c); if(!s)return;
   let el=document.getElementById('floating-tip');
   if(!el){el=document.createElement('div');el.id='floating-tip';document.body.appendChild(el);}
@@ -2441,7 +2450,7 @@ function mmRenderQuemPassa(cid,pid){
 }
 function mmRefreshPts(cid){
   const card=document.querySelector(`#tab-mata [data-cid="${cid}"]`); if(!card)return;
-  const c=MM_CONFRONTOS.find(x=>x.id===cid); if(!c)return;
+  const c=mmEffConf(MM_CONFRONTOS.find(x=>x.id===cid)); if(!c)return;
   const hasScore=c.real_a!=null&&c.real_b!=null;
   MATA_PARTS.forEach(p=>{
     const badge=card.querySelector(`.mm-pts[data-pid="${p.id}"]`); if(!badge)return;
@@ -2665,6 +2674,7 @@ function mmMatchupHTML(c){
 }
 // Área COLAPSÁVEL: só os palpites (humanos + IAs). Cabeçalho/bandeiras/placar ficam fora (sempre visíveis).
 function mmCardBody(c){
+  c=mmEffConf(c);
   const hasScore=c.real_a!=null&&c.real_b!=null;
   const cell=p=>{
     const pid=p.id, isHuman=p.type==='human';
@@ -2694,6 +2704,7 @@ function mmCardBody(c){
 // Rodapé sempre visível: "quem passou" REAL + bandeiras SEMPRE visíveis (idle se sem placar; ro se vencedor).
 // Clicável (sandbox) enquanto o jogo está aberto; trava só depois de fechado pela página admin.
 function mmFootQpHTML(c){
+  c=mmEffConf(c);
   const complete=c.real_a!=null&&c.real_b!=null, tmc=mmTeams(c);
   const draw=complete&&c.real_a===c.real_b;
   const sel=!complete?null:(draw?c.classificado:(c.real_a>c.real_b?'A':'B'));
@@ -2710,16 +2721,19 @@ function mmFootQpHTML(c){
   return `<div class="mm-foot-qp${draw?' pen':''}${complete?'':' idle'}">${lbl}<div class="mm-foot-flags">${cflag('A')}${cflag('B')}</div></div>`;
 }
 // Rodapé TUDO numa linha (2.1): PLACAR FINAL · placar A × B · rótulo + bandeiras (quem passou).
-// Sem botão Finalizar: o fechamento agora é SÓ pela página admin (conteúdo centralizado);
-// jogo fechado ganha o selo "🔒 Fechado" (sem clique). Jogo ABERTO continua sandbox livre
-// (Prévia Placar) — só trava depois que a página admin fecha o jogo.
+// Sem botão Finalizar: o fechamento agora é SÓ pela página admin (conteúdo centralizado, com o
+// selo "🔒 Fechado" fixo à direita — ver .mm-foot-main). Jogo ABERTO mostra a Prévia do Placar
+// (100% local, ver mmEffConf) até a página admin fechar o jogo de verdade.
 function mmResultHTML(c){
+  c=mmEffConf(c);
   const hasScore=c.real_a!=null&&c.real_b!=null;
   const realInp=side=>`<input type="number" min="0" max="99" inputmode="numeric" value="${c['real_'+side]!=null?c['real_'+side]:''}" placeholder="–"${c.finished?' disabled readonly':` oninput="mmSetReal('${c.id}','${side}',this.value)"`}>`;
   return `<div class="real-row mm-footer${c.finished?'':' pending'}">
-      <span class="mm-foot-fl"><span class="rr-label">${c.finished?'PLACAR FINAL':'PRÉVIA PLACAR'}</span></span>
-      <div class="mm-foot-scores">${realInp('a')}<span class="mm-foot-x">×</span>${realInp('b')}</div>
-      ${mmFootQpHTML(c)}
+      <div class="mm-foot-main">
+        <span class="mm-foot-fl"><span class="rr-label">${c.finished?'PLACAR FINAL':'PRÉVIA DO PLACAR'}</span></span>
+        <div class="mm-foot-scores">${realInp('a')}<span class="mm-foot-x">×</span>${realInp('b')}</div>
+        ${mmFootQpHTML(c)}
+      </div>
       ${c.finished?'<span class="rr-finish done">🔒 Fechado</span>':''}
     </div>`;
 }
