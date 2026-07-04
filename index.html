@@ -3,14 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Bolão Ratazana00 · Copa 2026</title>
-<link rel="icon" href="Imagens/favicon.ico" sizes="any">
-<link rel="icon" type="image/png" sizes="16x16" href="Imagens/favicon-16.png">
-<link rel="icon" type="image/png" sizes="32x32" href="Imagens/favicon-32.png">
-<link rel="apple-touch-icon" sizes="180x180" href="Imagens/favicon-180.png">
-<link rel="icon" type="image/png" sizes="192x192" href="Imagens/favicon-192.png">
-<link rel="icon" type="image/png" sizes="512x512" href="Imagens/favicon-512.png">
+<title>Bolão do Ratazana00 · Copa 2026</title>
+<link rel="icon" type="image/jpeg" href="Imagens/logo-bolao-verde.jpg">
+<link rel="apple-touch-icon" href="Imagens/logo-bolao-verde.jpg">
 <meta name="theme-color" content="#0C0C0E">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://bolao-ratazana00.pages.dev/">
+<meta property="og:title" content="Bolão do Ratazana00 · Copa 2026">
+<meta property="og:description" content="Palpites, ranking e mata-mata da Copa 2026 — ao vivo, com a galera.">
+<meta property="og:image" content="https://bolao-ratazana00.pages.dev/Imagens/logo-bolao-verde.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://bolao-ratazana00.pages.dev/Imagens/logo-bolao-verde.jpg">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,500&display=swap');
@@ -51,6 +54,7 @@ header{position:relative;z-index:1;background:var(--frame);color:var(--on-dark);
 .hdr-bar{position:relative;z-index:1;max-width:920px;margin:0 auto;padding:0 14px;display:flex;justify-content:center;}
 .hdr-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}   /* wrap: no celular a pílula quebra pra linha de baixo */
 .hdr-logo{height:96px;width:auto;flex-shrink:0;display:block;}
+.hdr-logo,.hdr-compact-logo,.nav-rat{cursor:pointer;}   /* clicáveis: voltam pra home (ver onclick) */
 .hdr-titles{min-width:0;}
 .hdr-title{font-family:var(--font-display);font-weight:900;line-height:1;letter-spacing:.4px;display:flex;flex-direction:column;align-items:flex-start;}
 .hdr-title .ht-1{font-size:clamp(19px,6.2vw,25px);color:var(--on-dark);}   /* clamp: maior que antes, mas sem quebrar pra baixo do logo */
@@ -884,7 +888,7 @@ span.rr-finish{cursor:default;}   /* selo de estado (jogo fechado), não é mais
 <body>
 
 <div id="loading-screen">
-  <img class="load-rat" src="Imagens/Ratazana.png" alt="" onerror="this.style.display='none'">
+  <img class="load-rat" src="Imagens/logo-bolao-transparene.png" alt="" onerror="this.style.display='none'">
   <p>Carregando bolão...</p>
 </div>
 
@@ -892,9 +896,9 @@ span.rr-finish{cursor:default;}   /* selo de estado (jogo fechado), não é mais
   <div class="hdr-shapes" aria-hidden="true"><span class="hsh hsh-blue"></span><span class="hsh hsh-red"></span><span class="hsh hsh-lime"></span></div>
   <div class="hdr-bar">
     <div class="hdr-top">
-      <img class="hdr-logo" src="Imagens/Ratazana.png" alt="Ratazana" onerror="this.style.display='none'">
+      <img class="hdr-logo" src="Imagens/logo-bolao-transparene.png" alt="Bolão do Ratazana00" onclick="location.href='/'" onerror="this.style.display='none'">
       <div class="hdr-titles">
-        <div class="hdr-title"><span class="ht-1">Bolão Ratazana00</span><span class="ht-2">Copa 2026</span></div>
+        <div class="hdr-title"><span class="ht-1">Bolão do Ratazana00</span><span class="ht-2">Copa 2026</span></div>
       </div>
       <div class="seg hdr-seg" aria-label="Navegação">
         <button onclick="showTab('mata')" data-tab="mata"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h4"/><path d="M3 9h4"/><path d="M7 4v5"/><path d="M7 6.5h4"/><path d="M3 15h4"/><path d="M3 20h4"/><path d="M7 15v5"/><path d="M7 17.5h4"/><path d="M11 6.5v11"/><path d="M11 12h5"/><circle cx="18.5" cy="12" r="2.5"/></svg></span><span class="nav-lbl">Mata-mata</span></button>
@@ -908,8 +912,8 @@ span.rr-finish{cursor:default;}   /* selo de estado (jogo fechado), não é mais
 <div class="hdr-compact" id="hdr-compact" aria-hidden="true">
   <div class="hdr-compact-inner">
     <span class="hdr-compact-brand">
-      <img class="hdr-compact-logo" src="Imagens/Ratazana.png" alt="" onerror="this.style.display='none'">
-      <span class="hdr-compact-title"><b>Bolão Ratazana00</b> <b class="hc-lime">Copa 2026</b></span>
+      <img class="hdr-compact-logo" src="Imagens/logo-bolao-transparene.png" alt="" onclick="location.href='/'" onerror="this.style.display='none'">
+      <span class="hdr-compact-title"><b>Bolão do Ratazana00</b> <b class="hc-lime">Copa 2026</b></span>
     </span>
     <div class="seg hdr-compact-tabs">
       <button onclick="showTab('mata')" data-tab="mata"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h4"/><path d="M3 9h4"/><path d="M7 4v5"/><path d="M7 6.5h4"/><path d="M3 15h4"/><path d="M3 20h4"/><path d="M7 15v5"/><path d="M7 17.5h4"/><path d="M11 6.5v11"/><path d="M11 12h5"/><circle cx="18.5" cy="12" r="2.5"/></svg></span><span class="nav-lbl">Mata-mata</span></button>
@@ -918,7 +922,7 @@ span.rr-finish{cursor:default;}   /* selo de estado (jogo fechado), não é mais
   </div>
 </div>
 <nav>
-  <img class="nav-rat" src="Imagens/Ratazana.png" alt="" onerror="this.style.display='none'">
+  <img class="nav-rat" src="Imagens/logo-bolao-transparene.png" alt="" onclick="location.href='/'" onerror="this.style.display='none'">
   <div class="seg">
     <button class="active" onclick="showTab('mata')" data-tab="mata"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h4"/><path d="M3 9h4"/><path d="M7 4v5"/><path d="M7 6.5h4"/><path d="M3 15h4"/><path d="M3 20h4"/><path d="M7 15v5"/><path d="M7 17.5h4"/><path d="M11 6.5v11"/><path d="M11 12h5"/><circle cx="18.5" cy="12" r="2.5"/></svg></span><span class="nav-lbl">Mata-mata</span></button>
     <button onclick="showTab('ranking')" data-tab="ranking"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v1a3 3 0 0 0 3 3"/><path d="M17 6h3v1a3 3 0 0 1-3 3"/><path d="M12 14v3"/><path d="M9.5 20.5h5l-.6-3h-3.8z"/></svg></span><span class="nav-lbl">Ranking</span></button>
@@ -3221,7 +3225,7 @@ function showTab(name){
 
 // ─── BOOT ─────────────────────────────────────────────────────────────────────
 if(IS_DEV){   // marca visual + botão de espelho, só no ambiente de dev (hostname dev./ratazana.)
-  document.title='TESTES - Bolão Ratazana00';   // título da aba só em teste, mesma detecção IS_DEV
+  document.title='TESTES - Bolão do Ratazana00';   // título da aba só em teste, mesma detecção IS_DEV
   const seal=document.getElementById('dev-seal'); if(seal)seal.style.display='';   // selo DEV no cabeçalho
   document.body.insertAdjacentHTML('afterbegin','<button id="mirror-btn" onclick="mirrorProdToDev()">🪞 Espelhar prod→dev</button>');
 }
