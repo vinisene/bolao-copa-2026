@@ -410,12 +410,21 @@ async function enviaEmPartes(grupo: string, texto: string) {
 }
 
 // ─── Handler ─────────────────────────────────────────────────────────────────
+// CORS: a página admin chama esta função via fetch() direto do navegador
+// (origem diferente: pages.dev/localhost → supabase.co). Sem estes headers o
+// fetch falha silenciosamente ("Failed to fetch") mesmo com a chamada certa.
+const CORS_HEADERS: Record<string, string> = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Headers": "*",
+};
 Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS_HEADERS });
   const url = new URL(req.url);
   const json = (obj: unknown, status = 200) =>
     new Response(JSON.stringify(obj, null, 2), {
       status,
-      headers: { "content-type": "application/json; charset=utf-8" },
+      headers: { "content-type": "application/json; charset=utf-8", ...CORS_HEADERS },
     });
 
   // 1) Trava: só executa com o token certo
