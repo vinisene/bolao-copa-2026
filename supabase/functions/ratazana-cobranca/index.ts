@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// ROBÔ RATAZANA — Edge Function "ratazana-cobranca" (v1.6: cobrança + fim de jogo)
+// ROBÔ RATAZANA — Edge Function "ratazana-cobranca" (v1.7: + fechar_placar via service role)
 // ═══════════════════════════════════════════════════════════════════════════
 // Uso (navegador ou curl):
 //   GET https://<projeto>.supabase.co/functions/v1/ratazana-cobranca?token=XXX
@@ -9,6 +9,9 @@
 //                         instância (para descobrir o ID ...@g.us do grupo)
 //   ...&tipo=fim_de_jogo&jogo=<id>[&env=dev] → comentário curto de fim de
 //                         jogo (chamado pela página admin ao fechar um jogo)
+//   ...&tipo=fechar_placar&jogo=<id>&finished=1&real_a=N&real_b=N
+//       [&classificado=A|B][&env=dev] → GRAVA o placar final (única via de
+//       escrita; roda com service role). finished=0 reabre (só destrava).
 //
 // Dados: SEMPRE tabelas de PRODUÇÃO (mata_confrontos / mata_palpites / bot_config).
 // Modelo de IA: lido de bot_config key 'modelo_ia' (fallback Haiku 4.5).
@@ -427,6 +430,67 @@ Deno.serve(async (req: Request) => {
   // teste_longo=1: pede à IA uma mensagem propositalmente longa em blocos,
   // pra validar o envio dividido de verdade no WhatsApp (implica force)
   const testeLongo = url.searchParams.get("teste_longo") === "1";
+
+  // ─── Modo FECHAR PLACAR (v1.7): ÚNICA via de escrita do placar final ─────────
+  // ?tipo=fechar_placar&jogo=<id>&finished=1&real_a=N&real_b=N[&classificado=A|B][&env=dev]
+  // ?tipo=fechar_placar&jogo=<id>&finished=0[&env=dev]   → reabrir (só destrava; não mexe no placar)
+  // Chamado SÓ pela página admin (protegida por senha = este mesmo ?token=).
+  // Roda com SERVICE ROLE KEY: é a ÚNICA via que ainda consegue gravar real_a/
+  // real_b/classificado/finished em mata_confrontos — a anon key (usada pela
+  // home e por qualquer chamada REST direta) teve UPDATE nessas 4 colunas
+  // revogado no banco (supabase_placar_lock.sql). Sem isso, esconder o campo
+  // no front não impediria escrita direta via REST com a anon key exposta.
+  if (url.searchParams.get("tipo") === "fechar_placar") {
+    const jogoId = url.searchParams.get("jogo") || "";
+    const pref = url.searchParams.get("env") === "dev" ? "dev_" : "";
+    const finishedParam = url.searchParams.get("finished");
+    try {
+      if (!SERVICE_KEY) throw new Error("Secret SUPABASE_SERVICE_ROLE_KEY não configurado");
+      if (!jogoId) throw new Error("parâmetro ?jogo=<id do confronto> é obrigatório");
+      if (finishedParam !== "0" && finishedParam !== "1") throw new Error("parâmetro ?finished= deve ser 0 ou 1");
+      // deno-lint-ignore no-explicit-any
+      const row: Record<string, any> = { id: jogoId, updated_at: new Date().toISOString() };
+      if (finishedParam === "0") {
+        row.finished = false;   // reabrir: só destrava; placar/classificado ficam como estavam
+      } else {
+        const ra = url.searchParams.get("real_a"), rb = url.searchParams.get("real_b");
+        if (ra == null || rb == null || ra === "" || rb === "") throw new Error("fechar exige ?real_a= e ?real_b=");
+        const A = parseInt(ra), B = parseInt(rb);
+        if (!Number.isInteger(A) || !Number.isInteger(B) || A < 0 || B < 0) throw new Error("real_a/real_b precisam ser inteiros ≥ 0");
+        row.real_a = A; row.real_b = B; row.finished = true;
+        if (A === B) {
+          const cl = url.searchParams.get("classificado");
+          if (cl !== "A" && cl !== "B") throw new Error("empate exige ?classificado=A ou B (quem passou nos pênaltis)");
+          row.classificado = cl;
+        } else {
+          row.classificado = null;   // não é empate: limpa escolha de pênaltis antiga, se houver
+        }
+      }
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/${pref}mata_confrontos?on_conflict=id`, {
+        method: "POST",
+        headers: { ...sbHeaders(), Prefer: "resolution=merge-duplicates,return=representation" },
+        body: JSON.stringify([row]),
+      });
+      const corpo = await r.text();
+      if (!r.ok) throw new Error(`Supabase → HTTP ${r.status}: ${corpo.slice(0, 300)}`);
+      await botLog({
+        tipo: finishedParam === "0" ? "reabrir_placar" : "fechar_placar",
+        destino: jogoId,
+        mensagem_enviada: JSON.stringify(row),
+        status_envio: "ok",
+      });
+      return json({ ok: true, jogo: jogoId, ambiente: pref ? "dev" : "prod", gravado: row });
+    } catch (e) {
+      const msg = String((e as Error)?.message || e);
+      await botLog({
+        tipo: finishedParam === "0" ? "reabrir_placar" : "fechar_placar",
+        destino: jogoId,
+        status_envio: "erro",
+        erro: msg,
+      });
+      return json({ ok: false, jogo: jogoId, erro: msg }, 400);
+    }
+  }
 
   // 2) Confere secrets necessários (nunca mostra valores, só nomes)
   const necessarios = listarGrupos
