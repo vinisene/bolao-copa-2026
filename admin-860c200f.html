@@ -119,7 +119,7 @@
   .pv-dest .of{color:var(--gold);font-weight:700;}
   .pv-actions{display:flex;gap:8px;flex-wrap:wrap;}
   .pv-send{flex:1;background:var(--lime);color:#12250f;border:none;border-radius:4px 12px 4px 4px;padding:9px;font-weight:900;font-size:13.5px;cursor:pointer;}
-  .pv-again{background:none;border:1.5px solid var(--brd);color:var(--ink);border-radius:8px;padding:9px 12px;font-size:13px;font-weight:700;cursor:pointer;}
+  .acordar:disabled{opacity:.5;cursor:default;}
 
   /* utilitários do topo: listar grupos + mensagem inaugural */
   .utilbtn{background:var(--card);border:1px solid var(--brd);color:var(--mu);border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer;}
@@ -376,8 +376,12 @@ function cardJogo(c){
           <select id="acp-${esc(c.id)}" title="Direcionar pra alguém (opcional)">${pessoaOptions()}</select>
           <input id="acd-${esc(c.id)}" type="text" maxlength="300" placeholder="Direcionamento (opcional): ex. provoca o Leo pelos palpites">
         </div>
-        <button class="acordar" onclick="gerarComentario('${esc(c.id)}')">🐀 Acordar o Ratazana</button>
-        <div id="acv-${esc(c.id)}"></div>
+        <div class="pv-dest">
+          <label><input type="radio" name="acdest-${esc(c.id)}" value="teste" checked> Grupo de TESTE</label>
+          <label><input type="radio" name="acdest-${esc(c.id)}" value="oficial"> <span class="of">Grupo OFICIAL</span></label>
+        </div>
+        <button class="acordar" id="acbtn-${esc(c.id)}" onclick="acordarRatazana('${esc(c.id)}')">🐀 Acordar o Ratazana</button>
+        <div class="status" id="acst-${esc(c.id)}"></div>
       </div>
       <div class="status" id="st-${esc(c.id)}"></div>
     </div>`;
@@ -460,41 +464,47 @@ function pessoaOptions(){
   return '<option value="">— sem pessoa específica —</option>'+
     TELEFONES.map(t=>`<option value="${esc(t.participante_id)}">${esc(t.nome_exibicao||t.participante_id)}</option>`).join('');
 }
-const previewState={};   // cid → resposta do preview (texto, n_mensagens)
-
-async function gerarComentario(cid){
-  const box=document.getElementById('acv-'+cid);
+// Ação única do "Acordar o Ratazana": gera a mensagem (considerando pessoa/
+// direcionamento se preenchidos) E JÁ ENVIA direto pro grupo escolhido, sem
+// etapa de preview intermediária — um clique, um resultado inline no botão.
+async function acordarRatazana(cid){
+  const btn=document.getElementById('acbtn-'+cid);
+  const st=document.getElementById('acst-'+cid);
   const pessoa=(document.getElementById('acp-'+cid)||{}).value||'';
   const direcao=((document.getElementById('acd-'+cid)||{}).value||'').trim();
+  const sel=document.querySelector(`input[name="acdest-${cid}"]:checked`);
+  const dest=sel?sel.value:'';
+  if(!dest){ st.className='status err'; st.textContent='Escolha o destino (teste ou oficial).'; return; }
+  const textoOriginal=btn.textContent;
+  btn.disabled=true; btn.textContent='🐀 Gerando e enviando…';
+  st.className='status'; st.textContent='';
   const token=localStorage.getItem(TOKEN_KEY)||'';
-  box.innerHTML='<div class="status">🐀 Acordando o Ratazana… (gera a mensagem SEM enviar)</div>';
-  const qs=new URLSearchParams({token,tipo:'fim_de_jogo',jogo:cid,env:IS_DEV?'dev':'prod',preview:'1'});
+  const qs=new URLSearchParams({token,tipo:'fim_de_jogo',jogo:cid,env:IS_DEV?'dev':'prod',destino:dest});
   if(pessoa)qs.set('pessoa',pessoa);
   if(direcao)qs.set('direcao',direcao);
   let r,d;
   try{ r=await fetch(`${FN_URL}?${qs.toString()}`); d=await r.json().catch(()=>({})); }
-  catch(e){ box.innerHTML='<div class="status err">Erro de rede ao gerar: '+esc(e.message)+'</div>'; return; }
-  if(r.status===401){ trocarToken(); box.innerHTML='<div class="status err">Senha do admin inválida. Cole a senha certa acima e tente de novo.</div>'; return; }
-  if(!r.ok||!d.ok){ box.innerHTML='<div class="status err">Erro ao gerar: '+esc(d.erro||('HTTP '+r.status))+'</div>'; return; }
-  previewState[cid]=d;
-  box.innerHTML=`<div class="preview-box">
-    <div class="pv-label">PREVIEW — NADA FOI ENVIADO AINDA</div>
-    <pre class="pv-text">${esc(d.texto)}</pre>
-    ${d.n_mensagens>1?`<div class="pv-note">Vai sair em ${d.n_mensagens} mensagens sequenciais no WhatsApp.</div>`:''}
-    <div class="pv-dest">
-      <label><input type="radio" name="dest-${esc(cid)}" value="teste" checked> Grupo de TESTE</label>
-      <label><input type="radio" name="dest-${esc(cid)}" value="oficial"> <span class="of">Grupo OFICIAL</span></label>
-    </div>
-    <div class="pv-actions">
-      <button class="pv-send" onclick="enviarPreview('${esc(cid)}')">📤 Enviar ao grupo</button>
-      <button class="pv-again" onclick="gerarComentario('${esc(cid)}')">🔁 Gerar de novo</button>
-    </div>
-    <div class="status" id="pvst-${esc(cid)}"></div>
-  </div>`;
+  catch(e){
+    console.error('Erro de rede ao acordar o Ratazana:',e);
+    st.className='status err'; st.textContent='Erro de rede ao gerar/enviar.';
+    btn.disabled=false; btn.textContent=textoOriginal; return;
+  }
+  if(r.status===401){
+    trocarToken(); st.className='status err'; st.textContent='Senha do admin inválida.';
+    btn.disabled=false; btn.textContent=textoOriginal; return;
+  }
+  if(!r.ok||!d.ok){
+    console.error('Erro ao acordar o Ratazana:',d);
+    st.className='status err'; st.textContent='Erro: '+(d.erro||('HTTP '+r.status));
+    btn.disabled=false; btn.textContent=textoOriginal; return;
+  }
+  st.className='status ok';
+  st.textContent=`✅ Enviado ao grupo ${dest==='oficial'?'OFICIAL':'de teste'} (${d.n_mensagens||1} mensagem${(d.n_mensagens||1)>1?'s':''}).`;
+  btn.disabled=false; btn.textContent=textoOriginal;
 }
-// Envio de texto pronto via função (tipo=enviar_texto): compartilhado entre o
-// preview aprovado do "Acordar" e a mensagem inaugural. Escreve o resultado
-// no elemento de status recebido; retorna true se enviou.
+// Envio de texto pronto via função (tipo=enviar_texto): usado hoje só pela
+// mensagem inaugural (o Acordar virou geração+envio direto, sem passar por
+// texto pré-pronto). Escreve o resultado no elemento de status recebido.
 async function postEnviarTexto(dest,texto,st){
   const token=localStorage.getItem(TOKEN_KEY)||'';
   st.className='status';st.textContent='Enviando…';
@@ -508,19 +518,6 @@ async function postEnviarTexto(dest,texto,st){
   if(!r.ok||!res.ok){ st.className='status err'; st.textContent='Erro ao enviar: '+(res.erro||('HTTP '+r.status)); return false; }
   st.className='status ok'; st.textContent=`✅ Enviado ao grupo ${dest==='oficial'?'OFICIAL':'de teste'} (${res.n_mensagens||1} mensagem${(res.n_mensagens||1)>1?'s':''}).`;
   return true;
-}
-async function enviarPreview(cid){
-  const d=previewState[cid];
-  const st=document.getElementById('pvst-'+cid);
-  if(!d||!d.texto){ if(st){st.className='status err';st.textContent='Preview perdido: gere a mensagem de novo.';} return; }
-  const sel=document.querySelector(`input[name="dest-${cid}"]:checked`);
-  const dest=sel?sel.value:'';
-  if(!dest){ st.className='status err'; st.textContent='Escolha o destino (teste ou oficial).'; return; }
-  const aviso=dest==='oficial'
-    ? '⚠️ Enviar pro grupo OFICIAL? A família toda vai ver.'
-    : 'Enviar pro grupo de TESTE?';
-  if(!confirm(aviso+'\n\n'+d.texto.slice(0,300)+(d.texto.length>300?'…':'')))return;
-  await postEnviarTexto(dest,d.texto,st);
 }
 
 // ─── Utilitários do topo: listar grupos + mensagem inaugural ─────────────────
