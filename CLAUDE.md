@@ -7,7 +7,7 @@
 > - **Dado direto (palpites/placares):** vai na produção sem passar por `ratazana`.
 > - **Sempre crie safepoint (tag) antes de merge pra `main`**.
 > - Não toque na `congelado-fase-grupos` (museu) nem na `dev` (backup antigo congelado).
-> - **Robô Ratazana (bot WhatsApp) EM PRODUÇÃO**, ainda só no grupo de TESTE — ver §13. Admin de placares no ar — ver §14. **Persona v2.1.1 aplicada em `bot_config`; função v1.10 (menção obrigatória REAL, determinística) commitada na `ratazana` mas ⚠️ AINDA NÃO deployada (no ar = v1.9/versão 11) — ver §15 item -1.** A URL de disparo da cobrança exige `&destino=teste`.
+> - **Robô Ratazana (bot WhatsApp) EM PRODUÇÃO**, ainda só no grupo de TESTE — ver §13. Admin de placares no ar — ver §14. **Persona v2.1.2 aplicada em `bot_config`; função v1.11 commitada na `ratazana` (menção real 1-por-mensagem + cobrança marca devedores, fix do truncamento por max_tokens/thinking, filtro de sanidade por script) mas ⚠️ AINDA NÃO deployada (no ar = v1.9/versão 11) — ver §15 item -1.** A URL de disparo da cobrança exige `&destino=teste`.
 > - **⚠️ Repo é PÚBLICO** — nada sensível em arquivo versionado (ver armadilha 9).
 
 Guia de navegação do projeto — para saber **onde mexer sem explorar o código**.
@@ -592,12 +592,19 @@ o banco.
 
 ## 15. Pendências abertas (jul/2026)
 
--1. **⚠️ DEPLOY da v1.10 pendente (menção obrigatória real)** — o código da menção
-   determinística está commitado na `ratazana`, mas a função NO AR ainda é a v1.9
-   (versão 11): até redeployar, mensagem programada sai SEM a linha de provocação.
-   Deploy via API (armadilha 8), com autorização explícita do Vini como das outras
-   vezes. Sem urgência destrutiva: a v1.9 continua funcionando normal, só sem a
-   menção.
+-1. **⚠️ DEPLOY da v1.11 pendente (URGENTE — inclui os fixes dos bugs reais)** — a
+   função NO AR ainda é a v1.9 (versão 11); commitados na `ratazana` mas não
+   deployados: menção real (v1.10 + regra v1.11: pós-jogo 1 sorteado, cobrança
+   marca TODOS os devedores), **fix do truncamento** (stop_reason max_tokens vira
+   falha bloqueante + teto 800→4000; sem isso mensagem CORTADA continua saindo
+   pro grupo) e **fix do falso positivo do filtro de sanidade** (😬 e emojis
+   comuns bloqueiam envio na v1.9). O classificador de segurança bloqueou o
+   deploy automático 2x (autorização anterior era escopada à v1.8/v1.9) —
+   precisa de autorização EXPLÍCITA do Vini nomeando a versão ("autorizo o
+   deploy da v1.11"). Deploy via API (armadilha 8; token do dashboard expira —
+   recarregar a página antes). Testes pós-deploy: preview de fim de jogo com
+   volume real (sem truncar), emoji comum passando, e menção real após
+   preencher bot_telefones.
 0. **✅ Edge Function v1.9 DEPLOYADA (jul/2026, autorização explícita do Vini)** —
    versão 11 no ar (deploy via API do dashboard, armadilha 8; fonte = commit
    `a3e9ed7` da `ratazana`), verificada sem enviar nada: 401 nosso sem token
