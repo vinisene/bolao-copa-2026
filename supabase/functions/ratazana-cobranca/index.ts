@@ -1,9 +1,11 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // ROBÔ RATAZANA — Edge Function "ratazana-cobranca"
-// (v1.9: filtro de sanidade de caracteres antes de qualquer envio + fix do
-//  parser de listar_grupos (campos JID/Name); v1.8: destino explícito
-//  teste|oficial em TODO envio + preview/direção de cena no fim_de_jogo +
-//  modo enviar_texto; v1.7: fechar_placar via service role)
+// (v1.10: menção obrigatória DETERMINÍSTICA — a aplicação sorteia alguém de
+//  bot_telefones, anexa a linha de provocação com @<numero> no texto e passa
+//  o campo "mentions" pro envio da ZapZap = marcação real de WhatsApp; o
+//  modelo não escreve mais "@". v1.9: filtro de sanidade + parser JID/Name;
+//  v1.8: destino explícito + preview/direção + enviar_texto; v1.7:
+//  fechar_placar via service role)
 // ═══════════════════════════════════════════════════════════════════════════
 // ⚠️ TODO envio exige &destino=teste|oficial (sem default). Grupo oficial =
 // secret GRUPO_OFICIAL_ID; nesta fase NENHUM envio automático vai pro oficial:
@@ -443,11 +445,17 @@ function grupoDestino(url: URL): { grupo: string; destino: "teste" | "oficial" }
   }
   return { grupo, destino };
 }
-async function zapEnviaTexto(numero: string, texto: string) {
+async function zapEnviaTexto(numero: string, texto: string, mentions: string[] = []) {
+  // Marcação real de WhatsApp: o texto carrega o token @<numero> e o campo
+  // "mentions" (CSV de números, formato da ZapZap) transforma o token em
+  // menção clicável com notificação — o cliente renderiza como @Nome.
+  // deno-lint-ignore no-explicit-any
+  const body: Record<string, any> = { number: numero, text: texto };
+  if (mentions.length) body.mentions = mentions.join(",");
   const r = await fetch(`${zapBase()}/send/text`, {
     method: "POST",
     headers: zapHeaders(),
-    body: JSON.stringify({ number: numero, text: texto }),
+    body: JSON.stringify(body),
   });
   const corpo = (await r.text()).slice(0, 600);
   return { ok: r.ok, detalhe: `HTTP ${r.status}: ${corpo}` };
@@ -484,9 +492,48 @@ function sanidadeTexto(texto: string): string[] {
   }
   return [...suspeitos];
 }
+// ─── Menção obrigatória (v1.10) ──────────────────────────────────────────────
+// A provocação final de TODA mensagem programada é DETERMINÍSTICA: a aplicação
+// sorteia alguém de bot_telefones e monta a linha com o token @<numero> (que o
+// WhatsApp renderiza como @Nome clicável, via campo "mentions" do envio). O
+// modelo NUNCA escreve "@" — no teste real ele produzia "@Vini" como texto
+// solto, sem notificação nem link; por isso a marcação saiu do prompt e veio
+// pro código. Intensidade por gênero: forte com homens, leve com mulheres.
+// Placeholder {@} = token de menção. Frases só com caracteres do conjunto
+// aprovado (sanidadeTexto roda depois). Sem repetir sempre a mesma: sorteio.
+const PROVOC_M = [
+  "E tu, {@}, achou que passava batido? Tá no caderninho.",
+  "Aproveita e me explica teus últimos palpites, {@}. A auditoria não fecha.",
+  "{@}, tu anda quieto demais pro tamanho da tua ficha no caderninho.",
+  "Fiscalização surpresa: {@}, teus palpites entram em auditoria completa hoje.",
+  "O Ratazana viu teu histórico, {@}. Coragem é postar aquilo e dormir tranquilo.",
+];
+const PROVOC_F = [
+  "E a {@}, hein? Segue firme que o caderninho anota os acertos também.",
+  "{@}, o Ratazana tá torcendo discretamente por você. Não espalha.",
+  "Fica esperta, {@}: uma rodada boa e você apronta na tabela.",
+  "{@}, teu faro anda afiado. Não vacila agora.",
+];
+// Sorteia uma pessoa citável de bot_telefones (humana, com telefone, fora da
+// lista de exclusão) e devolve a linha pronta + o número pro campo mentions.
+// Tabela vazia ou sem candidato → null (mensagem sai sem a linha, sem quebrar).
+function linhaProvocacao(telefones: Conf[], excluirIds: Set<string>) {
+  const cands = (telefones || []).filter((t: Conf) =>
+    t.is_humano !== false && t.telefone_whatsapp && !excluirIds.has(t.participante_id));
+  if (!cands.length) return null;
+  const alvo = cands[Math.floor(Math.random() * cands.length)];
+  const banco = (alvo.genero || "").toUpperCase() === "F" ? PROVOC_F : PROVOC_M;
+  const frase = banco[Math.floor(Math.random() * banco.length)];
+  const tel = String(alvo.telefone_whatsapp).replace(/\D/g, "");
+  if (!tel) return null;
+  return { linha: frase.split("{@}").join("@" + tel), mention: tel, alvo: alvo.participante_id };
+}
+
 // Envia como até 3 mensagens sequenciais no WhatsApp. Usado pela cobrança,
 // pelo fim de jogo e pelo enviar_texto. O padrão continua sendo mensagem única.
-async function enviaEmPartes(grupo: string, texto: string) {
+// mentions: números com marcação real — cada parte só recebe os que aparecem
+// nela como token @<numero> (a linha da provocação normalmente é a última).
+async function enviaEmPartes(grupo: string, texto: string, mentions: string[] = []) {
   const suspeitos = sanidadeTexto(texto);
   if (suspeitos.length) {
     const detalhe = suspeitos
@@ -499,7 +546,7 @@ async function enviaEmPartes(grupo: string, texto: string) {
   if (!partes.length) throw new Error("texto ficou vazio após a divisão em blocos");
   const envios: { ok: boolean; detalhe: string }[] = [];
   for (const parte of partes) {
-    envios.push(await zapEnviaTexto(grupo, parte));
+    envios.push(await zapEnviaTexto(grupo, parte, mentions.filter((n) => parte.includes("@" + n))));
     if (partes.length > 1) await new Promise((res) => setTimeout(res, 900));
   }
   return {
@@ -857,9 +904,24 @@ Deno.serve(async (req: Request) => {
       const ia = await chamaIA(modelo, systemPrompt, userPrompt);
       respostaIA = ia.texto;
 
+      // Menção obrigatória (v1.10): linha final adicionada pela APLICAÇÃO, com
+      // marcação real (@<numero> + campo mentions). Quem já é alvo da direção
+      // de cena não entra no sorteio (não marcar 2x a mesma pessoa por motivos
+      // diferentes na mesma mensagem).
+      etapa = "mencao";
+      const excluirDaMencao = new Set<string>();
+      if (pessoaParam) excluirDaMencao.add(pessoaParam);
+      const prov = linhaProvocacao(telefones as Conf[], excluirDaMencao);
+      let textoFinal = respostaIA;
+      const mentions: string[] = [];
+      if (prov) {
+        textoFinal += "\n\n" + prov.linha;
+        mentions.push(prov.mention);
+      }
+
       // PREVIEW: devolve a mensagem gerada SEM enviar nada ao WhatsApp.
       if (preview) {
-        const partes = divideEmPartes(respostaIA);
+        const partes = divideEmPartes(textoFinal);
         await botLog({
           ...logBase,
           prompt_enviado: userPrompt,
@@ -876,14 +938,15 @@ Deno.serve(async (req: Request) => {
           uso_tokens: ia.usage,
           n_mensagens: partes.length,
           mensagens: partes,
-          texto: respostaIA,
+          texto: textoFinal,
+          mencao: prov ? prov.alvo : null,
         });
       }
 
       etapa = "zapzap";
       const { grupo: GRUPO, destino } = grupoDestino(url);
       logBase.destino = `${destino} (${GRUPO})`;
-      const envio = await enviaEmPartes(GRUPO, respostaIA);
+      const envio = await enviaEmPartes(GRUPO, textoFinal, mentions);
 
       etapa = "log";
       await botLog({
@@ -1187,10 +1250,25 @@ Deno.serve(async (req: Request) => {
     const ia = await chamaIA(modelo, systemPrompt, userPrompt, testeLongo ? 1400 : 800);
     respostaIA = ia.texto;
 
-    // 3g) Envia ao grupo de teste via ZapZap (mensagem única por padrão;
-    // blocos "---" ou texto longo viram até 3 mensagens — ver enviaEmPartes)
+    // Menção obrigatória (v1.10): cobrança COM faltantes já marca os devedores
+    // no corpo — exceção da persona, sem segunda menção aleatória. Só a
+    // mensagem "todo mundo em dia" (force, sem pendência) leva a provocação
+    // final determinística com marcação real.
+    etapa = "mencao";
+    let textoFinal = respostaIA;
+    const mentions: string[] = [];
+    if (!comPendencia.length) {
+      const prov = linhaProvocacao(telefones as Conf[], new Set());
+      if (prov) {
+        textoFinal += "\n\n" + prov.linha;
+        mentions.push(prov.mention);
+      }
+    }
+
+    // 3g) Envia via ZapZap (mensagem única por padrão; blocos "---" ou texto
+    // longo viram até 3 mensagens — ver enviaEmPartes)
     etapa = "zapzap";
-    const envio = await enviaEmPartes(GRUPO, respostaIA);
+    const envio = await enviaEmPartes(GRUPO, textoFinal, mentions);
     const partes = envio.partes;
 
     // 3h) Auditoria

@@ -7,7 +7,7 @@
 > - **Dado direto (palpites/placares):** vai na produção sem passar por `ratazana`.
 > - **Sempre crie safepoint (tag) antes de merge pra `main`**.
 > - Não toque na `congelado-fase-grupos` (museu) nem na `dev` (backup antigo congelado).
-> - **Robô Ratazana (bot WhatsApp) EM PRODUÇÃO**, ainda só no grupo de TESTE — ver §13. Admin de placares no ar — ver §14. **Persona v2.1 aplicada em `bot_config` + Edge Function v1.9 DEPLOYADA (versão 11, jul/2026, com autorização explícita do Vini) + admin (Acordar sem preview) na `ratazana`.** ⚠️ A URL de disparo da cobrança agora exige `&destino=teste` — ver §15 item 0.
+> - **Robô Ratazana (bot WhatsApp) EM PRODUÇÃO**, ainda só no grupo de TESTE — ver §13. Admin de placares no ar — ver §14. **Persona v2.1.1 aplicada em `bot_config`; função v1.10 (menção obrigatória REAL, determinística) commitada na `ratazana` mas ⚠️ AINDA NÃO deployada (no ar = v1.9/versão 11) — ver §15 item -1.** A URL de disparo da cobrança exige `&destino=teste`.
 > - **⚠️ Repo é PÚBLICO** — nada sensível em arquivo versionado (ver armadilha 9).
 
 Guia de navegação do projeto — para saber **onde mexer sem explorar o código**.
@@ -449,9 +449,17 @@ Fala em primeira pessoa dos próprios palpites, pontos e posição.
   citável (Pontuaram/Cravaram/Acertaram/zebra/palpites) se estiver no **top 3 do
   ranking geral** — filtro de **DADOS** (`participantesCitaveis`, na Edge Function),
   não só de estilo; fora do top 3 ela simplesmente não aparece no prompt.
-  **Menção obrigatória:** toda mensagem programada provoca alguém do grupo por nome
-  (exceto cobrança que já marca quem deve). **Nomenclatura fixa:** "Bolão"/"Ranking"/
-  "Ranking do Bolão", nunca "ranking do mata" (armadilha 10).
+  **Menção obrigatória (v2.1.1 — agora é do SISTEMA, não do modelo):** toda mensagem
+  programada ganha uma linha final de provocação com **marcação real** de WhatsApp,
+  adicionada deterministicamente pela Edge Function (`linhaProvocacao`): sorteia
+  alguém de `bot_telefones` (humano, com telefone, fora de quem já é alvo da direção
+  de cena), monta a frase por gênero (bancos `PROVOC_M`/`PROVOC_F`, forte/leve) com o
+  token `@<numero>` no texto e passa o campo `mentions` (CSV) pro `send/text` da
+  ZapZap. Exceção: cobrança COM faltantes não ganha segunda menção; "todo mundo em
+  dia" (force) ganha. `bot_telefones` vazia → linha simplesmente não sai. A persona
+  agora PROÍBE o modelo de usar "@" (o "@Vini" solto do teste real era o modelo
+  fingindo menção — texto morto, sem notificação). **Nomenclatura fixa:** "Bolão"/
+  "Ranking"/"Ranking do Bolão", nunca "ranking do mata" (armadilha 10).
   Formato 4–7 linhas, negrito com *asteriscos* colados, 🐀 sempre + máx. 1–2 emojis
   do conjunto padrão; bordões rotativos sem repetir em mensagens seguidas.
   **Contexto obrigatório em mensagem de jogo:** os DOIS times pelo nome + fase,
@@ -467,7 +475,7 @@ Fala em primeira pessoa dos próprios palpites, pontos e posição.
   caractere CJK solto no meio de frase coerente (glitch de amostragem do modelo,
   não truncamento).
 
-**Edge Function `ratazana-cobranca`** (v1.9 — `supabase/functions/ratazana-cobranca/index.ts`):
+**Edge Function `ratazana-cobranca`** (v1.10 — `supabase/functions/ratazana-cobranca/index.ts`):
 - ⚠️ **TODO envio exige `&destino=teste|oficial`** (sem default; `oficial` usa o secret
   `GRUPO_OFICIAL_ID`). A URL antiga de cobrança sem `&destino=` passa a dar erro claro.
   **Nenhum envio automático vai pro oficial nesta fase** — tudo passa por ação do admin.
@@ -583,6 +591,12 @@ o banco.
 
 ## 15. Pendências abertas (jul/2026)
 
+-1. **⚠️ DEPLOY da v1.10 pendente (menção obrigatória real)** — o código da menção
+   determinística está commitado na `ratazana`, mas a função NO AR ainda é a v1.9
+   (versão 11): até redeployar, mensagem programada sai SEM a linha de provocação.
+   Deploy via API (armadilha 8), com autorização explícita do Vini como das outras
+   vezes. Sem urgência destrutiva: a v1.9 continua funcionando normal, só sem a
+   menção.
 0. **✅ Edge Function v1.9 DEPLOYADA (jul/2026, autorização explícita do Vini)** —
    versão 11 no ar (deploy via API do dashboard, armadilha 8; fonte = commit
    `a3e9ed7` da `ratazana`), verificada sem enviar nada: 401 nosso sem token
@@ -597,7 +611,9 @@ o banco.
 2. **Fases 2–4 do bot** — webhook (responder mensagens), conversa, agendamentos
    automáticos (incl. a mensagem de agenda das 9h citada na persona). Ainda não
    começadas; virão em prompts futuros.
-3. **`bot_telefones` vazia** — aguardando a lista do Vini (nome + telefone + gênero).
+3. **`bot_telefones` vazia (conferido em prod E dev)** — aguardando a lista do Vini
+   (nome + telefone + gênero). ⚠️ Agora também é PRÉ-REQUISITO da menção obrigatória:
+   com a tabela vazia, `linhaProvocacao` devolve null e a linha final não sai.
    Agora ela alimenta TRÊS coisas: @menções reais (Fase 2), o seletor de pessoa do
    "Acordar o Ratazana" no admin e a intensidade por gênero da persona v2.0.
 4. **FK sem cascade em `mata_palpites` (PRODUÇÃO)** — apagar confronto em prod deixa
