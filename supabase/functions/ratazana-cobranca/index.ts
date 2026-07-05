@@ -1250,14 +1250,31 @@ Deno.serve(async (req: Request) => {
     const ia = await chamaIA(modelo, systemPrompt, userPrompt, testeLongo ? 1400 : 800);
     respostaIA = ia.texto;
 
-    // Menção obrigatória (v1.10): cobrança COM faltantes já marca os devedores
-    // no corpo — exceção da persona, sem segunda menção aleatória. Só a
-    // mensagem "todo mundo em dia" (force, sem pendência) leva a provocação
-    // final determinística com marcação real.
+    // Menções reais (v1.11): na cobrança COM faltantes a função da mensagem é
+    // NOTIFICAR quem deve — o sistema anexa uma linha final marcando TODOS os
+    // devedores com telefone real (única exceção à regra de 1 menção por
+    // mensagem; o modelo cita os nomes no corpo só como texto). Sem pendência
+    // ("todo mundo em dia", force) vale a regra geral das mensagens
+    // programadas: UMA pessoa sorteada com provocação. Quem não tem telefone
+    // em bot_telefones fica de fora da linha (sem quebrar nada).
     etapa = "mencao";
     let textoFinal = respostaIA;
     const mentions: string[] = [];
-    if (!comPendencia.length) {
+    if (comPendencia.length) {
+      const tokens: string[] = [];
+      for (const nome of todosFaltantes) {
+        const h = HUMANOS.find((p) => p.nome === nome);
+        const tel = h ? (telefones as Conf[]).find((t: Conf) => t.participante_id === h.id) : null;
+        const num = tel?.telefone_whatsapp ? String(tel.telefone_whatsapp).replace(/\D/g, "") : "";
+        if (num) {
+          tokens.push("@" + num);
+          mentions.push(num);
+        }
+      }
+      if (tokens.length) {
+        textoFinal += "\n\n📋 Intimação oficial do fiscal: " + tokens.join(" ") + " — palpite pendente, tá no caderninho.";
+      }
+    } else {
       const prov = linhaProvocacao(telefones as Conf[], new Set());
       if (prov) {
         textoFinal += "\n\n" + prov.linha;
