@@ -1,6 +1,12 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // ROBÔ RATAZANA — Edge Function "ratazana-cobranca"
-// (v1.11: cobrança marca TODOS os devedores com menção real; stop_reason
+// (v1.12: dois modos novos pensados pra pg_cron — "agenda" (painel do dia às
+//  9h + único alerta de liderança detalhado) e "ultima_chamada" (T-30min por
+//  jogo, checagem a cada ~10min); teto diário de mensagens automáticas
+//  (4 com jogo / 2 sem jogo) e idempotência por dia+destino[+jogo] pra nenhum
+//  dos dois jobs duplicar envio ou estourar o teto — NÃO se aplica a
+//  cobrança/fim_de_jogo/enviar_texto, que continuam gatilho manual do admin.
+//  v1.11: cobrança marca TODOS os devedores com menção real; stop_reason
 //  max_tokens vira falha bloqueante (teto 4000/8000 — thinking do sonnet-5
 //  divide o mesmo teto); filtro de sanidade invertido pra reprovação por
 //  script (emojis comuns passam). v1.10: menção obrigatória determinística
@@ -30,6 +36,15 @@
 //       [&classificado=A|B][&env=dev] → GRAVA o placar final (única via de
 //       escrita; roda com service role). finished=0 reabre (só destrava).
 //       Fechar NUNCA envia mensagem (o comentário é ação separada do admin).
+//   ...&tipo=agenda&destino=teste|oficial[&env=dev][&force=1]
+//       → AGENDA DO DIA (pg_cron 1x/dia, ~9h): jogos de hoje + turbo/zebra +
+//       quem falta palpitar + alerta de liderança detalhado. Sem jogo hoje:
+//       não envia nada. Idempotente (1x/dia por destino, força com &force=1)
+//       e sujeito ao teto diário (ver acima).
+//   ...&tipo=ultima_chamada&destino=teste|oficial[&env=dev][&force=1]
+//       → ÚLTIMA CHAMADA (pg_cron a cada ~10min): dispara só pros jogos que
+//       estão entrando na janela de 15-30min antes do kickoff; idempotente
+//       por jogo (não repete o mesmo jogo no mesmo dia) e sujeito ao teto.
 //
 // Dados: SEMPRE tabelas de PRODUÇÃO (mata_confrontos / mata_palpites / bot_config).
 // Modelo de IA: lido de bot_config key 'modelo_ia' (fallback Haiku 4.5).
@@ -392,6 +407,53 @@ async function botLog(row: Record<string, unknown>) {
   } catch (e) {
     console.error("bot_log falhou:", e);
   }
+}
+
+// ─── Governança de volume diário (Fase 4 — agenda 9h / última chamada) ──────
+// Teto de mensagens automáticas por dia: protege o grupo de ser inundado
+// pelos novos jobs (agenda + última chamada). NÃO se aplica a cobrança/
+// fim_de_jogo/enviar_texto (ação explícita do admin ou evento real de jogo,
+// naturalmente espaçados). Faixas pedidas pelo Vini: 3-4 com jogo, 1-2 sem —
+// uso o teto (limite superior) de cada faixa.
+const TETO_MSGS_DIA_COM_JOGO = 4;
+const TETO_MSGS_DIA_SEM_JOGO = 2;
+// Início/fim do "hoje" em Brasília, em ISO (pra filtrar bot_log.created_at,
+// que é UTC) + o dia no formato "dd/mm" usado por MM_AGENDA.
+function limitesBrasiliaHojeISO(): { ini: string; fim: string; ddmm: string } {
+  const partes = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(new Date()).reduce((o: Record<string, string>, p) => { o[p.type] = p.value; return o; }, {});
+  const ini = `${partes.year}-${partes.month}-${partes.day}T00:00:00-03:00`;
+  const fim = new Date(new Date(ini).getTime() + 24 * 3600 * 1000).toISOString();
+  return { ini, fim, ddmm: `${partes.day}/${partes.month}` };
+}
+// Todas as linhas de bot_log de "hoje" (Brasília) — uma consulta só, reaproveitada
+// pelos checks de teto e de idempotência (evita ida a banco por jogo/checagem).
+async function botLogHoje(): Promise<Conf[]> {
+  const { ini, fim } = limitesBrasiliaHojeISO();
+  const rows = await sbGet(
+    `bot_log?select=id,tipo,destino,status_envio,created_at&created_at=gte.${encodeURIComponent(ini)}&created_at=lt.${encodeURIComponent(fim)}`
+  ).catch(() => []);
+  return Array.isArray(rows) ? rows : [];
+}
+// Mensagens de fato ENVIADAS hoje pro destino (qualquer tipo que manda WhatsApp;
+// fechar_placar/reabrir_placar não contam — não enviam mensagem nenhuma).
+function contaEnviadasHoje(logs: Conf[], destino: "teste" | "oficial"): number {
+  return logs.filter((r: Conf) =>
+    r.status_envio === "ok" &&
+    String(r.destino || "").startsWith(destino + " (") &&
+    r.tipo !== "fechar_placar" && r.tipo !== "reabrir_placar"
+  ).length;
+}
+// Idempotência: este "tipo" (com esta "chave" opcional, ex.: "[jogo:r16_3]")
+// já foi enviado com sucesso hoje pra este destino? Evita duplicidade se o
+// pg_cron disparar 2x na mesma janela ou o Vini rodar manual de novo.
+function jaRodouHoje(logs: Conf[], tipo: string, destino: "teste" | "oficial", chave = ""): boolean {
+  return logs.some((r: Conf) =>
+    r.tipo === tipo && r.status_envio === "ok" &&
+    String(r.destino || "").startsWith(destino + " (") &&
+    (!chave || String(r.destino || "").includes(chave))
+  );
 }
 
 // ─── IA (Anthropic Messages API); modelo vem de bot_config 'modelo_ia' ───────
@@ -1025,6 +1087,276 @@ Deno.serve(async (req: Request) => {
         erro: `[etapa: ${etapa}] ${msg}`,
       });
       return json({ ok: false, etapa, jogo: jogoId, erro: msg }, 500);
+    }
+  }
+
+  // ─── Modo AGENDA DO DIA (Fase 4 — pensado pra pg_cron às 9h) ────────────────
+  // ?tipo=agenda&destino=teste|oficial[&env=dev][&force=1]
+  // Painorama dos jogos de hoje (turbo/zebra/quem falta palpitar) + o ÚNICO
+  // alerta de liderança detalhado do dia (persona v2.1: "só na futura mensagem
+  // de agenda das 9h" — é esta). Sem jogo hoje: não envia nada (modo
+  // entressafra fica pra outra sessão). force=1 ignora a trava de "já enviei
+  // hoje" (teste manual); o teto diário (contaEnviadasHoje) NUNCA é ignorado.
+  if (url.searchParams.get("tipo") === "agenda") {
+    const pref = url.searchParams.get("env") === "dev" ? "dev_" : "";
+    const forceAgenda = url.searchParams.get("force") === "1";
+    const tipoLog = "agenda" + (pref ? "_dev" : "");
+    const logBase = { tipo: tipoLog, destino: "" };
+    let etapa = "destino";
+    let userPrompt: string | null = null;
+    let respostaIA: string | null = null;
+    let modelo = MODELO_FALLBACK;
+    try {
+      const dst = grupoDestino(url);
+      logBase.destino = `${dst.destino} (${dst.grupo})`;
+
+      etapa = "governanca";
+      const logsHoje = await botLogHoje();
+      const { ddmm } = limitesBrasiliaHojeISO();
+      const temJogoHoje = Object.values(MM_AGENDA).some((a: Conf) => a.dt === ddmm);
+      const teto = temJogoHoje ? TETO_MSGS_DIA_COM_JOGO : TETO_MSGS_DIA_SEM_JOGO;
+      if (!forceAgenda && jaRodouHoje(logsHoje, tipoLog, dst.destino)) {
+        await botLog({ ...logBase, status_envio: "pulado_duplicado", erro: "agenda já enviada hoje pra este destino" });
+        return json({ ok: true, enviado: false, motivo: "agenda já enviada hoje pra este destino (use &force=1 pra repetir)" });
+      }
+      if (contaEnviadasHoje(logsHoje, dst.destino) >= teto) {
+        await botLog({ ...logBase, status_envio: "pulado_teto", erro: `teto diário atingido (${teto})` });
+        return json({ ok: true, enviado: false, motivo: `teto diário de mensagens atingido (${teto})` });
+      }
+
+      etapa = "consulta_banco";
+      const [confrontos, palpites, cfg, telefones] = await Promise.all([
+        sbGet(`${pref}mata_confrontos?select=*`),
+        sbGet(`${pref}mata_palpites?select=confronto_id,pid,gols_a,gols_b,quem_passa`),
+        sbGet("bot_config?key=in.(system_prompt_ratazana,modelo_ia)&select=key,value"),
+        sbGet("bot_telefones?select=participante_id,nome_exibicao,genero,telefone_whatsapp,is_humano").catch(() => []),
+      ]);
+      const cfgMap: Record<string, string> = {};
+      for (const row of cfg) cfgMap[row.key] = row.value;
+      const systemPrompt = cfgMap["system_prompt_ratazana"];
+      modelo = (cfgMap["modelo_ia"] || "").trim() || MODELO_FALLBACK;
+      if (!systemPrompt) throw new Error("bot_config sem 'system_prompt_ratazana' — rode o supabase_bot.sql");
+
+      etapa = "jogos_hoje";
+      const PAL: Record<string, Record<string, Conf>> = {};
+      for (const p of palpites) (PAL[p.confronto_id] ??= {})[p.pid] = p;
+      const teamsOf = makeResolver(confrontos);
+      const rank = MATA_PARTS_BOT.map((p) => ({ p, ...mataStats(p.id, confrontos, PAL) }))
+        .sort((a, b) => b.total - a.total || b.eHits - a.eHits || b.rHits - a.rHits);
+
+      // Só jogos AINDA POR JOGAR hoje — um jogo de hoje já finalizado (ex.: a
+      // agenda rodando de novo depois do apito final) não entra no painel.
+      const jogosHoje = confrontos
+        .filter((c: Conf) => !mmIsTest(c) && !c.finished && MM_AGENDA[c.id]?.dt === ddmm)
+        .map((c: Conf) => ({ c, d: mmGameDate(c) }))
+        .sort((a: Conf, b: Conf) => (a.d?.getTime() || 0) - (b.d?.getTime() || 0));
+
+      if (!jogosHoje.length) {
+        await botLog({ ...logBase, status_envio: "nao_enviado", erro: "sem jogos hoje pendentes (todos já finalizados, ou nenhum agendado — modo entressafra ainda não implementado)" });
+        return json({ ok: true, enviado: false, motivo: "sem jogos hoje pendentes (ou modo entressafra, ainda não implementado)" });
+      }
+
+      const jogos = jogosHoje.map(({ c, d }: Conf) => {
+        const i = mmInfo(c);
+        const t = teamsOf(c);
+        const nomeA = t.a?.name || "A definir";
+        const nomeB = t.b?.name || "A definir";
+        const phaseKey = mmPhaseKeyOf(c.id);
+        const turbo = MM_TURBO.has(c.id);
+        const z = mmZebra(c);
+        const faltam = HUMANOS.filter((h) => !mmHasFullPred(PAL[c.id]?.[h.id])).map((h) => h.nome);
+        return {
+          id: c.id, fase: PH_LABEL[phaseKey] || phaseKey, tm: i.tm, onde: i.ven,
+          jogo: `${nomeA} × ${nomeB}`, turbo,
+          multFinal: fmtPts((MM_PHASE_MULT[phaseKey] || 1) * (turbo ? 2 : 1)),
+          zebra: z ? { tipo: z.tipo, azarao: z.azarao === "A" ? nomeA : nomeB, bonus: z.tipo === "zebrao" ? 5 : 3 } : null,
+          faltam, d,
+        };
+      });
+
+      etapa = "lideranca";
+      const top3 = rank.slice(0, 3).map((r, ix) => `${ix + 1}º ${r.p.nome} ${fmtPts(r.total)} pts`).join("; ");
+      const posRat = rank.findIndex((r) => r.p.id === RATAZANA_ID) + 1;
+      const alertaLideranca =
+        `ALERTA DE LIDERANÇA (detalhado — só nesta mensagem diária): líder é ${rank[0].p.nome} com ${fmtPts(rank[0].total)} pts` +
+        (rank.length > 1 ? `, ${fmtPts(rank[0].total - rank[1].total)} pts à frente de ${rank[1].p.nome} (2º)` : "") +
+        `. Top 3: ${top3}. Você (Ratazana) está em ${posRat}º com ${fmtPts(rank[posRat - 1].total)} pts.`;
+
+      const generos = (telefones as Conf[]).filter((x: Conf) => x.genero)
+        .map((x: Conf) => `${x.nome_exibicao || MATA_PARTS_BOT.find((p) => p.id === x.participante_id)?.nome || x.participante_id} (${x.genero})`);
+
+      const blocoJogo = (j: Conf) =>
+        `- ${diaSemana(j.d)} às *${j.tm}* - ${j.fase} - ${j.jogo} - ${j.onde}` +
+        (j.turbo ? ` - ⚡ TURBO: vale ×${j.multFinal}` : ` - vale ×${j.multFinal}`) +
+        (j.zebra ? ` - ${j.zebra.tipo === "zebrao" ? "ZEBRÃO" : "ZEBRA"} armada: azarão ${j.zebra.azarao}, bônus +${j.zebra.bonus}` : "") +
+        `\n  Faltam palpitar: ${j.faltam.length ? listaNomes(j.faltam) : "ninguém, todos em dia"}`;
+
+      etapa = "monta_prompt";
+      userPrompt =
+        `DADOS VERIFICADOS DO BOLÃO (agenda do dia, gerados em ${agoraBrasilia()}, horário de Brasília). Use somente estes dados. Não calcule nem invente nada.\n\n` +
+        `JOGOS DE HOJE:\n${jogos.map(blocoJogo).join("\n")}\n\n` +
+        `${alertaLideranca}\n` +
+        (generos.length ? `Gênero dos participantes (pra calibrar a intensidade): ${generos.join("; ")}\n` : "") +
+        `\nTAREFA: escreva a mensagem de AGENDA DO DIA para o grupo de WhatsApp (4 a 7 linhas): liste os jogos de hoje com horário, avise se tem turbo ou zebra armada, cutuque quem ainda falta palpitar em algum jogo de hoje, e incorpore o alerta de liderança com naturalidade (é a ÚNICA mensagem do dia que detalha isso — respeite a hierarquia de assunto: jogo/pessoas/ranking antes de você mesmo). Sem link do bolão. Mensagem única.`;
+
+      etapa = "anthropic";
+      const ia = await chamaIA(modelo, systemPrompt, userPrompt);
+      respostaIA = ia.texto;
+
+      etapa = "mencao";
+      const todosFaltantesHoje = [...new Set(jogos.flatMap((j: Conf) => j.faltam))] as string[];
+      let textoFinal = respostaIA;
+      const mentions: string[] = [];
+      if (todosFaltantesHoje.length) {
+        const tokens: string[] = [];
+        for (const nome of todosFaltantesHoje) {
+          const h = HUMANOS.find((p) => p.nome === nome);
+          const tel = h ? (telefones as Conf[]).find((t: Conf) => t.participante_id === h.id) : null;
+          const num = tel?.telefone_whatsapp ? String(tel.telefone_whatsapp).replace(/\D/g, "") : "";
+          if (num) { tokens.push("@" + num); mentions.push(num); }
+        }
+        if (tokens.length) textoFinal += "\n\n📋 Intimação oficial do fiscal: " + tokens.join(" ") + " — palpite pendente, tá no caderninho.";
+      } else {
+        const prov = linhaProvocacao(telefones as Conf[], new Set());
+        if (prov) { textoFinal += "\n\n" + prov.linha; mentions.push(prov.mention); }
+      }
+
+      etapa = "zapzap";
+      const envio = await enviaEmPartes(dst.grupo, textoFinal, mentions);
+      etapa = "log";
+      await botLog({
+        ...logBase, prompt_enviado: userPrompt, resposta_ia: respostaIA,
+        mensagem_enviada: envio.partes.join("\n\n"),
+        status_envio: envio.ok ? "ok" : "erro", erro: envio.ok ? null : envio.detalhe,
+      });
+      return json({
+        ok: envio.ok, enviado: envio.ok, jogos_hoje: jogos.length, destino: dst.destino,
+        modelo, uso_tokens: ia.usage, n_mensagens: envio.partes.length, mensagens: envio.partes,
+      }, envio.ok ? 200 : 502);
+    } catch (e) {
+      const msg = String((e as Error)?.message || e);
+      await botLog({ ...logBase, prompt_enviado: userPrompt, resposta_ia: respostaIA, status_envio: "erro", erro: `[etapa: ${etapa}] ${msg}` });
+      return json({ ok: false, etapa, erro: msg }, 500);
+    }
+  }
+
+  // ─── Modo ÚLTIMA CHAMADA (Fase 4 — T-30min, pensado pra pg_cron a cada ~10min)
+  // ?tipo=ultima_chamada&destino=teste|oficial[&env=dev][&force=1]
+  // Dispara só pros jogos que estão ENTRANDO agora na janela de 15-30min antes
+  // do kickoff (a granularidade do cron de 10min garante pelo menos 1 acerto
+  // por jogo dentro da janela de 15min). Idempotente por jogo (chave
+  // "[jogo:<id>]" dentro do destino logado) — não reenviar no mesmo dia pro
+  // mesmo jogo mesmo se o cron rodar de novo dentro da janela.
+  if (url.searchParams.get("tipo") === "ultima_chamada") {
+    const pref = url.searchParams.get("env") === "dev" ? "dev_" : "";
+    const forceUC = url.searchParams.get("force") === "1";
+    const tipoLog = "ultima_chamada" + (pref ? "_dev" : "");
+    try {
+      const dst = grupoDestino(url);
+
+      const [confrontos, palpites, cfg, telefones] = await Promise.all([
+        sbGet(`${pref}mata_confrontos?select=*`),
+        sbGet(`${pref}mata_palpites?select=confronto_id,pid,gols_a,gols_b,quem_passa`),
+        sbGet("bot_config?key=in.(system_prompt_ratazana,modelo_ia)&select=key,value"),
+        sbGet("bot_telefones?select=participante_id,nome_exibicao,genero,telefone_whatsapp,is_humano").catch(() => []),
+      ]);
+      const cfgMap: Record<string, string> = {};
+      for (const row of cfg) cfgMap[row.key] = row.value;
+      const systemPrompt = cfgMap["system_prompt_ratazana"];
+      const modelo = (cfgMap["modelo_ia"] || "").trim() || MODELO_FALLBACK;
+      if (!systemPrompt) throw new Error("bot_config sem 'system_prompt_ratazana' — rode o supabase_bot.sql");
+
+      const PAL: Record<string, Record<string, Conf>> = {};
+      for (const p of palpites) (PAL[p.confronto_id] ??= {})[p.pid] = p;
+      const teamsOf = makeResolver(confrontos);
+      const now = Date.now();
+
+      // Janela de disparo: 15-30min antes do kickoff.
+      const candidatos = confrontos
+        .filter((c: Conf) => !mmIsTest(c) && !c.finished)
+        .map((c: Conf) => ({ c, d: mmGameDate(c) }))
+        .filter((x: Conf) => x.d)
+        .filter((x: Conf) => { const diffMin = (x.d.getTime() - now) / 60000; return diffMin > 15 && diffMin <= 30; });
+
+      if (!candidatos.length) {
+        return json({ ok: true, enviado: false, motivo: "nenhum jogo entrando na janela de última chamada agora" });
+      }
+
+      const logsHoje = await botLogHoje();
+      const { ddmm } = limitesBrasiliaHojeISO();
+      const temJogoHoje = Object.values(MM_AGENDA).some((a: Conf) => a.dt === ddmm);
+      const teto = temJogoHoje ? TETO_MSGS_DIA_COM_JOGO : TETO_MSGS_DIA_SEM_JOGO;
+
+      const resultados: Conf[] = [];
+      for (const { c } of candidatos) {
+        const chave = `[jogo:${c.id}]`;
+        if (!forceUC && jaRodouHoje(logsHoje, tipoLog, dst.destino, chave)) {
+          resultados.push({ jogo: c.id, enviado: false, motivo: "já avisado hoje" });
+          continue;
+        }
+        if (contaEnviadasHoje(logsHoje, dst.destino) >= teto) {
+          resultados.push({ jogo: c.id, enviado: false, motivo: `teto diário atingido (${teto})` });
+          continue;
+        }
+        const logBase = { tipo: tipoLog, destino: `${dst.destino} (${dst.grupo}) ${chave}` };
+        let userPrompt: string | null = null;
+        let respostaIA: string | null = null;
+        try {
+          const i = mmInfo(c);
+          const t = teamsOf(c);
+          const nomeA = t.a?.name || "A definir";
+          const nomeB = t.b?.name || "A definir";
+          const phaseKey = mmPhaseKeyOf(c.id);
+          const turbo = MM_TURBO.has(c.id);
+          const z = mmZebra(c);
+          const faltam = HUMANOS.filter((h) => !mmHasFullPred(PAL[c.id]?.[h.id])).map((h) => h.nome);
+
+          userPrompt =
+            `DADOS VERIFICADOS DO BOLÃO (última chamada, ~30min antes do jogo, gerados em ${agoraBrasilia()}, horário de Brasília). Use somente estes dados.\n\n` +
+            `JOGO: ${nomeA} × ${nomeB} (${PH_LABEL[phaseKey] || phaseKey}) às *${i.tm}* em ${i.ven}` +
+            (turbo ? " - ⚡ TURBO" : "") +
+            (z ? ` - ${z.tipo === "zebrao" ? "ZEBRÃO" : "ZEBRA"} armada` : "") + `\n` +
+            `Faltam palpitar: ${faltam.length ? listaNomes(faltam) : "ninguém, todos em dia"}\n\n` +
+            `TAREFA: escreva um aviso de ÚLTIMA CHAMADA curto (2 a 4 linhas) pro grupo de WhatsApp: o jogo está prestes a começar (faltam ~30min), cutuque com urgência quem ainda falta palpitar (se houver). Se ninguém falta, comente breve e animado que está todo mundo pronto. Sem link do bolão. Mensagem única.`;
+
+          const ia = await chamaIA(modelo, systemPrompt, userPrompt, 2500);
+          respostaIA = ia.texto;
+
+          let textoFinal = respostaIA;
+          const mentions: string[] = [];
+          if (faltam.length) {
+            const tokens: string[] = [];
+            for (const nome of faltam) {
+              const h = HUMANOS.find((p) => p.nome === nome);
+              const tel = h ? (telefones as Conf[]).find((t2: Conf) => t2.participante_id === h.id) : null;
+              const num = tel?.telefone_whatsapp ? String(tel.telefone_whatsapp).replace(/\D/g, "") : "";
+              if (num) { tokens.push("@" + num); mentions.push(num); }
+            }
+            if (tokens.length) textoFinal += "\n\n📋 Intimação oficial do fiscal: " + tokens.join(" ") + " — palpite pendente, tá no caderninho.";
+          } else {
+            const prov = linhaProvocacao(telefones as Conf[], new Set());
+            if (prov) { textoFinal += "\n\n" + prov.linha; mentions.push(prov.mention); }
+          }
+
+          const envio = await enviaEmPartes(dst.grupo, textoFinal, mentions);
+          await botLog({
+            ...logBase, prompt_enviado: userPrompt, resposta_ia: respostaIA,
+            mensagem_enviada: envio.partes.join("\n\n"),
+            status_envio: envio.ok ? "ok" : "erro", erro: envio.ok ? null : envio.detalhe,
+          });
+          resultados.push({ jogo: c.id, enviado: envio.ok });
+          // Contabiliza localmente pra não passar do teto se houver 2 jogos na mesma janela.
+          logsHoje.push({ tipo: logBase.tipo, destino: logBase.destino, status_envio: envio.ok ? "ok" : "erro" });
+        } catch (e) {
+          const msg = String((e as Error)?.message || e);
+          await botLog({ ...logBase, prompt_enviado: userPrompt, resposta_ia: respostaIA, status_envio: "erro", erro: msg });
+          resultados.push({ jogo: c.id, enviado: false, erro: msg });
+        }
+      }
+      return json({ ok: true, resultados });
+    } catch (e) {
+      const msg = String((e as Error)?.message || e);
+      return json({ ok: false, erro: msg }, 500);
     }
   }
 
