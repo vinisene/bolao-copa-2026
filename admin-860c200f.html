@@ -99,11 +99,40 @@
   .status{font-size:12px;margin-top:8px;color:var(--mu);white-space:pre-line;text-align:center;}
   .status.ok{color:var(--lime);}
   .status.err{color:var(--red);}
+
+  /* "Acordar o Ratazana" (só em jogo fechado): direcionamento + preview + envio */
+  .ac-box{margin-top:10px;border-top:1px dashed var(--brd);padding-top:10px;display:flex;flex-direction:column;gap:8px;}
+  .ac-fields{display:flex;gap:6px;flex-wrap:wrap;}
+  .ac-fields select,.ac-fields input{background:#0c100c;color:var(--ink);border:1.5px solid var(--brd);border-radius:8px;padding:8px;font-size:13px;}
+  .ac-fields select{flex:0 1 44%;min-width:150px;}
+  .ac-fields input{flex:1 1 50%;min-width:170px;}
+  .ac-fields input:focus,.ac-fields select:focus{outline:none;border-color:var(--lime);}
+  .acordar{background:none;border:1.5px solid var(--lime);color:var(--lime);border-radius:4px 14px 4px 4px;padding:9px 12px;font-size:13.5px;font-weight:800;cursor:pointer;}
+  .acordar:active{background:rgba(175,234,0,.12);}
+  .preview-box{background:#0c100c;border:1px solid var(--brd);border-radius:4px 14px 4px 4px;padding:10px;display:flex;flex-direction:column;gap:8px;}
+  .pv-label{font-size:10.5px;font-weight:800;letter-spacing:.5px;color:var(--gold);}
+  .pv-text{white-space:pre-wrap;font-family:inherit;font-size:13px;line-height:1.5;color:var(--ink);margin:0;}
+  .pv-note{font-size:11px;color:var(--mu);}
+  .pv-dest{display:flex;gap:14px;font-size:12.5px;color:var(--mu);flex-wrap:wrap;}
+  .pv-dest label{display:flex;align-items:center;gap:5px;cursor:pointer;}
+  .pv-dest input{accent-color:var(--lime);}
+  .pv-dest .of{color:var(--gold);font-weight:700;}
+  .pv-actions{display:flex;gap:8px;flex-wrap:wrap;}
+  .pv-send{flex:1;background:var(--lime);color:#12250f;border:none;border-radius:4px 12px 4px 4px;padding:9px;font-weight:900;font-size:13.5px;cursor:pointer;}
+  .acordar:disabled{opacity:.5;cursor:default;}
+
+  /* utilitários do topo: listar grupos + mensagem inaugural */
+  .utilbtn{background:var(--card);border:1px solid var(--brd);color:var(--mu);border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer;}
+  .util-box{background:var(--card);border:1px solid var(--brd);border-radius:4px 16px 4px 4px;padding:12px;margin:10px 0;}
+  .util-tit{font-size:12.5px;color:var(--mu);margin-bottom:8px;}
+  .gr-table{width:100%;border-collapse:collapse;font-size:13px;}
+  .gr-table td{padding:6px 8px;border-top:1px solid var(--brd);vertical-align:top;}
+  .gr-table td.gr-id{color:var(--mu);font-size:11.5px;word-break:break-all;}
 </style>
 </head>
 <body>
 <h1>🐀 Lançar placares <span id="env-badge" class="badge"></span></h1>
-<div class="sub">Fechar jogo grava o placar final pela função (a senha protege a escrita). Jogo fechado pode ser reaberto pra corrigir.</div>
+<div class="sub">Fechar jogo grava o placar final pela função (a senha protege a escrita) e <b>não envia mensagem nenhuma</b>: o Ratazana só fala quando você acordar ele no card do jogo fechado. Jogo fechado pode ser reaberto pra corrigir.</div>
 
 <div id="token-box" style="display:none">
   <p><b>Senha do admin</b> — guardada só neste navegador.</p>
@@ -112,10 +141,13 @@
 </div>
 
 <div class="toprow">
-  <label class="chk"><input type="checkbox" id="chk-coment" checked> Mandar comentário do Ratazana ao fechar</label>
   <button id="recarregar" onclick="carregar()">↻ Recarregar</button>
+  <button class="utilbtn" onclick="toggleUtil('grupos')">📡 Listar grupos</button>
+  <button class="utilbtn" onclick="toggleUtil('inaugural')">📣 Mensagem inaugural</button>
   <button class="linklike" onclick="trocarToken()">trocar senha</button>
 </div>
+<div id="util-grupos" class="util-box" hidden></div>
+<div id="util-inaugural" class="util-box" hidden></div>
 
 <div class="controls-row">
   <div class="status-toggle" id="status-wrap">
@@ -139,6 +171,18 @@ function isDevEnv(h){h=h||location.hostname;return h.startsWith('dev.')||h.start
 const IS_DEV=isDevEnv();
 const MM_TCONF=IS_DEV?'dev_mata_confrontos':'mata_confrontos';
 const TOKEN_KEY='ratz_admin_code';
+
+// ─── MENSAGEM INAUGURAL (texto FIXO, definitivo — fornecido pelo Vini;
+//     não passa por IA, é enviada exatamente como está) ─────────────────────
+const MSG_INAUGURAL=`🐀 *COMUNICADO OFICIAL Nº 001*
+
+Boa noite, cambada. Meu nome é Ratazana e a partir de hoje esse bolão tem lei.
+
+Fica instituída a fiscalização permanente: cobrar palpite atrasado, anunciar resultado, expor vergonha alheia. Recursos e reclamações: indeferidos.
+
+Eu vejo os palpites, eu vejo os pontos, eu vejo quem some na hora de palpitar e aparece na hora de zoar. Tá tudo no caderninho.
+
+Boa sorte. Vocês vão precisar. 🐀`;
 
 // ─── Bandeiras (cópia fiel de flagImg/TAGFLAGS do index.html) ────────────────
 const TAGFLAGS={'🏴󠁧󠁢󠁳󠁣󠁴󠁿':'gb-sct','🏴󠁧󠁢󠁥󠁮󠁧󠁿':'gb-eng'};
@@ -330,6 +374,18 @@ function cardJogo(c){
         <span class="lock-badge">🔒 Finalizado</span>
         <button class="reabrir" onclick="reabrirJogo('${esc(c.id)}')">✏️ Reabrir para corrigir</button>
       </div>
+      <div class="ac-box">
+        <div class="ac-fields">
+          <select id="acp-${esc(c.id)}" title="Direcionar pra alguém (opcional)">${pessoaOptions()}</select>
+          <input id="acd-${esc(c.id)}" type="text" maxlength="300" placeholder="Direcionamento (opcional): ex. provoca o Leo pelos palpites">
+        </div>
+        <div class="pv-dest">
+          <label><input type="radio" name="acdest-${esc(c.id)}" value="teste" checked> Grupo de TESTE</label>
+          <label><input type="radio" name="acdest-${esc(c.id)}" value="oficial"> <span class="of">Grupo OFICIAL</span></label>
+        </div>
+        <button class="acordar" id="acbtn-${esc(c.id)}" onclick="acordarRatazana('${esc(c.id)}')">🐀 Acordar o Ratazana</button>
+        <div class="status" id="acst-${esc(c.id)}"></div>
+      </div>
       <div class="status" id="st-${esc(c.id)}"></div>
     </div>`;
   }
@@ -392,19 +448,132 @@ async function fecharJogo(cid){
   catch(e){ st.className='status err';st.textContent='ERRO de rede ao fechar: '+e.message; return; }
   if(r.status===401){ trocarToken(); st.className='status err'; st.textContent='Senha do admin inválida. Cole a senha certa (apareceu de novo acima) e tente fechar de novo.'; return; }
   if(!r.ok||!d.ok){ st.className='status err'; st.textContent='ERRO ao fechar: '+(d.erro||('HTTP '+r.status)); return; }
-  st.className='status ok';st.textContent='✅ Jogo fechado.';
-  // comentário do Ratazana (acessório: falha NÃO desfaz o fechamento, que já aconteceu acima)
-  if(document.getElementById('chk-coment').checked){
-    st.textContent+='\n🐀 Chamando o Ratazana…';
-    try{
-      const fr=await fetch(`${FN_URL}?token=${encodeURIComponent(token)}&tipo=fim_de_jogo&jogo=${encodeURIComponent(cid)}&env=${IS_DEV?'dev':'prod'}`);
-      const fd=await fr.json().catch(()=>({}));
-      if(fr.status===401)st.textContent+='\n⚠️ Senha inválida: comentário não saiu (o jogo segue fechado).';
-      else if(fd.ok)st.textContent+=`\n🐀 Comentário enviado ao grupo (${fd.n_mensagens||1} mensagem${(fd.n_mensagens||1)>1?'s':''}).`;
-      else st.textContent+='\n⚠️ Comentário falhou ('+esc(fd.erro||('HTTP '+fr.status))+'). O jogo segue fechado; veja o bot_log.';
-    }catch(e){st.textContent+='\n⚠️ Comentário falhou ('+esc(e.message)+'). O jogo segue fechado.';}
-  }
+  // Fechar NUNCA envia mensagem: o comentário do Ratazana é ação separada,
+  // pelo botão "🐀 Acordar o Ratazana" do card fechado (com preview antes).
+  st.className='status ok';st.textContent='✅ Jogo fechado. Nenhuma mensagem enviada.';
   setTimeout(carregar,1600);
+}
+
+// ─── Acordar o Ratazana (gera → preview → só envia com confirmação) ──────────
+// bot_telefones é SEMPRE a tabela de produção (a mesma que o robô consulta).
+let TELEFONES=[];
+async function carregarTelefones(){
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/bot_telefones?select=participante_id,nome_exibicao&order=nome_exibicao`,{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY}});
+    if(r.ok)TELEFONES=await r.json();
+  }catch(_){/* tabela vazia/erro: o seletor fica só com a opção "sem pessoa" */}
+}
+function pessoaOptions(){
+  return '<option value="">— sem pessoa específica —</option>'+
+    TELEFONES.map(t=>`<option value="${esc(t.participante_id)}">${esc(t.nome_exibicao||t.participante_id)}</option>`).join('');
+}
+// Ação única do "Acordar o Ratazana": gera a mensagem (considerando pessoa/
+// direcionamento se preenchidos) E JÁ ENVIA direto pro grupo escolhido, sem
+// etapa de preview intermediária — um clique, um resultado inline no botão.
+async function acordarRatazana(cid){
+  const btn=document.getElementById('acbtn-'+cid);
+  const st=document.getElementById('acst-'+cid);
+  const pessoa=(document.getElementById('acp-'+cid)||{}).value||'';
+  const direcao=((document.getElementById('acd-'+cid)||{}).value||'').trim();
+  const sel=document.querySelector(`input[name="acdest-${cid}"]:checked`);
+  const dest=sel?sel.value:'';
+  if(!dest){ st.className='status err'; st.textContent='Escolha o destino (teste ou oficial).'; return; }
+  const textoOriginal=btn.textContent;
+  btn.disabled=true; btn.textContent='🐀 Gerando e enviando…';
+  st.className='status'; st.textContent='';
+  const token=localStorage.getItem(TOKEN_KEY)||'';
+  const qs=new URLSearchParams({token,tipo:'fim_de_jogo',jogo:cid,env:IS_DEV?'dev':'prod',destino:dest});
+  if(pessoa)qs.set('pessoa',pessoa);
+  if(direcao)qs.set('direcao',direcao);
+  let r,d;
+  try{ r=await fetch(`${FN_URL}?${qs.toString()}`); d=await r.json().catch(()=>({})); }
+  catch(e){
+    console.error('Erro de rede ao acordar o Ratazana:',e);
+    st.className='status err'; st.textContent='Erro de rede ao gerar/enviar.';
+    btn.disabled=false; btn.textContent=textoOriginal; return;
+  }
+  if(r.status===401){
+    trocarToken(); st.className='status err'; st.textContent='Senha do admin inválida.';
+    btn.disabled=false; btn.textContent=textoOriginal; return;
+  }
+  if(!r.ok||!d.ok){
+    console.error('Erro ao acordar o Ratazana:',d);
+    st.className='status err'; st.textContent='Erro: '+(d.erro||('HTTP '+r.status));
+    btn.disabled=false; btn.textContent=textoOriginal; return;
+  }
+  st.className='status ok';
+  st.textContent=`✅ Enviado ao grupo ${dest==='oficial'?'OFICIAL':'de teste'} (${d.n_mensagens||1} mensagem${(d.n_mensagens||1)>1?'s':''}).`;
+  btn.disabled=false; btn.textContent=textoOriginal;
+}
+// Envio de texto pronto via função (tipo=enviar_texto): usado hoje só pela
+// mensagem inaugural (o Acordar virou geração+envio direto, sem passar por
+// texto pré-pronto). Escreve o resultado no elemento de status recebido.
+async function postEnviarTexto(dest,texto,st){
+  const token=localStorage.getItem(TOKEN_KEY)||'';
+  st.className='status';st.textContent='Enviando…';
+  let r,res;
+  try{
+    r=await fetch(`${FN_URL}?token=${encodeURIComponent(token)}&tipo=enviar_texto&destino=${encodeURIComponent(dest)}`,{
+      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({texto})});
+    res=await r.json().catch(()=>({}));
+  }catch(e){ st.className='status err'; st.textContent='Erro de rede ao enviar: '+e.message; return false; }
+  if(r.status===401){ trocarToken(); st.className='status err'; st.textContent='Senha do admin inválida.'; return false; }
+  if(!r.ok||!res.ok){ st.className='status err'; st.textContent='Erro ao enviar: '+(res.erro||('HTTP '+r.status)); return false; }
+  st.className='status ok'; st.textContent=`✅ Enviado ao grupo ${dest==='oficial'?'OFICIAL':'de teste'} (${res.n_mensagens||1} mensagem${(res.n_mensagens||1)>1?'s':''}).`;
+  return true;
+}
+
+// ─── Utilitários do topo: listar grupos + mensagem inaugural ─────────────────
+function toggleUtil(qual){
+  for(const k of ['grupos','inaugural']){
+    const el=document.getElementById('util-'+k);
+    if(k===qual){ el.hidden=!el.hidden; if(!el.hidden)(k==='grupos'?renderGrupos():renderInaugural()); }
+    else el.hidden=true;
+  }
+}
+async function renderGrupos(){
+  const el=document.getElementById('util-grupos');
+  el.innerHTML='<div class="status">Consultando os grupos do WhatsApp…</div>';
+  const token=localStorage.getItem(TOKEN_KEY)||'';
+  let r,d;
+  try{ r=await fetch(`${FN_URL}?token=${encodeURIComponent(token)}&listar_grupos=1`); d=await r.json().catch(()=>({})); }
+  catch(e){ el.innerHTML='<div class="status err">Erro de rede: '+esc(e.message)+'</div>'; return; }
+  if(r.status===401){ trocarToken(); el.innerHTML='<div class="status err">Senha do admin inválida.</div>'; return; }
+  if(!r.ok){ el.innerHTML='<div class="status err">Erro: '+esc(d.erro||('HTTP '+r.status))+'</div>'; return; }
+  if(Array.isArray(d.grupos)&&d.grupos.length){
+    el.innerHTML='<p class="util-tit">Grupos em que o número do robô está. Copie o ID do grupo da família pro secret <b>GRUPO_OFICIAL_ID</b> no Supabase (e confira o <b>GRUPO_TESTE_ID</b>):</p>'+
+      '<table class="gr-table">'+d.grupos.map(g=>`<tr><td>${esc(g.nome)}</td><td class="gr-id">${esc(g.id)}</td><td><button class="linklike" onclick="navigator.clipboard.writeText(this.dataset.gid)" data-gid="${esc(g.id)}">copiar</button></td></tr>`).join('')+'</table>';
+  }else{
+    // Dump cru só no console (nunca mais como texto exibido pro usuário).
+    console.error('Listar grupos: não consegui montar a lista nome+ID. Resposta crua da ZapZap:', d.resposta_zapzap||d);
+    el.innerHTML='<p class="status err">Não consegui montar a lista de grupos com nome + ID. Abra o console do navegador (F12) para ver o detalhe técnico da resposta da API.</p>';
+  }
+}
+function renderInaugural(){
+  const el=document.getElementById('util-inaugural');
+  el.innerHTML=`<div class="preview-box">
+    <div class="pv-label">MENSAGEM INAUGURAL — TEXTO FIXO (pra trocar, edite a constante MSG_INAUGURAL no script desta página)</div>
+    <pre class="pv-text">${esc(MSG_INAUGURAL)}</pre>
+    <div class="pv-dest">
+      <label><input type="radio" name="dest-inaugural" value="teste" checked> Grupo de TESTE</label>
+      <label><input type="radio" name="dest-inaugural" value="oficial"> <span class="of">Grupo OFICIAL</span></label>
+    </div>
+    <div class="pv-actions">
+      <button class="pv-send" onclick="enviarInaugural()">📤 Enviar mensagem inaugural</button>
+    </div>
+    <div class="status" id="pvst-inaugural"></div>
+  </div>`;
+}
+async function enviarInaugural(){
+  const st=document.getElementById('pvst-inaugural');
+  const sel=document.querySelector('input[name="dest-inaugural"]:checked');
+  const dest=sel?sel.value:'';
+  if(!dest){ st.className='status err'; st.textContent='Escolha o destino.'; return; }
+  const aviso=dest==='oficial'
+    ? '⚠️ Enviar a MENSAGEM INAUGURAL pro grupo OFICIAL? É a estreia do Ratazana pra família toda.'
+    : 'Enviar a mensagem inaugural pro grupo de TESTE?';
+  if(!confirm(aviso))return;
+  await postEnviarTexto(dest,MSG_INAUGURAL,st);
 }
 async function reabrirJogo(cid){
   const t=teams(byId(cid)||{id:cid});
@@ -425,7 +594,7 @@ document.getElementById('env-badge').textContent=IS_DEV?'DEV (tabelas dev_)':'PR
 document.getElementById('env-badge').className='badge'+(IS_DEV?' dev':'');
 if(IS_DEV)document.title='TESTES - '+document.title;
 if(!temToken())document.getElementById('token-box').style.display='block';
-carregar();
+carregarTelefones().finally(carregar);
 </script>
 </body>
 </html>

@@ -1,17 +1,34 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// ROBÔ RATAZANA — Edge Function "ratazana-cobranca" (v1.7: + fechar_placar via service role)
+// ROBÔ RATAZANA — Edge Function "ratazana-cobranca"
+// (v1.10: menção obrigatória DETERMINÍSTICA — a aplicação sorteia alguém de
+//  bot_telefones, anexa a linha de provocação com @<numero> no texto e passa
+//  o campo "mentions" pro envio da ZapZap = marcação real de WhatsApp; o
+//  modelo não escreve mais "@". v1.9: filtro de sanidade + parser JID/Name;
+//  v1.8: destino explícito + preview/direção + enviar_texto; v1.7:
+//  fechar_placar via service role)
 // ═══════════════════════════════════════════════════════════════════════════
+// ⚠️ TODO envio exige &destino=teste|oficial (sem default). Grupo oficial =
+// secret GRUPO_OFICIAL_ID; nesta fase NENHUM envio automático vai pro oficial:
+// tudo passa por ação do admin.
+//
 // Uso (navegador ou curl):
-//   GET https://<projeto>.supabase.co/functions/v1/ratazana-cobranca?token=XXX
-//     → gera a cobrança de quem falta palpitar e envia ao GRUPO DE TESTE
+//   GET https://<projeto>.supabase.co/functions/v1/ratazana-cobranca?token=XXX&destino=teste
+//     → gera a cobrança de quem falta palpitar e envia ao grupo escolhido
 //   ...&force=1         → se ninguém falta, envia "todo mundo em dia" (teste)
 //   ...&listar_grupos=1 → NÃO envia nada; lista os grupos do WhatsApp da
-//                         instância (para descobrir o ID ...@g.us do grupo)
-//   ...&tipo=fim_de_jogo&jogo=<id>[&env=dev] → comentário curto de fim de
-//                         jogo (chamado pela página admin ao fechar um jogo)
+//                         instância com nome + ID ...@g.us (normalizado em
+//                         "grupos" + resposta crua), pra preencher os secrets
+//   ...&tipo=fim_de_jogo&jogo=<id>[&env=dev][&preview=1][&pessoa=<pid>][&direcao=<txt>]
+//                       → comentário de fim de jogo. preview=1 GERA E DEVOLVE
+//                         sem enviar (fluxo do admin: "Acordar o Ratazana");
+//                         sem preview, exige &destino=. pessoa/direcao são
+//                         direção de cena (nunca copiadas literalmente).
+//   POST ...&tipo=enviar_texto&destino=teste|oficial  body JSON {texto}
+//                       → envia texto PRONTO (preview aprovado / msg inaugural)
 //   ...&tipo=fechar_placar&jogo=<id>&finished=1&real_a=N&real_b=N
 //       [&classificado=A|B][&env=dev] → GRAVA o placar final (única via de
 //       escrita; roda com service role). finished=0 reabre (só destrava).
+//       Fechar NUNCA envia mensagem (o comentário é ação separada do admin).
 //
 // Dados: SEMPRE tabelas de PRODUÇÃO (mata_confrontos / mata_palpites / bot_config).
 // Modelo de IA: lido de bot_config key 'modelo_ia' (fallback Haiku 4.5).
@@ -220,6 +237,21 @@ function makeResolver(confrontos: Conf[]) {
   };
   return (c: Conf) => ({ a: resolveSide(c.id, "A"), b: resolveSide(c.id, "B") });
 }
+// Consequência de um jogo, derivada da chave: pra onde vai o vencedor (take:'win')
+// e, se existir vaga de perdedor (semis → 3º lugar), pra onde vai o perdedor.
+function mmConsequencia(gameId: string): { winPhase: string | null; losePhase: string | null } {
+  let winPhase: string | null = null, losePhase: string | null = null;
+  for (const slot of Object.values(MM_BRACKET)) {
+    if (!slot.feeders) continue;
+    for (const side of ["A", "B"] as const) {
+      const f = slot.feeders[side];
+      if (f.g !== gameId) continue;
+      if (f.take === "win") winPhase = slot.phase;
+      else losePhase = slot.phase;
+    }
+  }
+  return { winPhase, losePhase };
+}
 
 // ─── Pontuação do mata (porta fiel de mmScore/calcMataPts/mataStats) ─────────
 // Base que MULTIPLICA (fase × turbo): 5 resultado · 1 gol A · 1 gol B ·
@@ -261,6 +293,18 @@ function calcMataPts(pal: Conf, c: Conf) {
   const s = mmScore(pal, c);
   return s ? s.total : null;
 }
+// ─── Regra de existência das IAs concorrentes (persona v2.1) ─────────────────
+// Uma IA que não seja você (RATAZANA_ID) só é citável no texto quando estiver
+// no TOP 3 do ranking geral do mata-mata (o mesmo ranking da aba Ranking do
+// app, misturando humanos e máquinas). Fora do top 3, ela "não existe": nunca
+// aparece em Pontuaram/Cravaram/Acertaram/zebra/palpites públicos. Isso é
+// filtro de DADOS (antes do prompt), não só instrução de estilo pra IA —
+// participantesCitaveis() devolve o subconjunto visível de MATA_PARTS_BOT;
+// usar esse array (nunca o MATA_PARTS_BOT cru) em toda lista nome-a-nome.
+function participantesCitaveis(rank: { p: Conf }[]) {
+  const top3 = new Set(rank.slice(0, 3).map((r) => r.p.id));
+  return MATA_PARTS_BOT.filter((p) => p.tipo !== "maquina" || p.id === RATAZANA_ID || top3.has(p.id));
+}
 // Estatísticas do mata por participante (ignora TESTE e não finalizados)
 function mataStats(pid: string, confrontos: Conf[], PAL: Record<string, Record<string, Conf>>) {
   let total = 0, rHits = 0, eHits = 0, played = 0;
@@ -291,9 +335,13 @@ function agoraBrasilia() {
     dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo",
   }).format(new Date());
 }
+// Única função que monta listas de nomes pro prompt — usar sempre esta, nunca
+// concatenar manualmente (evita nome colado sem separador). Filtra vazios (uma
+// string "" na lista quebraria o "X, , Y" ou o " e " sem nome antes).
 function listaNomes(nomes: string[]) {
-  if (nomes.length <= 1) return nomes[0] || "";
-  return nomes.slice(0, -1).join(", ") + " e " + nomes[nomes.length - 1];
+  const validos = nomes.map((n) => n.trim()).filter(Boolean);
+  if (validos.length <= 1) return validos[0] || "";
+  return validos.slice(0, -1).join(", ") + " e " + validos[validos.length - 1];
 }
 // Rede de segurança de tamanho: parte acima de ~1100 caracteres é quebrada em
 // pedaços de até ~900, cortando só em quebra de parágrafo (nunca no meio da
@@ -382,26 +430,123 @@ function zapHeaders(): Record<string, string> {
 function zapBase() {
   return (Deno.env.get("ZAPZAP_ENDPOINT_BASE") || "").replace(/\/+$/, "");
 }
-async function zapEnviaTexto(numero: string, texto: string) {
+// Destino explícito de TODO envio (?destino=teste|oficial). NUNCA há default:
+// mandar mensagem pro grupo oficial é sempre decisão explícita de quem chama,
+// e nesta fase nenhum envio automático vai pro oficial (tudo passa pelo admin).
+function grupoDestino(url: URL): { grupo: string; destino: "teste" | "oficial" } {
+  const destino = (url.searchParams.get("destino") || "").toLowerCase();
+  if (destino !== "teste" && destino !== "oficial") {
+    throw new Error("parâmetro ?destino=teste ou ?destino=oficial é obrigatório em qualquer envio");
+  }
+  const secret = destino === "oficial" ? "GRUPO_OFICIAL_ID" : "GRUPO_TESTE_ID";
+  const grupo = Deno.env.get(secret) || "";
+  if (!grupo) {
+    throw new Error(`Secret ${secret} não configurado no Supabase (descubra o ID do grupo com &listar_grupos=1 e preencha o secret)`);
+  }
+  return { grupo, destino };
+}
+async function zapEnviaTexto(numero: string, texto: string, mentions: string[] = []) {
+  // Marcação real de WhatsApp: o texto carrega o token @<numero> e o campo
+  // "mentions" (CSV de números, formato da ZapZap) transforma o token em
+  // menção clicável com notificação — o cliente renderiza como @Nome.
+  // deno-lint-ignore no-explicit-any
+  const body: Record<string, any> = { number: numero, text: texto };
+  if (mentions.length) body.mentions = mentions.join(",");
   const r = await fetch(`${zapBase()}/send/text`, {
     method: "POST",
     headers: zapHeaders(),
-    body: JSON.stringify({ number: numero, text: texto }),
+    body: JSON.stringify(body),
   });
   const corpo = (await r.text()).slice(0, 600);
   return { ok: r.ok, detalhe: `HTTP ${r.status}: ${corpo}` };
 }
-// Divide a resposta da IA (blocos "---" + rede de segurança de tamanho) e envia
-// como até 3 mensagens sequenciais no WhatsApp. Usado pela cobrança e pelo
-// fim de jogo. O padrão continua sendo mensagem única.
-async function enviaEmPartes(grupo: string, texto: string) {
+// Divide um texto em até 3 partes (blocos "---" + rede de segurança de tamanho).
+// Compartilhado entre o envio real e o modo preview (que mostra sem enviar).
+function divideEmPartes(texto: string): string[] {
   const blocosIA = texto.split(/\n\s*-{3,}\s*\n/).map((b: string) => b.trim()).filter(Boolean);
   const pedacos = blocosIA.flatMap((b: string) => quebraLonga(b));
-  const partes = pedacos.length <= 3 ? pedacos : [...pedacos.slice(0, 2), pedacos.slice(2).join("\n\n")];
-  if (!partes.length) throw new Error("resposta da IA ficou vazia após a divisão em blocos");
+  return pedacos.length <= 3 ? pedacos : [...pedacos.slice(0, 2), pedacos.slice(2).join("\n\n")];
+}
+
+// ─── Filtro de sanidade (v1.9) ────────────────────────────────────────────────
+// Achado real em produção: um caractere CJK solto no meio de uma frase coerente
+// em português ("...os 30 pontos肥: *Du, Yuri...") — texto íntegro antes e depois,
+// não é truncamento cortando um emoji multibyte; é glitch de amostragem do
+// modelo (Sonnet). Não dá pra "consertar" o modelo por código; a rede de
+// segurança é BARRAR o envio quando aparecer um caractere fora do conjunto
+// esperado: ASCII + acentuação/pontuação PT-BR + os emojis já usados no app.
+const EMOJI_SEGUROS = new Set([
+  "🐀", "✅", "🎯", "📋", "⏱️", "⚡", "🔥", "🦓", "🏆", "📅", "😏", "🔒", "✏️",
+  "📤", "🔁", "📡", "📣", "🪞", "⚠️", "🎉", "🥇", "🥈", "🥉", "⚽",
+]);
+function sanidadeTexto(texto: string): string[] {
+  const suspeitos = new Set<string>();
+  for (const ch of texto) {
+    const cp = ch.codePointAt(0) ?? 0;
+    if (cp <= 0x7f) continue;                        // ASCII puro
+    if (cp === 0xfe0f || cp === 0x200d || cp === 0xa0) continue; // variation selector / ZWJ / NBSP (parte de emoji composto)
+    if (EMOJI_SEGUROS.has(ch)) continue;              // emoji já aprovado no app
+    if (cp >= 0xa1 && cp <= 0x24f) continue;          // Latin-1 Suppl. + Latin Ext-A: acentos PT-BR, ×, º/ª
+    if (cp >= 0x2010 && cp <= 0x2027) continue;       // pontuação tipográfica comum (aspas curvas, travessões, reticências)
+    suspeitos.add(ch);
+  }
+  return [...suspeitos];
+}
+// ─── Menção obrigatória (v1.10) ──────────────────────────────────────────────
+// A provocação final de TODA mensagem programada é DETERMINÍSTICA: a aplicação
+// sorteia alguém de bot_telefones e monta a linha com o token @<numero> (que o
+// WhatsApp renderiza como @Nome clicável, via campo "mentions" do envio). O
+// modelo NUNCA escreve "@" — no teste real ele produzia "@Vini" como texto
+// solto, sem notificação nem link; por isso a marcação saiu do prompt e veio
+// pro código. Intensidade por gênero: forte com homens, leve com mulheres.
+// Placeholder {@} = token de menção. Frases só com caracteres do conjunto
+// aprovado (sanidadeTexto roda depois). Sem repetir sempre a mesma: sorteio.
+const PROVOC_M = [
+  "E tu, {@}, achou que passava batido? Tá no caderninho.",
+  "Aproveita e me explica teus últimos palpites, {@}. A auditoria não fecha.",
+  "{@}, tu anda quieto demais pro tamanho da tua ficha no caderninho.",
+  "Fiscalização surpresa: {@}, teus palpites entram em auditoria completa hoje.",
+  "O Ratazana viu teu histórico, {@}. Coragem é postar aquilo e dormir tranquilo.",
+];
+const PROVOC_F = [
+  "E a {@}, hein? Segue firme que o caderninho anota os acertos também.",
+  "{@}, o Ratazana tá torcendo discretamente por você. Não espalha.",
+  "Fica esperta, {@}: uma rodada boa e você apronta na tabela.",
+  "{@}, teu faro anda afiado. Não vacila agora.",
+];
+// Sorteia uma pessoa citável de bot_telefones (humana, com telefone, fora da
+// lista de exclusão) e devolve a linha pronta + o número pro campo mentions.
+// Tabela vazia ou sem candidato → null (mensagem sai sem a linha, sem quebrar).
+function linhaProvocacao(telefones: Conf[], excluirIds: Set<string>) {
+  const cands = (telefones || []).filter((t: Conf) =>
+    t.is_humano !== false && t.telefone_whatsapp && !excluirIds.has(t.participante_id));
+  if (!cands.length) return null;
+  const alvo = cands[Math.floor(Math.random() * cands.length)];
+  const banco = (alvo.genero || "").toUpperCase() === "F" ? PROVOC_F : PROVOC_M;
+  const frase = banco[Math.floor(Math.random() * banco.length)];
+  const tel = String(alvo.telefone_whatsapp).replace(/\D/g, "");
+  if (!tel) return null;
+  return { linha: frase.split("{@}").join("@" + tel), mention: tel, alvo: alvo.participante_id };
+}
+
+// Envia como até 3 mensagens sequenciais no WhatsApp. Usado pela cobrança,
+// pelo fim de jogo e pelo enviar_texto. O padrão continua sendo mensagem única.
+// mentions: números com marcação real — cada parte só recebe os que aparecem
+// nela como token @<numero> (a linha da provocação normalmente é a última).
+async function enviaEmPartes(grupo: string, texto: string, mentions: string[] = []) {
+  const suspeitos = sanidadeTexto(texto);
+  if (suspeitos.length) {
+    const detalhe = suspeitos
+      .map((c) => `'${c}' (U+${(c.codePointAt(0) ?? 0).toString(16).toUpperCase().padStart(4, "0")})`)
+      .join(", ");
+    console.error("[filtro de sanidade] caractere(s) suspeito(s) — envio BLOQUEADO:", detalhe, "| texto:", texto.slice(0, 300));
+    throw new Error(`Filtro de sanidade bloqueou o envio: caractere(s) suspeito(s) detectado(s) (${detalhe}) — provável glitch do modelo. Gere a mensagem de novo.`);
+  }
+  const partes = divideEmPartes(texto);
+  if (!partes.length) throw new Error("texto ficou vazio após a divisão em blocos");
   const envios: { ok: boolean; detalhe: string }[] = [];
   for (const parte of partes) {
-    envios.push(await zapEnviaTexto(grupo, parte));
+    envios.push(await zapEnviaTexto(grupo, parte, mentions.filter((n) => parte.includes("@" + n))));
     if (partes.length > 1) await new Promise((res) => setTimeout(res, 900));
   }
   return {
@@ -417,7 +562,7 @@ async function enviaEmPartes(grupo: string, texto: string) {
 // fetch falha silenciosamente ("Failed to fetch") mesmo com a chamada certa.
 const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers": "*",
 };
 Deno.serve(async (req: Request) => {
@@ -510,25 +655,81 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  // 2) Confere secrets necessários (nunca mostra valores, só nomes)
+  // ─── Modo ENVIAR TEXTO (v1.8): envia um texto PRONTO ao grupo escolhido ──────
+  // POST ?tipo=enviar_texto&destino=teste|oficial — body JSON {texto}.
+  // Usado pelo admin: enviar o preview aprovado do "Acordar o Ratazana" e a
+  // mensagem inaugural. NÃO passa por IA: envia o texto exatamente como veio
+  // (só dividido em partes, como qualquer mensagem do robô).
+  if (url.searchParams.get("tipo") === "enviar_texto") {
+    let destinoLbl = "";
+    try {
+      const { grupo, destino } = grupoDestino(url);
+      destinoLbl = destino;
+      const faltamZap = ["ZAPZAP_API_KEY", "ZAPZAP_API_SECRET", "ZAPZAP_ENDPOINT_BASE"].filter((n) => !Deno.env.get(n));
+      if (faltamZap.length) throw new Error(`Secrets faltando: ${faltamZap.join(", ")}`);
+      if (req.method !== "POST") throw new Error("use POST com body JSON {texto}");
+      const body = await req.json().catch(() => ({}));
+      const texto = String(body?.texto || "").trim();
+      if (!texto) throw new Error("body JSON precisa de {texto} não vazio");
+      if (texto.length > 4000) throw new Error("texto longo demais (máx. 4000 caracteres)");
+      const envio = await enviaEmPartes(grupo, texto);
+      await botLog({
+        tipo: "envio_manual",
+        destino: `${destino} (${grupo})`,
+        mensagem_enviada: envio.partes.join("\n\n"),
+        status_envio: envio.ok ? "ok" : "erro",
+        erro: envio.ok ? null : envio.detalhe,
+      });
+      return json({ ok: envio.ok, enviado: envio.ok, destino, n_mensagens: envio.partes.length, zapzap: envio.detalhe }, envio.ok ? 200 : 502);
+    } catch (e) {
+      const msg = String((e as Error)?.message || e);
+      await botLog({ tipo: "envio_manual", destino: destinoLbl, status_envio: "erro", erro: msg });
+      return json({ ok: false, erro: msg }, 400);
+    }
+  }
+
+  // 2) Confere secrets necessários (nunca mostra valores, só nomes).
+  // Os IDs de grupo NÃO entram aqui: grupoDestino valida só o do destino pedido.
   const necessarios = listarGrupos
     ? ["ZAPZAP_API_KEY", "ZAPZAP_API_SECRET", "ZAPZAP_ENDPOINT_BASE"]
-    : ["ZAPZAP_API_KEY", "ZAPZAP_API_SECRET", "ZAPZAP_ENDPOINT_BASE", "GRUPO_TESTE_ID", "ANTHROPIC_API_KEY"];
+    : ["ZAPZAP_API_KEY", "ZAPZAP_API_SECRET", "ZAPZAP_ENDPOINT_BASE", "ANTHROPIC_API_KEY"];
   const faltandoSecrets = necessarios.filter((n) => !Deno.env.get(n));
   if (faltandoSecrets.length) {
     return json({ ok: false, erro: `Secrets faltando: ${faltandoSecrets.join(", ")}` }, 500);
   }
 
-  // Modo auxiliar: listar grupos do WhatsApp (pra descobrir o ID ...@g.us)
+  // Modo auxiliar: listar grupos do WhatsApp (pra descobrir o ID ...@g.us).
+  // Devolve também uma lista normalizada [{nome,id}] pro utilitário do admin.
   if (listarGrupos) {
     try {
       const r = await fetch(`${zapBase()}/group/list`, { headers: zapHeaders() });
       const corpo = await r.text();
       let grupos: unknown;
       try { grupos = JSON.parse(corpo); } catch { grupos = corpo.slice(0, 2000); }
+      // normalização best-effort (formato da ZapZap pode variar; o cru vai junto)
+      const achaLista = (o: unknown): Conf[] | null => {
+        if (Array.isArray(o)) return o as Conf[];
+        if (o && typeof o === "object") {
+          for (const v of Object.values(o as Record<string, unknown>)) {
+            const res = achaLista(v);
+            if (res) return res;
+          }
+        }
+        return null;
+      };
+      const bruta = achaLista(grupos);
+      // Campos confirmados na resposta real da ZapZap: "JID" e "Name" (maiúsculos).
+      // Fallbacks de nomes alternativos mantidos por robustez (formato pode variar).
+      const gruposNorm = bruta
+        ? bruta.map((g: Conf) => ({
+            nome: g?.Name || g?.name || g?.subject || g?.title || g?.groupName || "(sem nome)",
+            id: g?.JID || g?.jid || g?.Jid || g?.id || g?.groupId || g?.chatId || "",
+          })).filter((g) => g.id)
+        : [];
       return json({
         ok: r.ok,
-        dica: "Ache o grupo de teste na lista e copie o campo id (termina em @g.us) para o secret GRUPO_TESTE_ID.",
+        dica: "Copie o ID (...@g.us) do grupo da família para o secret GRUPO_OFICIAL_ID (e o do grupo de teste para GRUPO_TESTE_ID).",
+        grupos: gruposNorm,
         resposta_zapzap: grupos,
       }, r.ok ? 200 : 502);
     } catch (e) {
@@ -543,18 +744,24 @@ Deno.serve(async (req: Request) => {
   if (url.searchParams.get("tipo") === "fim_de_jogo") {
     const jogoId = url.searchParams.get("jogo") || "";
     const pref = url.searchParams.get("env") === "dev" ? "dev_" : "";
-    const GRUPO = Deno.env.get("GRUPO_TESTE_ID") || "";
-    const logBase = { tipo: "fim_de_jogo" + (pref ? "_dev" : ""), destino: GRUPO };
+    // preview=1: gera e DEVOLVE a mensagem sem enviar nada (o admin mostra o
+    // preview e o envio aprovado sai depois pelo tipo=enviar_texto).
+    const preview = url.searchParams.get("preview") === "1";
+    // Direcionamento opcional do admin (direção de cena, nunca copiado literal)
+    const pessoaParam = (url.searchParams.get("pessoa") || "").trim();
+    const direcaoParam = (url.searchParams.get("direcao") || "").trim().slice(0, 400);
+    const logBase = { tipo: "fim_de_jogo" + (preview ? "_preview" : "") + (pref ? "_dev" : ""), destino: preview ? "(preview, sem envio)" : "" };
     let etapa = "consulta_banco";
     let userPrompt: string | null = null;
     let respostaIA: string | null = null;
     let modelo = MODELO_FALLBACK;
     try {
       if (!jogoId) throw new Error("parâmetro ?jogo=<id do confronto> é obrigatório");
-      const [confrontos, palpites, cfg] = await Promise.all([
+      const [confrontos, palpites, cfg, telefones] = await Promise.all([
         sbGet(`${pref}mata_confrontos?select=*`),
         sbGet(`${pref}mata_palpites?select=confronto_id,pid,gols_a,gols_b,quem_passa`),
         sbGet("bot_config?key=in.(system_prompt_ratazana,modelo_ia)&select=key,value"),
+        sbGet("bot_telefones?select=participante_id,nome_exibicao,genero").catch(() => []),
       ]);
       const cfgMap: Record<string, string> = {};
       for (const row of cfg) cfgMap[row.key] = row.value;
@@ -567,34 +774,26 @@ Deno.serve(async (req: Request) => {
         throw new Error(`jogo "${jogoId}" ainda não está fechado com placar final`);
       }
 
-      // Apuração (mesma pontuação do app): pontos, cravadas, zebra, troca de líder
+      // Apuração (mesma pontuação do app): pontos, cravadas, zebra, troca de líder.
+      // ⚠️ Times SEMPRE resolvidos pela chave (makeResolver): de oitavas em diante
+      // team_a/team_b são NULL na tabela — usar a coluna crua deixava a mensagem
+      // sair só com o placar, sem nome de time (bug real do lançamento).
       etapa = "apuracao";
       const PAL: Record<string, Record<string, Conf>> = {};
       for (const p of palpites) (PAL[p.confronto_id] ??= {})[p.pid] = p;
+      const teamsOf = makeResolver(confrontos);
+      const t = teamsOf(c);
+      const nomeA = t.a?.name || c.team_a || "Time A";
+      const nomeB = t.b?.name || c.team_b || "Time B";
       const phaseKey = mmPhaseKeyOf(c.id);
+      const faseNome = PH_LABEL[phaseKey] || phaseKey;
       const turbo = MM_TURBO.has(c.id);
       const mult = fmtPts((MM_PHASE_MULT[phaseKey] || 1) * (turbo ? 2 : 1));
-      const pontos = MATA_PARTS_BOT.map((p) => ({ p, s: mmScore(PAL[c.id]?.[p.id], c) }))
-        .filter((x) => x.s)
-        .sort((a: Conf, b: Conf) => b.s.total - a.s.total);
-      const linhaPts = pontos.filter((x: Conf) => x.s.total > 0)
-        .map((x: Conf) => `${x.p.nome} ${fmtPts(x.s.total)}`).join("; ") || "ninguém pontuou";
-      const cravaram = pontos.filter((x: Conf) => x.s.exato).map((x: Conf) => x.p.nome);
-      const z = mmZebra(c);
-      const rw = mmRealWinner(c);
-      let zebraTxt = "não havia zebra definida neste jogo";
-      if (z) {
-        const nmAz = z.azarao === "A" ? (c.team_a || "A") : (c.team_b || "B");
-        zebraTxt = rw === z.azarao
-          ? `${z.tipo === "zebrao" ? "ZEBRÃO PAGOU" : "ZEBRA PAGOU"}: o azarão ${nmAz} avançou (+${z.tipo === "zebrao" ? 5 : 3} pra quem apostou nele)`
-          : `havia ${z.tipo === "zebrao" ? "zebrão" : "zebra"} definida (azarão ${nmAz}), mas não pagou`;
-      }
-      const meu = pontos.find((x: Conf) => x.p.id === RATAZANA_ID);
-      const meuPal = PAL[c.id]?.[RATAZANA_ID];
-      const penTxt = (c.real_a === c.real_b && c.classificado)
-        ? ` (${c.classificado === "A" ? c.team_a : c.team_b} passou nos pênaltis)` : "";
-      // troca de líder: ranking SEM este jogo vs COM ele (jogos [TESTE] não
-      // entram em mataStats, então teste não mexe no ranking real)
+
+      // Ranking ANTES de montar qualquer lista de nomes: precisa do top 3 pra
+      // saber quais IAs concorrentes existem no texto (regra v2.1, ver
+      // participantesCitaveis). Calculado aqui (não só lá embaixo pra troca de
+      // líder) porque pontos/palpitesTxt de baixo já dependem do filtro.
       const semEste = confrontos.filter((x: Conf) => x.id !== c.id);
       const rankSem = MATA_PARTS_BOT.map((p) => ({ p, ...mataStats(p.id, semEste, PAL) }))
         .sort((a, b) => b.total - a.total || b.eHits - a.eHits || b.rHits - a.rHits);
@@ -605,26 +804,149 @@ Deno.serve(async (req: Request) => {
       const liderTxt = liderAntes.p.id !== liderDepois.p.id
         ? `HOUVE TROCA DE LÍDER: ${liderDepois.p.nome} assumiu a ponta com ${fmtPts(liderDepois.total)} pontos (o líder anterior era ${liderAntes.p.nome} com ${fmtPts(liderAntes.total)} pontos)`
         : `sem troca de líder: segue ${liderDepois.p.nome} com ${fmtPts(liderDepois.total)} pontos`;
+      const citaveis = participantesCitaveis(rankCom);
+
+      const pontos = citaveis.map((p) => ({ p, s: mmScore(PAL[c.id]?.[p.id], c) }))
+        .filter((x) => x.s)
+        .sort((a: Conf, b: Conf) => b.s.total - a.s.total);
+      const cravaram = pontos.filter((x: Conf) => x.s.exato).map((x: Conf) => x.p.nome);
+      // acertaram o resultado (vencedor/empate), cravando ou não
+      const rres = c.real_a > c.real_b ? "A" : c.real_a < c.real_b ? "B" : "E";
+      const acertaramRes = pontos.filter((x: Conf) => {
+        const pal = PAL[c.id]?.[x.p.id];
+        const pres = pal.gols_a > pal.gols_b ? "A" : pal.gols_a < pal.gols_b ? "B" : "E";
+        return pres === rres;
+      }).map((x: Conf) => x.p.nome);
+      // palpites são públicos: lista completa palpite + pontos deste jogo
+      // (só de quem é citável — IA concorrente fora do top 3 nem aparece aqui)
+      const palpitesTxt = citaveis.map((p) => {
+        const pal = PAL[c.id]?.[p.id];
+        if (!pal || pal.gols_a == null || pal.gols_b == null) return null;
+        const s = mmScore(pal, c);
+        const qp = pal.gols_a === pal.gols_b && pal.quem_passa
+          ? ` (${pal.quem_passa === "A" ? nomeA : nomeB} nos pênaltis)` : "";
+        return `${p.nome} ${pal.gols_a}×${pal.gols_b}${qp} = ${s ? fmtPts(s.total) : "0"} pontos`;
+      }).filter(Boolean).join("; ") || "ninguém tinha palpite registrado";
+
+      // Desfecho: vencedor, pênaltis narráveis (placar do tempo normal = o empate)
+      const rw = mmRealWinner(c);
+      const venceuNome = rw === "A" ? nomeA : rw === "B" ? nomeB : nomeA;
+      const perdeuNome = rw === "A" ? nomeB : nomeA;
+      const foiPenaltis = c.real_a === c.real_b && !!c.classificado;
+      const desfechoTxt = foiPenaltis
+        ? `empate em ${c.real_a}×${c.real_b} no tempo normal + prorrogação; ${venceuNome} venceu ${perdeuNome} NOS PÊNALTIS`
+        : `${venceuNome} venceu ${perdeuNome} por ${Math.max(c.real_a, c.real_b)}×${Math.min(c.real_a, c.real_b)}`;
+
+      // Consequência: derivada da chave (quem avança pra onde / quem foi eliminado)
+      let consequenciaTxt: string;
+      if (c.id === "fin_1") {
+        consequenciaTxt = `${venceuNome} é o CAMPEÃO da Copa 2026; ${perdeuNome} fica com o vice`;
+      } else if (c.id === "tp_1") {
+        consequenciaTxt = `${venceuNome} fica com o 3º lugar da Copa; ${perdeuNome} termina em 4º`;
+      } else {
+        const cons = mmConsequencia(c.id);
+        consequenciaTxt = `${venceuNome} está classificado (avança pra fase: ${cons.winPhase || "próxima"})` +
+          (cons.losePhase
+            ? `; ${perdeuNome} vai disputar o ${cons.losePhase}`
+            : `; ${perdeuNome} está ELIMINADO da Copa`);
+      }
+
+      const z = mmZebra(c);
+      let zebraTxt = "não havia zebra definida neste jogo";
+      if (z) {
+        const nmAz = z.azarao === "A" ? nomeA : nomeB;
+        if (rw === z.azarao) {
+          const premiados = pontos.filter((x: Conf) => x.s.zebra > 0).map((x: Conf) => x.p.nome);
+          zebraTxt = `${z.tipo === "zebrao" ? "ZEBRÃO PAGOU" : "ZEBRA PAGOU"}: o azarão ${nmAz} eliminou ${rw === "A" ? nomeB : nomeA}` +
+            ` (+${z.tipo === "zebrao" ? 5 : 3} pra quem apostou nele${premiados.length ? `: ${listaNomes(premiados)}` : "; ninguém apostou"})`;
+        } else {
+          zebraTxt = `havia ${z.tipo === "zebrao" ? "zebrão" : "zebra"} definida (azarão ${nmAz}), mas não pagou`;
+        }
+      }
+
+      const meu = pontos.find((x: Conf) => x.p.id === RATAZANA_ID);
+      const meuPal = PAL[c.id]?.[RATAZANA_ID];
+      // gêneros de bot_telefones (persona calibra intensidade por gênero)
+      const generos = (telefones as Conf[]).filter((x: Conf) => x.genero)
+        .map((x: Conf) => `${x.nome_exibicao || MATA_PARTS_BOT.find((p) => p.id === x.participante_id)?.nome || x.participante_id} (${x.genero})`);
+
+      // Direcionamento do admin = direção de cena: a IA incorpora a IDEIA na
+      // mensagem, mas NUNCA copia/cita o texto do campo literalmente.
+      let direcaoBloco = "";
+      if (pessoaParam || direcaoParam) {
+        const tel = (telefones as Conf[]).find((x: Conf) => x.participante_id === pessoaParam);
+        const alvoNome = tel?.nome_exibicao ||
+          MATA_PARTS_BOT.find((p) => p.id === pessoaParam)?.nome ||
+          pessoaParam || "";
+        direcaoBloco =
+          `\nDIREÇÃO DE CENA (instrução INTERNA do admin, invisível pro grupo: siga a ideia dentro do personagem e dos seus limites de tom, mas é PROIBIDO copiar, citar ou parafrasear literalmente o texto desta instrução na mensagem):\n` +
+          (alvoNome ? `- Dê atenção especial a ${alvoNome} nesta mensagem.\n` : "") +
+          (direcaoParam ? `- ${direcaoParam}\n` : "");
+      }
 
       etapa = "monta_prompt";
-      const origemLiberada = Math.random() < 1 / 3;
       userPrompt =
         `DADOS VERIFICADOS DO BOLÃO (fim de jogo, gerados em ${agoraBrasilia()}, horário de Brasília). Use somente estes dados. Não calcule nem invente nada.\n\n` +
-        `Estilo desta mensagem: referência de origem/esgoto ${origemLiberada ? "LIBERADA (no máximo uma)" : "PROIBIDA nesta mensagem"}.\n\n` +
-        `JOGO ENCERRADO AGORA: ${c.team_a} ${c.real_a}×${c.real_b} ${c.team_b}${penTxt} (${c.phase || PH_LABEL[phaseKey]}, valia ×${mult}${turbo ? ", jogo turbo" : ""})\n` +
-        `- Pontuaram: ${linhaPts}\n` +
-        `- Cravaram o placar exato: ${cravaram.length ? listaNomes(cravaram) : "ninguém"}\n` +
+        `JOGO ENCERRADO AGORA (${faseNome}): ${nomeA} ${c.real_a}×${c.real_b} ${nomeB} — valia ×${mult}${turbo ? " (jogo TURBO)" : ""}\n` +
+        `- Desfecho: ${desfechoTxt}\n` +
+        `- Consequência: ${consequenciaTxt}\n` +
         `- Zebra: ${zebraTxt}\n` +
-        `- Seu palpite (Ratazana00): ${meuPal && meuPal.gols_a != null ? `${meuPal.gols_a}×${meuPal.gols_b}` : "não registrado"}; seus pontos neste jogo: ${meu ? fmtPts(meu.s.total) : "0"}\n` +
-        `- Ranking do mata: ${liderTxt}; você (Ratazana00) está em ${posRat}º com ${fmtPts(rankCom[posRat - 1].total)} pontos\n\n` +
-        `TAREFA: escreva um comentário CURTO de FIM DE JOGO para o grupo de WhatsApp (3 a 5 linhas): placar, destaque de quem pontuou ou cravou, zebra se pagou, troca de líder se houve, e a sua perspectiva de participante (você também pontua ou erra nesses jogos). Sem cobrar palpite de ninguém, sem link do bolão. Mensagem única.`;
+        `- Cravaram o placar exato: ${cravaram.length ? listaNomes(cravaram) : "ninguém"}\n` +
+        `- Acertaram o resultado: ${acertaramRes.length ? listaNomes(acertaramRes) : "ninguém"}\n` +
+        `- Palpites e pontos neste jogo: ${palpitesTxt}\n` +
+        `- Seu palpite: ${meuPal && meuPal.gols_a != null ? `${meuPal.gols_a}×${meuPal.gols_b}` : "não registrado"}; seus pontos neste jogo: ${meu ? fmtPts(meu.s.total) : "0"}\n` +
+        `- Ranking do Bolão: ${liderTxt}; você está em ${posRat}º com ${fmtPts(rankCom[posRat - 1].total)} pontos\n` +
+        (generos.length ? `- Gênero dos participantes (pra calibrar a intensidade): ${generos.join("; ")}\n` : "") +
+        direcaoBloco +
+        `\nTAREFA: escreva o comentário de FIM DE JOGO para o grupo de WhatsApp (4 a 7 linhas), seguindo o CONTEXTO OBRIGATÓRIO da persona: cite os DOIS times pelo nome e a fase, o desfecho (se teve pênaltis, narre a emoção), a consequência (quem avança pra qual fase, quem foi eliminado), zebra se pagou (aí abra com o alerta e elogie quem apostou nela), quem cravou/acertou o resultado e os pontos relevantes das pessoas. Sem cobrar palpite de ninguém, sem link do bolão. Mensagem única.`;
 
       etapa = "anthropic";
       const ia = await chamaIA(modelo, systemPrompt, userPrompt);
       respostaIA = ia.texto;
 
+      // Menção obrigatória (v1.10): linha final adicionada pela APLICAÇÃO, com
+      // marcação real (@<numero> + campo mentions). Quem já é alvo da direção
+      // de cena não entra no sorteio (não marcar 2x a mesma pessoa por motivos
+      // diferentes na mesma mensagem).
+      etapa = "mencao";
+      const excluirDaMencao = new Set<string>();
+      if (pessoaParam) excluirDaMencao.add(pessoaParam);
+      const prov = linhaProvocacao(telefones as Conf[], excluirDaMencao);
+      let textoFinal = respostaIA;
+      const mentions: string[] = [];
+      if (prov) {
+        textoFinal += "\n\n" + prov.linha;
+        mentions.push(prov.mention);
+      }
+
+      // PREVIEW: devolve a mensagem gerada SEM enviar nada ao WhatsApp.
+      if (preview) {
+        const partes = divideEmPartes(textoFinal);
+        await botLog({
+          ...logBase,
+          prompt_enviado: userPrompt,
+          resposta_ia: respostaIA,
+          status_envio: "nao_enviado",
+        });
+        return json({
+          ok: true,
+          preview: true,
+          enviado: false,
+          jogo: jogoId,
+          ambiente: pref ? "dev" : "prod",
+          modelo,
+          uso_tokens: ia.usage,
+          n_mensagens: partes.length,
+          mensagens: partes,
+          texto: textoFinal,
+          mencao: prov ? prov.alvo : null,
+        });
+      }
+
       etapa = "zapzap";
-      const envio = await enviaEmPartes(GRUPO, respostaIA);
+      const { grupo: GRUPO, destino } = grupoDestino(url);
+      logBase.destino = `${destino} (${GRUPO})`;
+      const envio = await enviaEmPartes(GRUPO, textoFinal, mentions);
 
       etapa = "log";
       await botLog({
@@ -639,6 +961,7 @@ Deno.serve(async (req: Request) => {
         ok: envio.ok,
         enviado: envio.ok,
         jogo: jogoId,
+        destino,
         ambiente: pref ? "dev" : "prod",
         modelo,
         uso_tokens: ia.usage,
@@ -659,20 +982,28 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  // 3) Pipeline da cobrança — cada etapa em try/catch; tudo vai pro bot_log
-  const GRUPO = Deno.env.get("GRUPO_TESTE_ID") || "";
-  const logBase = { tipo: testeLongo ? "teste_mensagem_longa" : (force ? "cobranca_forcada" : "cobranca"), destino: GRUPO };
-  let etapa = "consulta_banco";
+  // 3) Pipeline da cobrança — cada etapa em try/catch; tudo vai pro bot_log.
+  // Destino EXPLÍCITO obrigatório (?destino=teste|oficial): a URL antiga sem
+  // &destino= passa a dar erro claro — nenhum envio "de default" existe mais.
+  const logBase = { tipo: testeLongo ? "teste_mensagem_longa" : (force ? "cobranca_forcada" : "cobranca"), destino: "" };
+  let etapa = "destino";
+  let GRUPO = "";
   let userPrompt: string | null = null;
   let respostaIA: string | null = null;
   let modelo = MODELO_FALLBACK;
 
   try {
+    const dst = grupoDestino(url);
+    GRUPO = dst.grupo;
+    logBase.destino = `${dst.destino} (${dst.grupo})`;
+
+    etapa = "consulta_banco";
     // 3a) Banco (produção): confrontos + palpites + config (prompt e modelo)
-    const [confrontos, palpites, cfg] = await Promise.all([
+    const [confrontos, palpites, cfg, telefones] = await Promise.all([
       sbGet("mata_confrontos?select=*"),
       sbGet("mata_palpites?select=confronto_id,pid,gols_a,gols_b,quem_passa"),
       sbGet("bot_config?key=in.(system_prompt_ratazana,modelo_ia,fase_ativa)&select=key,value"),
+      sbGet("bot_telefones?select=participante_id,nome_exibicao,genero").catch(() => []),
     ]);
     const cfgMap: Record<string, string> = {};
     for (const row of cfg) cfgMap[row.key] = row.value;
@@ -702,6 +1033,12 @@ Deno.serve(async (req: Request) => {
     const PAL: Record<string, Record<string, Conf>> = {};
     for (const p of palpites) (PAL[p.confronto_id] ??= {})[p.pid] = p;
     const teamsOf = makeResolver(confrontos);
+    // Ranking calculado aqui (não só lá embaixo em "3e"): jogos/ultimoBloco
+    // logo abaixo já precisam saber o top 3 pra aplicar a regra de existência
+    // das IAs concorrentes (participantesCitaveis, persona v2.1).
+    const rank = MATA_PARTS_BOT.map((p) => ({ p, ...mataStats(p.id, confrontos, PAL) }))
+      .sort((a, b) => b.total - a.total || b.eHits - a.eHits || b.rHits - a.rHits);
+    const citaveis = participantesCitaveis(rank);
     const now = Date.now();
     const futuros = confrontos
       .filter((c: Conf) => !mmIsTest(c))
@@ -740,7 +1077,8 @@ Deno.serve(async (req: Request) => {
       const palDe = (pid: string) => fmtPal(PAL[c.id]?.[pid], nomeA, nomeB);
       const palHumanos = HUMANOS.map((h) => ({ nome: h.nome, pal: palDe(h.id) }))
         .filter((x) => x.pal).map((x) => `${x.nome} ${x.pal}`);
-      const palMaquinas = MATA_PARTS_BOT.filter((p) => p.tipo === "maquina" && p.id !== RATAZANA_ID)
+      // só as IAs citáveis (top 3 do ranking geral) — regra v2.1
+      const palMaquinas = citaveis.filter((p) => p.tipo === "maquina" && p.id !== RATAZANA_ID)
         .map((m) => ({ nome: m.nome, pal: palDe(m.id) }))
         .filter((x) => x.pal).map((x) => `${x.nome} ${x.pal}`);
       return {
@@ -801,7 +1139,7 @@ Deno.serve(async (req: Request) => {
     const CITAVEIS = [...HUMANOS, MATA_PARTS_BOT.find((p) => p.id === RATAZANA_ID)!];
     const completaram = CITAVEIS
       .filter((p) => jogos.length && jogos.every((j: Conf) => mmHasFullPred(PAL[j.id]?.[p.id])))
-      .map((p) => (p.id === RATAZANA_ID ? "Ratazana00 (você)" : p.nome));
+      .map((p) => (p.id === RATAZANA_ID ? "você" : p.nome));
 
     // jogos futuros já com os dois times definidos (dá pra palpitar de verdade)
     const futurosDef = confrontos
@@ -810,7 +1148,7 @@ Deno.serve(async (req: Request) => {
       .filter((x: Conf) => x.d && x.d.getTime() > now)
       .filter((x: Conf) => { const t = teamsOf(x.c); return t.a && t.b; });
     const adiantados = CITAVEIS.map((p) => ({
-      nome: p.id === RATAZANA_ID ? "Ratazana00 (você)" : p.nome,
+      nome: p.id === RATAZANA_ID ? "você" : p.nome,
       n: futurosDef.filter((x: Conf) => mmHasFullPred(PAL[x.c.id]?.[p.id])).length,
     })).filter((x) => x.n > 0).sort((a, b) => b.n - a.n);
 
@@ -826,7 +1164,8 @@ Deno.serve(async (req: Request) => {
       const phaseKey = mmPhaseKeyOf(c.id);
       const turbo = MM_TURBO.has(c.id);
       const mult = fmtPts((MM_PHASE_MULT[phaseKey] || 1) * (turbo ? 2 : 1));
-      const pontos = MATA_PARTS_BOT.map((p) => ({ p, s: mmScore(PAL[c.id]?.[p.id], c) }))
+      // só as IAs citáveis (top 3 do ranking geral) — regra v2.1
+      const pontos = citaveis.map((p) => ({ p, s: mmScore(PAL[c.id]?.[p.id], c) }))
         .filter((x) => x.s)
         .sort((a: Conf, b: Conf) => b.s.total - a.s.total);
       const linhaPts = pontos.filter((x: Conf) => x.s.total > 0)
@@ -849,21 +1188,20 @@ Deno.serve(async (req: Request) => {
         `- Pontuaram: ${linhaPts}\n` +
         `- Cravaram o placar exato: ${cravaram.length ? listaNomes(cravaram) : "ninguém"}\n` +
         `- Zebra: ${zebraTxt}\n` +
-        `- Seus pontos nesse jogo (Ratazana00): ${meu ? fmtPts(meu.s.total) : "0"}`;
+        `- Seus pontos nesse jogo: ${meu ? fmtPts(meu.s.total) : "0"}`;
     }
 
     etapa = "ranking";
-    const rank = MATA_PARTS_BOT.map((p) => ({ p, ...mataStats(p.id, confrontos, PAL) }))
-      .sort((a, b) => b.total - a.total || b.eHits - a.eHits || b.rHits - a.rHits);
+    // (rank já foi calculado lá em cima, antes de jogos/ultimoBloco — reaproveita)
     const posRatazana = rank.findIndex((r) => r.p.id === RATAZANA_ID) + 1;
     const ratStats = rank[posRatazana - 1];
     const top3 = rank.slice(0, 3)
       .map((r, ix) => `${ix + 1}º ${r.p.nome} ${fmtPts(r.total)} pts`).join("; ");
     const rankingBloco =
-      `RANKING DO MATA-MATA (${rank.length} participantes, ${rank[0].played} jogos pontuados):\n` +
+      `RANKING DO BOLÃO (${rank.length} participantes, ${rank[0].played} jogos pontuados):\n` +
       `- Top 3: ${top3}\n` +
       `- Líder: ${rank[0].p.nome}\n` +
-      `- Você (Ratazana00): ${posRatazana}º lugar com ${fmtPts(ratStats.total)} pts (${ratStats.eHits} placares cravados)`;
+      `- Você: ${posRatazana}º lugar com ${fmtPts(ratStats.total)} pts (${ratStats.eHits} placares cravados)`;
 
     // 3e) Monta o prompt de DADOS para a IA (tudo pré-calculado, pt-BR)
     etapa = "monta_prompt";
@@ -872,7 +1210,7 @@ Deno.serve(async (req: Request) => {
         (j.turbo ? ` - ⚡ TURBO: vale ×${j.multFinal} (multiplicador final)` : ` - vale ×${j.multFase}`) +
         (j.zebra ? ` - ${j.zebra.tipo === "zebrao" ? "ZEBRÃO" : "ZEBRA"} definido: azarão ${j.zebra.azarao}, bônus +${j.zebra.bonus} pra quem apostar que ele passa e ele passar` : "");
       const linhas = [l1, `  Faltam palpitar: ${j.faltam.length ? listaNomes(j.faltam) : "ninguém, todos em dia"}`];
-      if (j.seuPalpite) linhas.push(`  Seu palpite (Ratazana00): ${j.seuPalpite}`);
+      if (j.seuPalpite) linhas.push(`  Seu palpite: ${j.seuPalpite}`);
       if (j.palHumanos.length) linhas.push(`  Palpites dos humanos: ${j.palHumanos.join("; ")}`);
       else linhas.push(`  Palpites dos humanos: nenhum registrado ainda`);
       if (j.palMaquinas.length) linhas.push(`  Palpites das outras máquinas: ${j.palMaquinas.join("; ")}`);
@@ -884,8 +1222,9 @@ Deno.serve(async (req: Request) => {
     if (testeLongo) {
       tarefa = "TAREFA (TESTE DE MENSAGEM LONGA DO SISTEMA): gere uma mensagem COMPLETA e LONGA cobrindo, nesta ordem: o resultado do último jogo encerrado com quem pontuou e quem cravou; o ranking (top 3 e a sua posição); e TODOS os jogos citados nos dados (fase ativa e prévia) com horário e os palpites públicos listados. Use apenas os dados fornecidos, sem inventar nada. Estruture em 2 ou 3 blocos separados por uma linha contendo apenas ---, cada bloco com no máximo 900 caracteres e se sustentando sozinho. Inclua o link do bolão no bloco final.";
     }
-    // referência de origem/esgoto racionada por sorteio (~1 a cada 3 mensagens)
-    const origemLiberada = Math.random() < 1 / 3;
+    // gêneros de bot_telefones (persona calibra intensidade por gênero)
+    const generos = (telefones as Conf[]).filter((x: Conf) => x.genero)
+      .map((x: Conf) => `${x.nome_exibicao || MATA_PARTS_BOT.find((p) => p.id === x.participante_id)?.nome || x.participante_id} (${x.genero})`);
     const previaBloco = previaJogos.length
       ? `\nPRÉVIA DA PRÓXIMA FASE (${PH_LABEL[proximaFase!]}) - INFORMATIVO, NÃO COBRAR (a rodada destes jogos ainda não abriu no app; ninguém deve palpite deles):\n` +
         previaJogos.map((j) =>
@@ -896,7 +1235,7 @@ Deno.serve(async (req: Request) => {
     userPrompt =
       `DADOS VERIFICADOS DO BOLÃO (gerados pelo sistema em ${agoraBrasilia()}, horário de Brasília). Use somente estes dados. Não calcule nem invente nada.\n\n` +
       `FASE ATIVA DO BOLÃO: ${PH_LABEL[faseAtiva]}. Cobrança de palpite vale SOMENTE para jogos desta fase.\n` +
-      `Estilo desta mensagem: referência de origem/esgoto ${origemLiberada ? "LIBERADA (no máximo uma)" : "PROIBIDA nesta mensagem"}.\n\n` +
+      (generos.length ? `Gênero dos participantes (pra calibrar a intensidade): ${generos.join("; ")}\n` : "") + "\n" +
       `PRÓXIMOS JOGOS DA FASE ATIVA (palpites ainda abertos):\n${jogos.length ? jogos.map(blocoJogo).join("\n") : "- nenhum jogo futuro restante nesta fase"}\n\n` +
       `Já completaram os palpites de todos os jogos citados: ${completaram.length ? listaNomes(completaram) : "ninguém"}\n` +
       (adiantados.length ? `Palpites completos em jogos futuros já definidos (${futurosDef.length} jogos abertos): ${adiantados.map((x) => `${x.nome} ${x.n}`).join("; ")}\n` : "") +
@@ -911,10 +1250,25 @@ Deno.serve(async (req: Request) => {
     const ia = await chamaIA(modelo, systemPrompt, userPrompt, testeLongo ? 1400 : 800);
     respostaIA = ia.texto;
 
-    // 3g) Envia ao grupo de teste via ZapZap (mensagem única por padrão;
-    // blocos "---" ou texto longo viram até 3 mensagens — ver enviaEmPartes)
+    // Menção obrigatória (v1.10): cobrança COM faltantes já marca os devedores
+    // no corpo — exceção da persona, sem segunda menção aleatória. Só a
+    // mensagem "todo mundo em dia" (force, sem pendência) leva a provocação
+    // final determinística com marcação real.
+    etapa = "mencao";
+    let textoFinal = respostaIA;
+    const mentions: string[] = [];
+    if (!comPendencia.length) {
+      const prov = linhaProvocacao(telefones as Conf[], new Set());
+      if (prov) {
+        textoFinal += "\n\n" + prov.linha;
+        mentions.push(prov.mention);
+      }
+    }
+
+    // 3g) Envia via ZapZap (mensagem única por padrão; blocos "---" ou texto
+    // longo viram até 3 mensagens — ver enviaEmPartes)
     etapa = "zapzap";
-    const envio = await enviaEmPartes(GRUPO, respostaIA);
+    const envio = await enviaEmPartes(GRUPO, textoFinal, mentions);
     const partes = envio.partes;
 
     // 3h) Auditoria
