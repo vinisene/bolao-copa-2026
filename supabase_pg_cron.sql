@@ -44,6 +44,12 @@
 create extension if not exists pg_cron;
 create extension if not exists pg_net;
 
+-- ⚠️ timeout_milliseconds := 60000 nos 3 jobs: o default do pg_net (~5s) é
+-- mais curto que a execução real da função (geração de IA leva 5-15s) — o
+-- cliente desconectaria antes da resposta em praticamente todo envio. Com
+-- 60s o pg_net espera a função terminar de verdade (e o job_run_details
+-- passa a registrar o resultado real, não timeout).
+
 -- 2) Agenda do dia — 09:00 Brasília = 12:00 UTC (Brasil não tem mais horário
 -- de verão, o offset -03:00 é fixo o ano todo — ver CLAUDE.md §13/mmGameDate).
 select cron.schedule(
@@ -51,7 +57,8 @@ select cron.schedule(
   '0 12 * * *',
   $$
   select net.http_get(
-    url := 'https://jgnmenwtxybaqshvxyer.supabase.co/functions/v1/ratazana-cobranca?token=SEU_TOKEN_AQUI&tipo=agenda&destino=oficial'
+    url := 'https://jgnmenwtxybaqshvxyer.supabase.co/functions/v1/ratazana-cobranca?token=SEU_TOKEN_AQUI&tipo=agenda&destino=oficial',
+    timeout_milliseconds := 60000
   );
   $$
 );
@@ -64,7 +71,8 @@ select cron.schedule(
   '1 12 * * *',
   $$
   select net.http_get(
-    url := 'https://jgnmenwtxybaqshvxyer.supabase.co/functions/v1/ratazana-cobranca?token=SEU_TOKEN_AQUI&tipo=cobranca_dia&destino=oficial'
+    url := 'https://jgnmenwtxybaqshvxyer.supabase.co/functions/v1/ratazana-cobranca?token=SEU_TOKEN_AQUI&tipo=cobranca_dia&destino=oficial',
+    timeout_milliseconds := 60000
   );
   $$
 );
@@ -72,12 +80,16 @@ select cron.schedule(
 -- 4) Última chamada — a cada 5 minutos. A função só age (e só gasta chamada
 -- de IA) se algum jogo aberto estiver entrando na janela de ~1h antes do
 -- kickoff (55-65min) E ainda faltar alguém palpitar NAQUELE jogo específico.
+-- Anti-duplicata (v1.15): claim atômico por dia+jogo+destino DENTRO da função
+-- (claim-then-act) — mesmo cron + disparo manual simultâneos não geram duas
+-- mensagens pro mesmo jogo.
 select cron.schedule(
   'ratazana-ultima-chamada',
   '*/5 * * * *',
   $$
   select net.http_get(
-    url := 'https://jgnmenwtxybaqshvxyer.supabase.co/functions/v1/ratazana-cobranca?token=SEU_TOKEN_AQUI&tipo=ultima_chamada&destino=oficial'
+    url := 'https://jgnmenwtxybaqshvxyer.supabase.co/functions/v1/ratazana-cobranca?token=SEU_TOKEN_AQUI&tipo=ultima_chamada&destino=oficial',
+    timeout_milliseconds := 60000
   );
   $$
 );
@@ -100,7 +112,7 @@ select cron.schedule(
 -- sem desligar o job inteiro):
 -- select cron.alter_job(
 --   job_id := (select jobid from cron.job where jobname = 'ratazana-agenda-diaria'),
---   command := $$select net.http_get(url := 'https://jgnmenwtxybaqshvxyer.supabase.co/functions/v1/ratazana-cobranca?token=SEU_TOKEN_AQUI&tipo=agenda&destino=teste');$$
+--   command := $$select net.http_get(url := 'https://jgnmenwtxybaqshvxyer.supabase.co/functions/v1/ratazana-cobranca?token=SEU_TOKEN_AQUI&tipo=agenda&destino=teste', timeout_milliseconds := 60000);$$
 -- );
 
 -- Apagar um job:

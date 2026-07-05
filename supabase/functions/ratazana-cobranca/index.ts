@@ -1,6 +1,12 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // ROBÔ RATAZANA — Edge Function "ratazana-cobranca"
-// (v1.14 — OUVIDOS (Fase 2): captura bruta das mensagens do grupo de TESTE.
+// (v1.15 — BLINDAGEM DA ÚLTIMA CHAMADA: idempotência vira claim-then-act —
+//  reserva atômica (key uc_<dd-mm>_<jogo>_<destino> em bot_config, INSERT
+//  ignore-duplicates) ANTES de chamar a IA; quem não cria a key desiste na
+//  hora, e falha de envio devolve a key pro próximo tick. Elimina a corrida
+//  cron×manual e o fail-open do check em bot_log. Aviso dos Ouvidos
+//  refatorado pros mesmos helpers (claimUmaVez/liberaClaim).
+//  v1.14 — OUVIDOS (Fase 2): captura bruta das mensagens do grupo de TESTE.
 //  Novo modo "webhook" recebe os eventos da ZapZap e grava cada mensagem de
 //  terceiros (nunca as do próprio bot) na tabela mensagens_grupo — texto,
 //  mentions, mensagem citada, timestamp e payload bruto. EXCLUSIVO do grupo
@@ -762,30 +768,47 @@ function extraiMensagemWebhook(payload: Conf) {
   }
   return { chatJid, fromMe, remetenteJid, messageId, texto, mentions: mentions && mentions.length ? mentions : null, quotedId, timestamp };
 }
+// ─── Claim atômico (v1.15) ───────────────────────────────────────────────────
+// Trava "claim-then-act": INSERT com ignore-duplicates numa key de bot_config
+// ANTES da ação. O UNIQUE da PK garante no Postgres que só UMA execução cria
+// a key — todas as outras (inclusive concorrentes no mesmo segundo) recebem
+// lista vazia e desistem. Diferente do check em bot_log (que era só
+// consultivo e fail-open), o claim é a autoridade e é fail-CLOSED: se a
+// própria criação do claim falhar (erro transitório do REST), NÃO envia —
+// duplicar mensagem é pior que atrasar um aviso; o tick seguinte tenta de
+// novo. Usado pela última chamada e pelo aviso dos Ouvidos.
+async function claimUmaVez(chave: string): Promise<boolean> {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/bot_config?on_conflict=key`, {
+    method: "POST",
+    headers: { ...sbHeaders(), Prefer: "resolution=ignore-duplicates,return=representation" },
+    body: JSON.stringify([{ key: chave, value: new Date().toISOString() }]),
+  });
+  const corpo = await r.text();
+  if (!r.ok) {
+    console.error("[claim] criação falhou (fail-closed, não envia):", chave, r.status, corpo.slice(0, 300));
+    return false;
+  }
+  try { return JSON.parse(corpo).length > 0; } catch { return false; }
+}
+// Devolve a vez (ex.: envio falhou depois de ganhar o claim) — best-effort.
+async function liberaClaim(chave: string) {
+  await fetch(`${SUPABASE_URL}/rest/v1/bot_config?key=eq.${encodeURIComponent(chave)}`, {
+    method: "DELETE", headers: sbHeaders(),
+  }).catch(() => {});
+}
+
 // Aviso único de ativação (in character, texto FIXO, sem IA), disparado na
-// primeira mensagem gravada com sucesso. A trava é ATÔMICA e permanente:
-// INSERT com ignore-duplicates em bot_config — só UMA execução do webhook
-// consegue criar a key; todas as outras (inclusive concorrentes no mesmo
-// segundo) recebem lista vazia e desistem. Se o ENVIO falhar depois de
-// ganhar a trava, a key é apagada pra próxima mensagem tentar de novo.
+// primeira mensagem gravada com sucesso. Trava = claim atômico permanente;
+// se o ENVIO falhar depois de ganhar o claim, a key é apagada pra próxima
+// mensagem capturada tentar de novo.
 const AVISO_OUVIDOS =
   "🐀 *Comunicado do fiscal: o Ratazana vê tudo.*\n" +
   "A partir de agora, cada mensagem deste grupo entra no caderninho. Elogio, choro, desculpa esfarrapada de palpite atrasado: tudo vira registro.\n" +
   "Podem continuar. Ninguém escapa do Ratazana.";
 async function avisoOuvidosUmaVez(grupoTeste: string): Promise<boolean> {
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/bot_config?on_conflict=key`, {
-    method: "POST",
-    headers: { ...sbHeaders(), Prefer: "resolution=ignore-duplicates,return=representation" },
-    body: JSON.stringify([{ key: "ouvidos_aviso_enviado", value: new Date().toISOString() }]),
-  });
-  const corpo = await r.text();
-  if (!r.ok) {
-    console.error("[ouvidos] trava do aviso falhou:", r.status, corpo.slice(0, 300));
-    return false;
+  if (!(await claimUmaVez("ouvidos_aviso_enviado"))) {
+    return false; // aviso já foi (ou está sendo) enviado por outra execução
   }
-  let ganhou = false;
-  try { ganhou = JSON.parse(corpo).length > 0; } catch { /* resposta inesperada = não ganhou */ }
-  if (!ganhou) return false; // aviso já foi (ou está sendo) enviado por outra execução
   try {
     const envio = await enviaEmPartes(grupoTeste, AVISO_OUVIDOS);
     await botLog({
@@ -797,9 +820,7 @@ async function avisoOuvidosUmaVez(grupoTeste: string): Promise<boolean> {
     return true;
   } catch (e) {
     // devolve a trava pra próxima mensagem capturada tentar o aviso de novo
-    await fetch(`${SUPABASE_URL}/rest/v1/bot_config?key=eq.ouvidos_aviso_enviado`, {
-      method: "DELETE", headers: sbHeaders(),
-    }).catch(() => {});
+    await liberaClaim("ouvidos_aviso_enviado");
     await botLog({ tipo: "ouvidos_aviso", destino: `teste (${grupoTeste})`, status_envio: "erro", erro: String((e as Error)?.message || e) });
     return false;
   }
@@ -1540,6 +1561,20 @@ Deno.serve(async (req: Request) => {
           resultados.push({ jogo: c.id, enviado: false, motivo: `teto diário atingido (${teto})` });
           continue;
         }
+        // v1.15 — claim-then-act: reserva ATÔMICA antes de gerar/enviar. O
+        // jaRodouHoje acima virou só atalho barato (poupa um INSERT quando o
+        // envio já aconteceu e o log está legível); a AUTORIDADE anti-
+        // duplicata é esta key — o UNIQUE da PK de bot_config garante que só
+        // UMA execução a cria, mesmo concorrentes no mesmo segundo (cron +
+        // disparo manual). Vem DEPOIS do teto pra não queimar claim em envio
+        // que nem sairia. Se o envio falhar lá embaixo, liberaClaim devolve a
+        // vez pro próximo tick. force=1 pula o claim de propósito (teste
+        // manual) e por isso também nunca o libera.
+        const chaveClaim = `uc_${ddmm.replace("/", "-")}_${c.id}_${dst.destino}`;
+        if (!forceUC && !(await claimUmaVez(chaveClaim))) {
+          resultados.push({ jogo: c.id, enviado: false, motivo: "já avisado hoje (claim de outra execução)" });
+          continue;
+        }
         const logBase = { tipo: tipoLog, destino: `${dst.destino} (${dst.grupo}) ${chave}` };
         let userPrompt: string | null = null;
         let respostaIA: string | null = null;
@@ -1587,10 +1622,19 @@ Deno.serve(async (req: Request) => {
             mensagem_enviada: envio.partes.join("\n\n"),
             status_envio: envio.ok ? "ok" : "erro", erro: envio.ok ? null : envio.detalhe,
           });
+          // envio recusado (ZapZap não-2xx): devolve o claim pro próximo tick
+          if (!envio.ok && !forceUC) await liberaClaim(chaveClaim);
           resultados.push({ jogo: c.id, enviado: envio.ok });
           // Contabiliza localmente pra não passar do teto se houver 2 jogos na mesma janela.
           logsHoje.push({ tipo: logBase.tipo, destino: logBase.destino, status_envio: envio.ok ? "ok" : "erro" });
         } catch (e) {
+          // Exceção aqui é quase sempre PRÉ-envio (IA cortada por max_tokens,
+          // filtro de sanidade, banco) — devolve o claim pro próximo tick
+          // tentar de novo. Escolha consciente de at-least-once: o único
+          // resíduo é rede caindo EXATAMENTE entre a entrega no WhatsApp e a
+          // resposta da ZapZap (raríssimo) — preferível a engolir o aviso
+          // toda vez que a IA falhar, que é o erro comum.
+          if (!forceUC) await liberaClaim(chaveClaim);
           const msg = String((e as Error)?.message || e);
           await botLog({ ...logBase, prompt_enviado: userPrompt, resposta_ia: respostaIA, status_envio: "erro", erro: msg });
           resultados.push({ jogo: c.id, enviado: false, erro: msg });

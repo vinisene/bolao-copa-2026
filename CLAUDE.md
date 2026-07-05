@@ -529,7 +529,13 @@ Fala em primeira pessoa dos próprios palpites, pontos e posição.
     de **~1h antes do kickoff (55–65min)** — mudou de T-30min pra T-60min nesta leva
     — **E** que ainda tenham alguém sem palpitar NAQUELE jogo específico (se todos já
     palpitaram, não envia nada; antes mandava "todo mundo pronto" mesmo sem
-    pendência). Idempotente por jogo (não repete o mesmo jogo no mesmo dia).
+    pendência). **Idempotência v1.15 = claim-then-act:** antes de chamar a IA, a
+    função cria atomicamente a key `uc_<dd-mm>_<jogo>_<destino>` em `bot_config`
+    (INSERT ignore-duplicates; helpers `claimUmaVez`/`liberaClaim`) — só uma
+    execução ganha, mesmo cron + disparo manual simultâneos; falha de envio devolve
+    a key pro próximo tick. O check antigo em `bot_log` virou só atalho barato.
+    ⚠️ As keys `uc_*` em `bot_config` são operacionais — não apagar à mão (apagar =
+    autorizar reenvio naquele dia).
   - **POST `&tipo=webhook`** (v1.14, Ouvidos) → endpoint que a ZapZap chama a cada
     evento da instância; não é chamado por humano. Grava em `mensagens_grupo` cada
     mensagem de TERCEIROS do grupo de **TESTE** (`GRUPO_TESTE_ID`): `message_id`
@@ -654,6 +660,14 @@ o banco.
 
 ## 15. Pendências abertas (jul/2026)
 
+-5. **Blindagem v1.15 COMMITADA (claim-then-act na última chamada + timeout do
+   pg_net)** — idempotência da última chamada deixou de ser check-then-act sobre
+   `bot_log` (fail-open, com corrida de ~5-15s durante a geração da IA) e virou
+   reserva atômica em `bot_config` ANTES da IA (ver §13). `supabase_pg_cron.sql`
+   ganhou `timeout_milliseconds := 60000` nos 3 jobs (default ~5s do pg_net era
+   mais curto que a execução real da função). Deploy da v1.14+v1.15 PENDENTE de
+   autorização explícita. Rodar o SQL de novo é seguro: `cron.schedule` com o
+   mesmo jobname substitui o job existente.
 -4. **Fase 2 (Ouvidos) — v1.14 COMMITADA; captura precisa de 3 passos pra ligar:**
    (1) deploy da v1.14 (autorização explícita do Vini, como sempre); (2) chamar
    `?tipo=configurar_webhook` UMA vez (registra a URL de captura na ZapZap — só
