@@ -1,6 +1,15 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // ROBÔ RATAZANA — Edge Function "ratazana-cobranca"
-// (v1.13: agenda e cobrança separadas de vez — a agenda das 9h NÃO fala mais
+// (v1.14 — OUVIDOS (Fase 2): captura bruta das mensagens do grupo de TESTE.
+//  Novo modo "webhook" recebe os eventos da ZapZap e grava cada mensagem de
+//  terceiros (nunca as do próprio bot) na tabela mensagens_grupo — texto,
+//  mentions, mensagem citada, timestamp e payload bruto. EXCLUSIVO do grupo
+//  de teste nesta fase; o oficial é ignorado. Na primeira captura da história
+//  sai um aviso único in character ("o Ratazana vê tudo") com trava atômica
+//  em bot_config. Novo utilitário "configurar_webhook" auto-registra a URL
+//  de captura na instância ZapZap. NENHUMA resposta a menção/citação ainda —
+//  isso é a Fase 3.
+//  v1.13: agenda e cobrança separadas de vez — a agenda das 9h NÃO fala mais
 //  de quem falta palpitar (só jogos/turbo/zebra/liderança); quem falta
 //  palpitar virou trabalho exclusivo de "cobranca_dia" (novo tipo, mesmo
 //  pipeline da cobrança manual, pensado pra rodar 1min depois da agenda via
@@ -62,6 +71,15 @@
 //       ainda tenham alguém sem palpitar naquele jogo específico (se todos já
 //       palpitaram, não envia nada); idempotente por jogo (não repete o mesmo
 //       jogo no mesmo dia) e sujeito ao teto.
+//   POST ...&tipo=webhook   → OUVIDOS (Fase 2): endpoint que a ZapZap chama a
+//       cada evento da instância. Grava mensagens de terceiros do grupo de
+//       TESTE em mensagens_grupo (schema: supabase_ouvidos.sql); tudo que não
+//       for do grupo de teste (ou for do próprio bot) é ignorado. Não é
+//       chamado por humano: a URL (com token) é registrada na ZapZap pelo
+//       modo abaixo.
+//   ...&tipo=configurar_webhook → registra na instância ZapZap a URL de
+//       captura acima (a função monta a própria URL com o próprio token).
+//       Chamar UMA vez; devolve a config anterior e a resposta da ZapZap.
 //
 // Dados: SEMPRE tabelas de PRODUÇÃO (mata_confrontos / mata_palpites / bot_config).
 // Modelo de IA: lido de bot_config key 'modelo_ia' (fallback Haiku 4.5).
@@ -681,6 +699,112 @@ async function enviaEmPartes(grupo: string, texto: string, mentions: string[] = 
   };
 }
 
+// ─── Ouvidos do Ratazana (Fase 2, v1.14): captura bruta de mensagens ─────────
+// A ZapZap entrega cada evento da instância via POST na URL registrada pelo
+// modo configurar_webhook. O formato exato do envelope não é documentado
+// publicamente (a API é Baileys por baixo: JIDs @g.us/@s.whatsapp.net,
+// key.id, contextInfo com mentionedJid/stanzaId), então o parser é
+// DEFENSIVO: busca em profundidade pelos nomes de campo conhecidos — mesmo
+// padrão do achaLista do listar_grupos — e o raw_payload guarda o evento
+// inteiro pra auditoria/reprocessamento. Fase 2 = SÓ captura; nenhuma
+// lógica de resposta a menção/citação ainda (Fase 3).
+
+// Busca em LARGURA (BFS) o primeiro valor cujo nome de campo esteja em
+// `chaves` e passe no predicado — largura, e não profundidade, pra um campo
+// do envelope raso (ex.: o id da mensagem) ganhar de um homônimo enterrado
+// (ex.: o id da mensagem CITADA dentro de contextInfo.quotedMessage).
+// deno-lint-ignore no-explicit-any
+function achaProfundo(o: Conf, chaves: string[], pred?: (v: any) => boolean): Conf {
+  const fila: Conf[] = [o];
+  const vistos = new Set<Conf>();
+  while (fila.length) {
+    const cur = fila.shift();
+    if (!cur || typeof cur !== "object" || vistos.has(cur)) continue;
+    vistos.add(cur);
+    for (const [k, v] of Object.entries(cur)) {
+      if (chaves.includes(k) && v != null && (!pred || pred(v))) return v;
+    }
+    for (const v of Object.values(cur)) {
+      if (v && typeof v === "object") fila.push(v);
+    }
+  }
+  return null;
+}
+// Extrai os campos que a tabela mensagens_grupo precisa, tolerando variações
+// de nome/aninhamento do envelope da ZapZap.
+function extraiMensagemWebhook(payload: Conf) {
+  const ehJid = (v: Conf) => typeof v === "string" && v.includes("@");
+  const chatJid = achaProfundo(payload, ["remoteJid", "RemoteJid", "chatid", "chatId", "ChatID", "chat", "Chat"],
+    (v) => typeof v === "string" && v.endsWith("@g.us"));
+  const fromMe = achaProfundo(payload, ["fromMe", "FromMe", "wasSentByAPI"], (v) => typeof v === "boolean") === true;
+  const remetenteJid = achaProfundo(payload, ["participant", "Participant", "sender", "Sender", "SenderJid", "author"], ehJid);
+  // id da mensagem: o formato "achatado" da ZapZap (OWNER:MSGID) tem prioridade;
+  // depois o key.id do Baileys; por último um "id" solto que não seja JID/UUID
+  // de instância (UUIDs têm hífen, ids de mensagem não).
+  const key = achaProfundo(payload, ["key", "Key"], (v) => v && typeof v === "object" && typeof (v as Conf).id === "string");
+  const messageId =
+    achaProfundo(payload, ["messageid", "messageId", "MessageID"], (v) => typeof v === "string" && v.length >= 8) ||
+    (key ? key.id : null) ||
+    achaProfundo(payload, ["id", "Id", "ID"], (v) => typeof v === "string" && v.length >= 8 && !v.includes("@") && !v.includes("-"));
+  const texto = achaProfundo(payload, ["conversation", "Conversation", "text", "Text", "caption", "Caption"],
+    (v) => typeof v === "string" && v.trim() !== "");
+  const mentions = achaProfundo(payload, ["mentionedJid", "MentionedJid", "mentionedJIDs", "mentionedjid", "mentions", "Mentions"],
+    (v) => Array.isArray(v) && v.every((x: Conf) => typeof x === "string"));
+  const quotedId = achaProfundo(payload, ["stanzaId", "StanzaId", "stanzaID", "quotedMessageId", "quotedMsgId", "QuotedID"],
+    (v) => typeof v === "string" && v.length >= 8);
+  const tsRaw = achaProfundo(payload, ["messageTimestamp", "MessageTimestamp", "timestamp", "Timestamp"],
+    (v) => typeof v === "number" || (typeof v === "string" && /^\d+$/.test(v)));
+  let timestamp: string | null = null;
+  if (tsRaw != null) {
+    const n = +tsRaw;
+    // segundos vs milissegundos: epoch em segundos só passa de 1e12 no ano 33658
+    timestamp = new Date(n > 1e12 ? n : n * 1000).toISOString();
+  }
+  return { chatJid, fromMe, remetenteJid, messageId, texto, mentions: mentions && mentions.length ? mentions : null, quotedId, timestamp };
+}
+// Aviso único de ativação (in character, texto FIXO, sem IA), disparado na
+// primeira mensagem gravada com sucesso. A trava é ATÔMICA e permanente:
+// INSERT com ignore-duplicates em bot_config — só UMA execução do webhook
+// consegue criar a key; todas as outras (inclusive concorrentes no mesmo
+// segundo) recebem lista vazia e desistem. Se o ENVIO falhar depois de
+// ganhar a trava, a key é apagada pra próxima mensagem tentar de novo.
+const AVISO_OUVIDOS =
+  "🐀 *Comunicado do fiscal: o Ratazana vê tudo.*\n" +
+  "A partir de agora, cada mensagem deste grupo entra no caderninho. Elogio, choro, desculpa esfarrapada de palpite atrasado: tudo vira registro.\n" +
+  "Podem continuar. Ninguém escapa do Ratazana.";
+async function avisoOuvidosUmaVez(grupoTeste: string): Promise<boolean> {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/bot_config?on_conflict=key`, {
+    method: "POST",
+    headers: { ...sbHeaders(), Prefer: "resolution=ignore-duplicates,return=representation" },
+    body: JSON.stringify([{ key: "ouvidos_aviso_enviado", value: new Date().toISOString() }]),
+  });
+  const corpo = await r.text();
+  if (!r.ok) {
+    console.error("[ouvidos] trava do aviso falhou:", r.status, corpo.slice(0, 300));
+    return false;
+  }
+  let ganhou = false;
+  try { ganhou = JSON.parse(corpo).length > 0; } catch { /* resposta inesperada = não ganhou */ }
+  if (!ganhou) return false; // aviso já foi (ou está sendo) enviado por outra execução
+  try {
+    const envio = await enviaEmPartes(grupoTeste, AVISO_OUVIDOS);
+    await botLog({
+      tipo: "ouvidos_aviso", destino: `teste (${grupoTeste})`,
+      mensagem_enviada: envio.partes.join("\n\n"),
+      status_envio: envio.ok ? "ok" : "erro", erro: envio.ok ? null : envio.detalhe,
+    });
+    if (!envio.ok) throw new Error(envio.detalhe);
+    return true;
+  } catch (e) {
+    // devolve a trava pra próxima mensagem capturada tentar o aviso de novo
+    await fetch(`${SUPABASE_URL}/rest/v1/bot_config?key=eq.ouvidos_aviso_enviado`, {
+      method: "DELETE", headers: sbHeaders(),
+    }).catch(() => {});
+    await botLog({ tipo: "ouvidos_aviso", destino: `teste (${grupoTeste})`, status_envio: "erro", erro: String((e as Error)?.message || e) });
+    return false;
+  }
+}
+
 // ─── Handler ─────────────────────────────────────────────────────────────────
 // CORS: a página admin chama esta função via fetch() direto do navegador
 // (origem diferente: pages.dev/localhost → supabase.co). Sem estes headers o
@@ -810,6 +934,104 @@ Deno.serve(async (req: Request) => {
       const msg = String((e as Error)?.message || e);
       await botLog({ tipo: "envio_manual", destino: destinoLbl, status_envio: "erro", erro: msg });
       return json({ ok: false, erro: msg }, 400);
+    }
+  }
+
+  // ─── Modo WEBHOOK (Fase 2 — Ouvidos, v1.14): captura bruta de mensagens ──────
+  // POST vindo da ZapZap a cada evento da instância (a URL com o token
+  // embutido é registrada pelo modo configurar_webhook, abaixo). Nesta fase a
+  // captura é EXCLUSIVA do grupo de TESTE: mensagem de qualquer outro chat
+  // (incluindo o grupo oficial) é ignorada. Mensagens do próprio bot (fromMe)
+  // também. Sem NENHUMA lógica de resposta ainda — isso é a Fase 3.
+  // Sempre responde 200 (mesmo em erro, com ok:false + bot_log): comportamento
+  // de retry da ZapZap não é documentado e um 5xx nosso não pode virar loop.
+  if (url.searchParams.get("tipo") === "webhook") {
+    try {
+      if (req.method !== "POST") return json({ ok: true, ignorado: "webhook só processa POST" });
+      const payload = await req.json().catch(() => null);
+      if (!payload) return json({ ok: true, ignorado: "body não é JSON" });
+      const grupoTeste = Deno.env.get("GRUPO_TESTE_ID") || "";
+      if (!grupoTeste) return json({ ok: false, erro: "Secret GRUPO_TESTE_ID não configurado" });
+
+      const m = extraiMensagemWebhook(payload);
+      if (!m.chatJid || m.chatJid !== grupoTeste) return json({ ok: true, ignorado: "fora do grupo de teste" });
+      if (m.fromMe) return json({ ok: true, ignorado: "mensagem do próprio bot" });
+      if (!m.messageId) return json({ ok: true, ignorado: "evento sem id de mensagem" });
+
+      // remetente_telefone: dígitos do JID, trocados pelo E.164 tabelado em
+      // bot_telefones quando houver correspondência (cruzamento best-effort)
+      let telefone = m.remetenteJid ? m.remetenteJid.split("@")[0].split(":")[0].replace(/\D/g, "") : "";
+      try {
+        const tels = await sbGet("bot_telefones?select=telefone_whatsapp");
+        const hit = (tels as Conf[]).find((t: Conf) => String(t.telefone_whatsapp || "").replace(/\D/g, "") === telefone);
+        if (hit) telefone = String(hit.telefone_whatsapp);
+      } catch { /* sem cruzamento, ficam os dígitos crus do JID */ }
+
+      const row = {
+        message_id: m.messageId,
+        grupo_jid: m.chatJid,
+        remetente_jid: m.remetenteJid,
+        remetente_telefone: telefone || null,
+        texto: m.texto,
+        mentions: m.mentions,
+        quoted_message_id: m.quotedId,
+        timestamp: m.timestamp,
+        raw_payload: payload,
+      };
+      // ignore-duplicates no message_id: reentrega do mesmo evento não duplica
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/mensagens_grupo?on_conflict=message_id`, {
+        method: "POST",
+        headers: { ...sbHeaders(), Prefer: "resolution=ignore-duplicates,return=representation" },
+        body: JSON.stringify([row]),
+      });
+      const corpo = await r.text();
+      if (!r.ok) throw new Error(`mensagens_grupo → HTTP ${r.status}: ${corpo.slice(0, 300)}`);
+      let inserida = false;
+      try { inserida = JSON.parse(corpo).length > 0; } catch { /* return=representation sempre é JSON */ }
+
+      // primeira captura da história → aviso único "o Ratazana vê tudo"
+      const avisoEnviado = inserida ? await avisoOuvidosUmaVez(grupoTeste) : false;
+      return json({ ok: true, capturada: inserida, duplicada: !inserida, aviso_enviado: avisoEnviado });
+    } catch (e) {
+      const msg = String((e as Error)?.message || e);
+      await botLog({ tipo: "webhook_captura", destino: "(grupo de teste)", status_envio: "erro", erro: msg });
+      return json({ ok: false, erro: msg }); // 200 de propósito, ver comentário acima
+    }
+  }
+
+  // ─── Modo CONFIGURAR WEBHOOK (utilitário, v1.14): auto-registro na ZapZap ────
+  // A própria função registra a URL de captura na instância (ela conhece o
+  // próprio token via env e a própria URL via SUPABASE_URL) — o Vini só chama
+  // ?tipo=configurar_webhook uma vez, sem copiar URL pra painel nenhum.
+  if (url.searchParams.get("tipo") === "configurar_webhook") {
+    try {
+      const faltamZap = ["ZAPZAP_API_KEY", "ZAPZAP_API_SECRET", "ZAPZAP_ENDPOINT_BASE"].filter((n) => !Deno.env.get(n));
+      if (faltamZap.length) throw new Error(`Secrets faltando: ${faltamZap.join(", ")}`);
+      const urlWebhook = `${SUPABASE_URL}/functions/v1/ratazana-cobranca?token=${TOKEN}&tipo=webhook`;
+      const antes = await fetch(`${zapBase()}/webhook`, { headers: zapHeaders() })
+        .then((r) => r.text()).catch((e) => `(falha ao ler config atual: ${e})`);
+      const r = await fetch(`${zapBase()}/webhook`, {
+        method: "POST",
+        headers: zapHeaders(),
+        body: JSON.stringify({ url: urlWebhook, enabled: true }),
+      });
+      const corpo = await r.text();
+      await botLog({
+        tipo: "configurar_webhook", destino: "instância ZapZap",
+        mensagem_enviada: "(webhook de captura registrado; URL contém o token — não vai pro log)",
+        status_envio: r.ok ? "ok" : "erro", erro: r.ok ? null : corpo.slice(0, 300),
+      });
+      const parse = (s: string) => { try { return JSON.parse(s); } catch { return s.slice(0, 500); } };
+      return json({
+        ok: r.ok,
+        dica: "Webhook registrado apontando pra esta função (?tipo=webhook). Mande uma mensagem no grupo de TESTE pra validar a captura em mensagens_grupo.",
+        webhook_anterior: parse(antes),
+        resposta_zapzap: parse(corpo),
+      }, r.ok ? 200 : 502);
+    } catch (e) {
+      const msg = String((e as Error)?.message || e);
+      await botLog({ tipo: "configurar_webhook", destino: "instância ZapZap", status_envio: "erro", erro: msg });
+      return json({ ok: false, erro: msg }, 500);
     }
   }
 
