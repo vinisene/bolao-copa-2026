@@ -394,7 +394,17 @@ async function botLog(row: Record<string, unknown>) {
 }
 
 // ─── IA (Anthropic Messages API); modelo vem de bot_config 'modelo_ia' ───────
-async function chamaIA(modelo: string, systemPrompt: string, userPrompt: string, maxTokens = 800) {
+// ⚠️ max_tokens no claude-sonnet-5 (modelo_ia atual): o thinking adaptativo vem
+// LIGADO por default quando o campo `thinking` é omitido, e os tokens de
+// thinking consomem O MESMO teto de max_tokens do texto final — NÃO existe
+// orçamento separado (o budget_tokens antigo retorna 400 nesse modelo). Com
+// teto apertado e prompt grande (9+ participantes no contexto), o thinking
+// engolia o orçamento inteiro: resposta vazia (stop_reason max_tokens, ids
+// 75-77 do bot_log) ou texto CORTADO no meio da frase enviado pro grupo
+// (ids 69/72-74). Por isso: teto generoso (4000; pior caso realista de
+// mensagem de 4-7 linhas + thinking cabe com folga) e checagem EXPLÍCITA de
+// stop_reason — max_tokens = falha bloqueante, nunca envia texto parcial.
+async function chamaIA(modelo: string, systemPrompt: string, userPrompt: string, maxTokens = 4000) {
   const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -415,6 +425,14 @@ async function chamaIA(modelo: string, systemPrompt: string, userPrompt: string,
     .filter((b: Conf) => b.type === "text")
     .map((b: Conf) => b.text)
     .join("\n").trim();
+  // Resposta parcial NÃO VAZIA também é falha: texto cortado no meio da frase
+  // não pode ir pro WhatsApp. Detalhe técnico completo só no log do servidor.
+  if (data.stop_reason === "max_tokens") {
+    console.error("[chamaIA] resposta cortada por max_tokens — NÃO enviada", {
+      modelo, maxTokens, usage: data.usage || null, texto_parcial: texto.slice(0, 400),
+    });
+    throw new Error("Não consegui gerar a mensagem completa (estourou o limite de tokens). Clique em 🐀 Acordar o Ratazana de novo.");
+  }
   if (!texto) throw new Error(`Anthropic não retornou texto (stop_reason: ${data.stop_reason})`);
   return { texto, usage: data.usage || null };
 }
@@ -1247,7 +1265,7 @@ Deno.serve(async (req: Request) => {
 
     // 3f) Chama a IA com a personalidade do Ratazana
     etapa = "anthropic";
-    const ia = await chamaIA(modelo, systemPrompt, userPrompt, testeLongo ? 1400 : 800);
+    const ia = await chamaIA(modelo, systemPrompt, userPrompt, testeLongo ? 8000 : 4000);
     respostaIA = ia.texto;
 
     // Menções reais (v1.11): na cobrança COM faltantes a função da mensagem é
