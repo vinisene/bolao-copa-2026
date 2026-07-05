@@ -1,6 +1,15 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // ROBÔ RATAZANA — Edge Function "ratazana-cobranca"
-// (v1.12: dois modos novos pensados pra pg_cron — "agenda" (painel do dia às
+// (v1.13: agenda e cobrança separadas de vez — a agenda das 9h NÃO fala mais
+//  de quem falta palpitar (só jogos/turbo/zebra/liderança); quem falta
+//  palpitar virou trabalho exclusivo de "cobranca_dia" (novo tipo, mesmo
+//  pipeline da cobrança manual, pensado pra rodar 1min depois da agenda via
+//  pg_cron, com a MESMA trava "só cobra se faltar alguém" que a cobrança
+//  manual já tinha). "ultima_chamada" mudou a janela de T-30min pra T-60min
+//  (55-65min antes do kickoff) e passou a só enviar se faltar alguém NAQUELE
+//  jogo (antes mandava uma mensagem de "todo mundo pronto" mesmo sem
+//  pendência). Persona ganhou o viés emocional Brasil×Argentina.
+//  v1.12: dois modos novos pensados pra pg_cron — "agenda" (painel do dia às
 //  9h + único alerta de liderança detalhado) e "ultima_chamada" (T-30min por
 //  jogo, checagem a cada ~10min); teto diário de mensagens automáticas
 //  (4 com jogo / 2 sem jogo) e idempotência por dia+destino[+jogo] pra nenhum
@@ -38,13 +47,21 @@
 //       Fechar NUNCA envia mensagem (o comentário é ação separada do admin).
 //   ...&tipo=agenda&destino=teste|oficial[&env=dev][&force=1]
 //       → AGENDA DO DIA (pg_cron 1x/dia, ~9h): jogos de hoje + turbo/zebra +
-//       quem falta palpitar + alerta de liderança detalhado. Sem jogo hoje:
-//       não envia nada. Idempotente (1x/dia por destino, força com &force=1)
-//       e sujeito ao teto diário (ver acima).
+//       alerta de liderança detalhado. NÃO fala de quem falta palpitar (isso
+//       é só da cobrança, abaixo). Sem jogo hoje: não envia nada. Idempotente
+//       (1x/dia por destino, força com &force=1) e sujeito ao teto diário.
+//   ...&tipo=cobranca_dia&destino=teste|oficial[&env=dev][&force=1]
+//       → COBRANÇA DO DIA (pg_cron 1x/dia, ~1min depois da agenda): MESMO
+//       pipeline da cobrança manual (mesmos dados, mesma trava "só cobra se
+//       faltar alguém" — sem force, ninguém devendo = não envia nada, só
+//       loga). Diferença: governança extra (idempotente 1x/dia por destino +
+//       teto diário), igual aos outros modos automáticos.
 //   ...&tipo=ultima_chamada&destino=teste|oficial[&env=dev][&force=1]
-//       → ÚLTIMA CHAMADA (pg_cron a cada ~10min): dispara só pros jogos que
-//       estão entrando na janela de 15-30min antes do kickoff; idempotente
-//       por jogo (não repete o mesmo jogo no mesmo dia) e sujeito ao teto.
+//       → ÚLTIMA CHAMADA (pg_cron a cada ~5-10min): dispara só pros jogos que
+//       estão entrando na janela de ~1h antes do kickoff (55-65min) E que
+//       ainda tenham alguém sem palpitar naquele jogo específico (se todos já
+//       palpitaram, não envia nada); idempotente por jogo (não repete o mesmo
+//       jogo no mesmo dia) e sujeito ao teto.
 //
 // Dados: SEMPRE tabelas de PRODUÇÃO (mata_confrontos / mata_palpites / bot_config).
 // Modelo de IA: lido de bot_config key 'modelo_ia' (fallback Haiku 4.5).
@@ -1092,11 +1109,13 @@ Deno.serve(async (req: Request) => {
 
   // ─── Modo AGENDA DO DIA (Fase 4 — pensado pra pg_cron às 9h) ────────────────
   // ?tipo=agenda&destino=teste|oficial[&env=dev][&force=1]
-  // Painorama dos jogos de hoje (turbo/zebra/quem falta palpitar) + o ÚNICO
-  // alerta de liderança detalhado do dia (persona v2.1: "só na futura mensagem
-  // de agenda das 9h" — é esta). Sem jogo hoje: não envia nada (modo
-  // entressafra fica pra outra sessão). force=1 ignora a trava de "já enviei
-  // hoje" (teste manual); o teto diário (contaEnviadasHoje) NUNCA é ignorado.
+  // Painorama dos jogos de hoje (turbo/zebra) + o ÚNICO alerta de liderança
+  // detalhado do dia (persona v2.1: "só na futura mensagem de agenda das 9h"
+  // — é esta). v1.13: a agenda NÃO fala mais de quem falta palpitar — isso
+  // virou trabalho exclusivo da cobrança (`?tipo=cobranca_dia`, ~1min depois).
+  // Sem jogo hoje: não envia nada (modo entressafra fica pra outra sessão).
+  // force=1 ignora a trava de "já enviei hoje" (teste manual); o teto diário
+  // (contaEnviadasHoje) NUNCA é ignorado.
   if (url.searchParams.get("tipo") === "agenda") {
     const pref = url.searchParams.get("env") === "dev" ? "dev_" : "";
     const forceAgenda = url.searchParams.get("force") === "1";
@@ -1164,13 +1183,12 @@ Deno.serve(async (req: Request) => {
         const phaseKey = mmPhaseKeyOf(c.id);
         const turbo = MM_TURBO.has(c.id);
         const z = mmZebra(c);
-        const faltam = HUMANOS.filter((h) => !mmHasFullPred(PAL[c.id]?.[h.id])).map((h) => h.nome);
         return {
           id: c.id, fase: PH_LABEL[phaseKey] || phaseKey, tm: i.tm, onde: i.ven,
           jogo: `${nomeA} × ${nomeB}`, turbo,
           multFinal: fmtPts((MM_PHASE_MULT[phaseKey] || 1) * (turbo ? 2 : 1)),
           zebra: z ? { tipo: z.tipo, azarao: z.azarao === "A" ? nomeA : nomeB, bonus: z.tipo === "zebrao" ? 5 : 3 } : null,
-          faltam, d,
+          d,
         };
       });
 
@@ -1188,8 +1206,7 @@ Deno.serve(async (req: Request) => {
       const blocoJogo = (j: Conf) =>
         `- ${diaSemana(j.d)} às *${j.tm}* - ${j.fase} - ${j.jogo} - ${j.onde}` +
         (j.turbo ? ` - ⚡ TURBO: vale ×${j.multFinal}` : ` - vale ×${j.multFinal}`) +
-        (j.zebra ? ` - ${j.zebra.tipo === "zebrao" ? "ZEBRÃO" : "ZEBRA"} armada: azarão ${j.zebra.azarao}, bônus +${j.zebra.bonus}` : "") +
-        `\n  Faltam palpitar: ${j.faltam.length ? listaNomes(j.faltam) : "ninguém, todos em dia"}`;
+        (j.zebra ? ` - ${j.zebra.tipo === "zebrao" ? "ZEBRÃO" : "ZEBRA"} armada: azarão ${j.zebra.azarao}, bônus +${j.zebra.bonus}` : "");
 
       etapa = "monta_prompt";
       userPrompt =
@@ -1197,29 +1214,20 @@ Deno.serve(async (req: Request) => {
         `JOGOS DE HOJE:\n${jogos.map(blocoJogo).join("\n")}\n\n` +
         `${alertaLideranca}\n` +
         (generos.length ? `Gênero dos participantes (pra calibrar a intensidade): ${generos.join("; ")}\n` : "") +
-        `\nTAREFA: escreva a mensagem de AGENDA DO DIA para o grupo de WhatsApp (4 a 7 linhas): liste os jogos de hoje com horário, avise se tem turbo ou zebra armada, cutuque quem ainda falta palpitar em algum jogo de hoje, e incorpore o alerta de liderança com naturalidade (é a ÚNICA mensagem do dia que detalha isso — respeite a hierarquia de assunto: jogo/pessoas/ranking antes de você mesmo). Sem link do bolão. Mensagem única.`;
+        `\nTAREFA: escreva a mensagem de AGENDA DO DIA para o grupo de WhatsApp (4 a 7 linhas): liste os jogos de hoje com horário e avise se tem turbo ou zebra armada, e incorpore o alerta de liderança com naturalidade (é a ÚNICA mensagem do dia que detalha isso — respeite a hierarquia de assunto: jogo/pessoas/ranking antes de você mesmo). NÃO fale de quem falta palpitar nem cobre ninguém — isso é assunto exclusivo da cobrança, que roda logo em seguida. Sem link do bolão. Mensagem única.`;
 
       etapa = "anthropic";
       const ia = await chamaIA(modelo, systemPrompt, userPrompt);
       respostaIA = ia.texto;
 
+      // Menção obrigatória (v1.10): a agenda não fala de pendência, então
+      // NUNCA usa a linha de "intimação de devedores" — é sempre a provocação
+      // padrão de 1 pessoa sorteada, como qualquer mensagem programada.
       etapa = "mencao";
-      const todosFaltantesHoje = [...new Set(jogos.flatMap((j: Conf) => j.faltam))] as string[];
       let textoFinal = respostaIA;
       const mentions: string[] = [];
-      if (todosFaltantesHoje.length) {
-        const tokens: string[] = [];
-        for (const nome of todosFaltantesHoje) {
-          const h = HUMANOS.find((p) => p.nome === nome);
-          const tel = h ? (telefones as Conf[]).find((t: Conf) => t.participante_id === h.id) : null;
-          const num = tel?.telefone_whatsapp ? String(tel.telefone_whatsapp).replace(/\D/g, "") : "";
-          if (num) { tokens.push("@" + num); mentions.push(num); }
-        }
-        if (tokens.length) textoFinal += "\n\n📋 Intimação oficial do fiscal: " + tokens.join(" ") + " — palpite pendente, tá no caderninho.";
-      } else {
-        const prov = linhaProvocacao(telefones as Conf[], new Set());
-        if (prov) { textoFinal += "\n\n" + prov.linha; mentions.push(prov.mention); }
-      }
+      const prov = linhaProvocacao(telefones as Conf[], new Set());
+      if (prov) { textoFinal += "\n\n" + prov.linha; mentions.push(prov.mention); }
 
       etapa = "zapzap";
       const envio = await enviaEmPartes(dst.grupo, textoFinal, mentions);
@@ -1240,13 +1248,16 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  // ─── Modo ÚLTIMA CHAMADA (Fase 4 — T-30min, pensado pra pg_cron a cada ~10min)
+  // ─── Modo ÚLTIMA CHAMADA (Fase 4 — T-60min, pensado pra pg_cron a cada ~5-10min)
   // ?tipo=ultima_chamada&destino=teste|oficial[&env=dev][&force=1]
-  // Dispara só pros jogos que estão ENTRANDO agora na janela de 15-30min antes
-  // do kickoff (a granularidade do cron de 10min garante pelo menos 1 acerto
-  // por jogo dentro da janela de 15min). Idempotente por jogo (chave
-  // "[jogo:<id>]" dentro do destino logado) — não reenviar no mesmo dia pro
-  // mesmo jogo mesmo se o cron rodar de novo dentro da janela.
+  // Dispara só pros jogos que estão ENTRANDO agora na janela de 55-65min antes
+  // do kickoff (~1h, com tolerância de 10min pra cobrir a granularidade do
+  // cron) E que ainda tenham alguém sem palpitar NAQUELE jogo — v1.13: se
+  // todos já palpitaram, não envia nada (antes mandava uma mensagem de "todo
+  // mundo pronto" mesmo sem pendência; isso virou exclusividade da agenda/
+  // cobrança do dia). Idempotente por jogo (chave "[jogo:<id>]" dentro do
+  // destino logado) — não reenviar no mesmo dia pro mesmo jogo mesmo se o
+  // cron rodar de novo dentro da janela.
   if (url.searchParams.get("tipo") === "ultima_chamada") {
     const pref = url.searchParams.get("env") === "dev" ? "dev_" : "";
     const forceUC = url.searchParams.get("force") === "1";
@@ -1271,12 +1282,12 @@ Deno.serve(async (req: Request) => {
       const teamsOf = makeResolver(confrontos);
       const now = Date.now();
 
-      // Janela de disparo: 15-30min antes do kickoff.
+      // Janela de disparo: ~1h antes do kickoff (55-65min de tolerância).
       const candidatos = confrontos
         .filter((c: Conf) => !mmIsTest(c) && !c.finished)
         .map((c: Conf) => ({ c, d: mmGameDate(c) }))
         .filter((x: Conf) => x.d)
-        .filter((x: Conf) => { const diffMin = (x.d.getTime() - now) / 60000; return diffMin > 15 && diffMin <= 30; });
+        .filter((x: Conf) => { const diffMin = (x.d.getTime() - now) / 60000; return diffMin > 55 && diffMin <= 65; });
 
       if (!candidatos.length) {
         return json({ ok: true, enviado: false, motivo: "nenhum jogo entrando na janela de última chamada agora" });
@@ -1289,6 +1300,15 @@ Deno.serve(async (req: Request) => {
 
       const resultados: Conf[] = [];
       for (const { c } of candidatos) {
+        // v1.13: só age se realmente faltar alguém NAQUELE jogo (mesma trava
+        // "só cobra se faltar alguém" da Tarefa A) — antes mandava aviso de
+        // "todo mundo pronto" mesmo sem pendência; isso virou exclusividade
+        // da agenda/cobrança do dia. &force=1 ainda permite testar manual.
+        const faltam = HUMANOS.filter((h) => !mmHasFullPred(PAL[c.id]?.[h.id])).map((h) => h.nome);
+        if (!faltam.length && !forceUC) {
+          resultados.push({ jogo: c.id, enviado: false, motivo: "todos já palpitaram nesse jogo, nada a cobrar" });
+          continue;
+        }
         const chave = `[jogo:${c.id}]`;
         if (!forceUC && jaRodouHoje(logsHoje, tipoLog, dst.destino, chave)) {
           resultados.push({ jogo: c.id, enviado: false, motivo: "já avisado hoje" });
@@ -1309,31 +1329,32 @@ Deno.serve(async (req: Request) => {
           const phaseKey = mmPhaseKeyOf(c.id);
           const turbo = MM_TURBO.has(c.id);
           const z = mmZebra(c);
-          const faltam = HUMANOS.filter((h) => !mmHasFullPred(PAL[c.id]?.[h.id])).map((h) => h.nome);
 
           userPrompt =
-            `DADOS VERIFICADOS DO BOLÃO (última chamada, ~30min antes do jogo, gerados em ${agoraBrasilia()}, horário de Brasília). Use somente estes dados.\n\n` +
+            `DADOS VERIFICADOS DO BOLÃO (última chamada, ~1h antes do jogo, gerados em ${agoraBrasilia()}, horário de Brasília). Use somente estes dados.\n\n` +
             `JOGO: ${nomeA} × ${nomeB} (${PH_LABEL[phaseKey] || phaseKey}) às *${i.tm}* em ${i.ven}` +
             (turbo ? " - ⚡ TURBO" : "") +
             (z ? ` - ${z.tipo === "zebrao" ? "ZEBRÃO" : "ZEBRA"} armada` : "") + `\n` +
-            `Faltam palpitar: ${faltam.length ? listaNomes(faltam) : "ninguém, todos em dia"}\n\n` +
-            `TAREFA: escreva um aviso de ÚLTIMA CHAMADA curto (2 a 4 linhas) pro grupo de WhatsApp: o jogo está prestes a começar (faltam ~30min), cutuque com urgência quem ainda falta palpitar (se houver). Se ninguém falta, comente breve e animado que está todo mundo pronto. Sem link do bolão. Mensagem única.`;
+            `Faltam palpitar: ${faltam.length ? listaNomes(faltam) : "ninguém, todos em dia (teste forçado)"}\n\n` +
+            `TAREFA: escreva um aviso de ÚLTIMA CHAMADA curto (2 a 4 linhas) pro grupo de WhatsApp: o jogo está prestes a começar (faltam ~1h), cutuque com urgência quem ainda falta palpitar. Sem link do bolão. Mensagem única.`;
 
           const ia = await chamaIA(modelo, systemPrompt, userPrompt, 2500);
           respostaIA = ia.texto;
 
           let textoFinal = respostaIA;
           const mentions: string[] = [];
-          if (faltam.length) {
-            const tokens: string[] = [];
-            for (const nome of faltam) {
-              const h = HUMANOS.find((p) => p.nome === nome);
-              const tel = h ? (telefones as Conf[]).find((t2: Conf) => t2.participante_id === h.id) : null;
-              const num = tel?.telefone_whatsapp ? String(tel.telefone_whatsapp).replace(/\D/g, "") : "";
-              if (num) { tokens.push("@" + num); mentions.push(num); }
-            }
-            if (tokens.length) textoFinal += "\n\n📋 Intimação oficial do fiscal: " + tokens.join(" ") + " — palpite pendente, tá no caderninho.";
+          const tokens: string[] = [];
+          for (const nome of faltam) {
+            const h = HUMANOS.find((p) => p.nome === nome);
+            const tel = h ? (telefones as Conf[]).find((t2: Conf) => t2.participante_id === h.id) : null;
+            const num = tel?.telefone_whatsapp ? String(tel.telefone_whatsapp).replace(/\D/g, "") : "";
+            if (num) { tokens.push("@" + num); mentions.push(num); }
+          }
+          if (tokens.length) {
+            textoFinal += "\n\n📋 Intimação oficial do fiscal: " + tokens.join(" ") + " — palpite pendente, tá no caderninho.";
           } else {
+            // Só acontece em teste forçado (&force=1) sem ninguém pendente —
+            // fallback pra ainda ter a provocação padrão de mensagem programada.
             const prov = linhaProvocacao(telefones as Conf[], new Set());
             if (prov) { textoFinal += "\n\n" + prov.linha; mentions.push(prov.mention); }
           }
@@ -1363,7 +1384,18 @@ Deno.serve(async (req: Request) => {
   // 3) Pipeline da cobrança — cada etapa em try/catch; tudo vai pro bot_log.
   // Destino EXPLÍCITO obrigatório (?destino=teste|oficial): a URL antiga sem
   // &destino= passa a dar erro claro — nenhum envio "de default" existe mais.
-  const logBase = { tipo: testeLongo ? "teste_mensagem_longa" : (force ? "cobranca_forcada" : "cobranca"), destino: "" };
+  // v1.13: `?tipo=cobranca_dia` REAPROVEITA este mesmo pipeline (mesmos dados,
+  // mesma trava "só envia se faltar alguém" logo abaixo em 3c — ela já existia
+  // desde sempre pro modo manual/`force=1`) — pensado pra pg_cron 1min depois
+  // da agenda. A única diferença é a governança extra (idempotência por dia +
+  // teto diário), igual à dos modos `agenda`/`ultima_chamada`.
+  const modoDia = url.searchParams.get("tipo") === "cobranca_dia";
+  const logBase = {
+    tipo: testeLongo ? "teste_mensagem_longa"
+      : modoDia ? (force ? "cobranca_dia_forcada" : "cobranca_dia")
+      : (force ? "cobranca_forcada" : "cobranca"),
+    destino: "",
+  };
   let etapa = "destino";
   let GRUPO = "";
   let userPrompt: string | null = null;
@@ -1374,6 +1406,22 @@ Deno.serve(async (req: Request) => {
     const dst = grupoDestino(url);
     GRUPO = dst.grupo;
     logBase.destino = `${dst.destino} (${dst.grupo})`;
+
+    if (modoDia) {
+      etapa = "governanca";
+      const logsHoje = await botLogHoje();
+      const { ddmm } = limitesBrasiliaHojeISO();
+      const temJogoHoje = Object.values(MM_AGENDA).some((a: Conf) => a.dt === ddmm);
+      const teto = temJogoHoje ? TETO_MSGS_DIA_COM_JOGO : TETO_MSGS_DIA_SEM_JOGO;
+      if (!force && jaRodouHoje(logsHoje, logBase.tipo, dst.destino)) {
+        await botLog({ ...logBase, status_envio: "pulado_duplicado", erro: "cobrança do dia já enviada hoje pra este destino" });
+        return json({ ok: true, enviado: false, motivo: "cobrança do dia já enviada hoje pra este destino (use &force=1 pra repetir)" });
+      }
+      if (contaEnviadasHoje(logsHoje, dst.destino) >= teto) {
+        await botLog({ ...logBase, status_envio: "pulado_teto", erro: `teto diário atingido (${teto})` });
+        return json({ ok: true, enviado: false, motivo: `teto diário de mensagens atingido (${teto})` });
+      }
+    }
 
     etapa = "consulta_banco";
     // 3a) Banco (produção): confrontos + palpites + config (prompt e modelo)
@@ -1499,9 +1547,12 @@ Deno.serve(async (req: Request) => {
     const comPendencia = jogos.filter((j: Conf) => j.faltam.length > 0);
     const todosFaltantes = [...new Set(comPendencia.flatMap((j: Conf) => j.faltam))] as string[];
 
-    // 3c) Ninguém falta e sem force → não envia nada, só informa (e loga)
+    // 3c) Ninguém falta e sem force → não envia nada, só informa (e loga).
+    // Esta é A trava "só cobra se faltar alguém" — vale igual pro modo manual
+    // (sem tipo) e pro `cobranca_dia` (pg_cron da manhã): nenhum dos dois
+    // dispara "todo mundo em dia" sozinho, só com `&force=1` explícito.
     if (!comPendencia.length && !force) {
-      await botLog({ ...logBase, status_envio: "nao_enviado", erro: "ninguém falta palpitar na fase ativa (sem force=1)" });
+      await botLog({ ...logBase, status_envio: "nao_enviado", erro: modoDia ? "todos palpitaram, nada a cobrar" : "ninguém falta palpitar na fase ativa (sem force=1)" });
       return json({
         ok: true,
         enviado: false,
