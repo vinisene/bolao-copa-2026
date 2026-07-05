@@ -1,9 +1,10 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // ROBÔ RATAZANA — Edge Function "ratazana-cobranca"
-// (v1.10: menção obrigatória DETERMINÍSTICA — a aplicação sorteia alguém de
-//  bot_telefones, anexa a linha de provocação com @<numero> no texto e passa
-//  o campo "mentions" pro envio da ZapZap = marcação real de WhatsApp; o
-//  modelo não escreve mais "@". v1.9: filtro de sanidade + parser JID/Name;
+// (v1.11: cobrança marca TODOS os devedores com menção real; stop_reason
+//  max_tokens vira falha bloqueante (teto 4000/8000 — thinking do sonnet-5
+//  divide o mesmo teto); filtro de sanidade invertido pra reprovação por
+//  script (emojis comuns passam). v1.10: menção obrigatória determinística
+//  (@<numero> + campo mentions). v1.9: filtro de sanidade + parser JID/Name;
 //  v1.8: destino explícito + preview/direção + enviar_texto; v1.7:
 //  fechar_placar via service role)
 // ═══════════════════════════════════════════════════════════════════════════
@@ -486,29 +487,56 @@ function divideEmPartes(texto: string): string[] {
   return pedacos.length <= 3 ? pedacos : [...pedacos.slice(0, 2), pedacos.slice(2).join("\n\n")];
 }
 
-// ─── Filtro de sanidade (v1.9) ────────────────────────────────────────────────
+// ─── Filtro de sanidade (v1.11 — reprovação por script) ──────────────────────
 // Achado real em produção: um caractere CJK solto no meio de uma frase coerente
-// em português ("...os 30 pontos肥: *Du, Yuri...") — texto íntegro antes e depois,
-// não é truncamento cortando um emoji multibyte; é glitch de amostragem do
-// modelo (Sonnet). Não dá pra "consertar" o modelo por código; a rede de
-// segurança é BARRAR o envio quando aparecer um caractere fora do conjunto
-// esperado: ASCII + acentuação/pontuação PT-BR + os emojis já usados no app.
-const EMOJI_SEGUROS = new Set([
-  "🐀", "✅", "🎯", "📋", "⏱️", "⚡", "🔥", "🦓", "🏆", "📅", "😏", "🔒", "✏️",
-  "📤", "🔁", "📡", "📣", "🪞", "⚠️", "🎉", "🥇", "🥈", "🥉", "⚽",
-]);
-function sanidadeTexto(texto: string): string[] {
-  const suspeitos = new Set<string>();
+// em português ("...os 30 pontos肥: *Du, Yuri...") — glitch de amostragem do
+// modelo, não truncamento. A v1.9 usava lista de APROVAÇÃO com meia dúzia de
+// emojis e bloqueou 😬 (emoji Unicode comum, falso positivo real — bot_log 78).
+// Agora a lógica é invertida: REPROVA só scripts incompatíveis com português
+// (CJK, kana, hangul, cirílico, árabe, devanagari e demais índicos, tailandês,
+// hebraico e afins). ASCII, latim estendido, pontuação e QUALQUER emoji das
+// faixas Unicode padrão (emoticons, pictogramas, transporte, suplementares,
+// setas, ZWJ, seletores de variação, tons de pele, bandeiras) passam direto —
+// nenhuma dessas faixas está na lista de bloqueio.
+const SCRIPTS_BLOQUEADOS: [number, number, string][] = [
+  [0x0370, 0x03FF, "grego"],
+  [0x0400, 0x052F, "cirílico"],
+  [0x0530, 0x058F, "armênio"],
+  [0x0590, 0x05FF, "hebraico"],
+  [0x0600, 0x077F, "árabe"],
+  [0x0780, 0x08FF, "árabe estendido e afins"],
+  [0x0900, 0x0DFF, "devanagari e demais índicos"],
+  [0x0E00, 0x0E7F, "tailandês"],
+  [0x0E80, 0x0EFF, "lao"],
+  [0x0F00, 0x0FFF, "tibetano"],
+  [0x1000, 0x109F, "birmanês"],
+  [0x1100, 0x11FF, "hangul jamo"],
+  [0x1780, 0x17FF, "khmer"],
+  [0x3040, 0x30FF, "hiragana/katakana"],
+  [0x3100, 0x312F, "bopomofo"],
+  [0x3130, 0x318F, "hangul compatibilidade"],
+  [0x31F0, 0x31FF, "katakana ext."],
+  [0x3400, 0x4DBF, "CJK ext. A"],
+  [0x4E00, 0x9FFF, "CJK unificado"],
+  [0xA960, 0xA97F, "hangul jamo ext."],
+  [0xAC00, 0xD7FF, "hangul sílabas"],
+  [0xF900, 0xFAFF, "CJK compatibilidade"],
+  [0xFE30, 0xFE4F, "CJK formas de compatibilidade"],
+  [0xFF65, 0xFFDC, "katakana/hangul meia-largura"],
+  [0x20000, 0x2FA1F, "CJK ext. B+"],
+];
+function sanidadeTexto(texto: string): { ch: string; script: string }[] {
+  const suspeitos = new Map<string, string>();
   for (const ch of texto) {
     const cp = ch.codePointAt(0) ?? 0;
-    if (cp <= 0x7f) continue;                        // ASCII puro
-    if (cp === 0xfe0f || cp === 0x200d || cp === 0xa0) continue; // variation selector / ZWJ / NBSP (parte de emoji composto)
-    if (EMOJI_SEGUROS.has(ch)) continue;              // emoji já aprovado no app
-    if (cp >= 0xa1 && cp <= 0x24f) continue;          // Latin-1 Suppl. + Latin Ext-A: acentos PT-BR, ×, º/ª
-    if (cp >= 0x2010 && cp <= 0x2027) continue;       // pontuação tipográfica comum (aspas curvas, travessões, reticências)
-    suspeitos.add(ch);
+    for (const [ini, fim, script] of SCRIPTS_BLOQUEADOS) {
+      if (cp >= ini && cp <= fim) {
+        suspeitos.set(ch, script);
+        break;
+      }
+    }
   }
-  return [...suspeitos];
+  return [...suspeitos].map(([ch, script]) => ({ ch, script }));
 }
 // ─── Menção obrigatória (v1.10) ──────────────────────────────────────────────
 // A provocação final de TODA mensagem programada é DETERMINÍSTICA: a aplicação
@@ -555,10 +583,10 @@ async function enviaEmPartes(grupo: string, texto: string, mentions: string[] = 
   const suspeitos = sanidadeTexto(texto);
   if (suspeitos.length) {
     const detalhe = suspeitos
-      .map((c) => `'${c}' (U+${(c.codePointAt(0) ?? 0).toString(16).toUpperCase().padStart(4, "0")})`)
+      .map((s) => `'${s.ch}' (U+${(s.ch.codePointAt(0) ?? 0).toString(16).toUpperCase().padStart(4, "0")}, ${s.script})`)
       .join(", ");
-    console.error("[filtro de sanidade] caractere(s) suspeito(s) — envio BLOQUEADO:", detalhe, "| texto:", texto.slice(0, 300));
-    throw new Error(`Filtro de sanidade bloqueou o envio: caractere(s) suspeito(s) detectado(s) (${detalhe}) — provável glitch do modelo. Gere a mensagem de novo.`);
+    console.error("[filtro de sanidade] script incompatível com português — envio BLOQUEADO:", detalhe, "| texto:", texto.slice(0, 300));
+    throw new Error(`Filtro de sanidade bloqueou o envio: caractere de escrita incompatível com português (${detalhe}) — provável glitch do modelo. Clique em 🐀 Acordar o Ratazana de novo.`);
   }
   const partes = divideEmPartes(texto);
   if (!partes.length) throw new Error("texto ficou vazio após a divisão em blocos");
