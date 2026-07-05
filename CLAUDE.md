@@ -8,7 +8,7 @@
 > - **Sempre crie safepoint (tag) antes de merge pra `main`**.
 > - Não toque na `congelado-fase-grupos` (museu) nem na `dev` (backup antigo congelado).
 > - **Robô Ratazana (bot WhatsApp) EM PRODUÇÃO**, ainda só no grupo de TESTE — ver §13. Admin de placares no ar — ver §14. **Persona v2.1.2 + função v1.11 DEPLOYADA (versão 14, jul/2026, autorização explícita) + `bot_telefones` PREENCHIDA (9 participantes, prod e dev). Menção real, fix do truncamento e filtro de sanidade por script TESTADOS ao vivo no grupo de teste.** A URL de disparo da cobrança exige `&destino=teste`.
-- **Função v1.13 DEPLOYADA (jul/2026)** — agenda e cobrança separadas de vez: `?tipo=agenda` (9h, só jogos/turbo/zebra/liderança, NUNCA fala de quem falta palpitar) + `?tipo=cobranca_dia` (9h01, mesmo pipeline da cobrança manual, só envia se faltar alguém) + `?tipo=ultima_chamada` (T-60min, só envia se faltar alguém NAQUELE jogo) — ver §13. **Persona v2.2**: ganhou o viés emocional Brasil×Argentina (torcedor roxo do Brasil, implicância com a Argentina), aplicada em prod+dev via REST. **⚠️ `supabase_pg_cron.sql` agora aponta os 3 jobs pro `&destino=oficial`** (pedido explícito do Vini nesta leva — antes era `teste` de propósito). **pg_cron/pg_net AINDA NÃO habilitados no banco** (auditoria confirmou zero automação): SQL pronto, aguardando o Vini rodar no SQL Editor (armadilha 8 — DDL de extensão é automação bloqueada pro Claude Code). **A partir do momento em que esse SQL rodar, os 3 jobs passam a mandar mensagem de verdade pro grupo oficial da família, sozinhos, todo dia** — até lá, os modos só disparam se alguém chamar a URL manualmente.
+- **Função v1.13 DEPLOYADA (versão 16, jul/2026, autorização explícita)** — agenda e cobrança separadas de vez: `?tipo=agenda` (9h, só jogos/turbo/zebra/liderança, NUNCA fala de quem falta palpitar) + `?tipo=cobranca_dia` (9h01, mesmo pipeline da cobrança manual, só envia se faltar alguém) + `?tipo=ultima_chamada` (T-60min, só envia se faltar alguém NAQUELE jogo) — ver §13. **Persona v2.2**: ganhou o viés emocional Brasil×Argentina (torcedor roxo do Brasil, implicância com a Argentina), aplicada em prod+dev via REST. **⚠️ `supabase_pg_cron.sql` agora aponta os 3 jobs pro `&destino=oficial`** (pedido explícito do Vini nesta leva — antes era `teste` de propósito). **pg_cron/pg_net AINDA NÃO habilitados no banco** (auditoria confirmou zero automação): SQL pronto, aguardando o Vini rodar no SQL Editor (armadilha 8 — DDL de extensão é automação bloqueada pro Claude Code). **A partir do momento em que esse SQL rodar, os 3 jobs passam a mandar mensagem de verdade pro grupo oficial da família, sozinhos, todo dia** — até lá, os modos só disparam se alguém chamar a URL manualmente.
 > - **⚠️ Repo é PÚBLICO** — nada sensível em arquivo versionado (ver armadilha 9).
 
 Guia de navegação do projeto — para saber **onde mexer sem explorar o código**.
@@ -635,8 +635,9 @@ o banco.
 
 ## 15. Pendências abertas (jul/2026)
 
--3. **✅ v1.13 DEPLOYADA (jul/2026)** — agenda/cobrança separadas (agenda não fala
-   mais de quem falta palpitar), `?tipo=cobranca_dia` novo (mesmo pipeline da
+-3. **✅ v1.13 DEPLOYADA (versão 16, jul/2026, autorização explícita)** — agenda e
+   cobrança separadas de vez (agenda não fala mais de quem falta palpitar),
+   `?tipo=cobranca_dia` novo (mesmo pipeline da
    cobrança manual, mesma trava "só cobra se faltar alguém", pensado pra rodar
    9h01), última chamada mudou de T-30min pra T-60min (55-65min) e só envia se
    faltar alguém NAQUELE jogo. Persona v2.2 (viés Brasil×Argentina) aplicada em
