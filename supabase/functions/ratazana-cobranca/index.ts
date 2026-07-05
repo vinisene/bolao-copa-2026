@@ -807,7 +807,7 @@ Deno.serve(async (req: Request) => {
         sbGet(`${pref}mata_confrontos?select=*`),
         sbGet(`${pref}mata_palpites?select=confronto_id,pid,gols_a,gols_b,quem_passa`),
         sbGet("bot_config?key=in.(system_prompt_ratazana,modelo_ia)&select=key,value"),
-        sbGet("bot_telefones?select=participante_id,nome_exibicao,genero").catch(() => []),
+        sbGet("bot_telefones?select=participante_id,nome_exibicao,genero,telefone_whatsapp,is_humano").catch(() => []),
       ]);
       const cfgMap: Record<string, string> = {};
       for (const row of cfg) cfgMap[row.key] = row.value;
@@ -1049,7 +1049,7 @@ Deno.serve(async (req: Request) => {
       sbGet("mata_confrontos?select=*"),
       sbGet("mata_palpites?select=confronto_id,pid,gols_a,gols_b,quem_passa"),
       sbGet("bot_config?key=in.(system_prompt_ratazana,modelo_ia,fase_ativa)&select=key,value"),
-      sbGet("bot_telefones?select=participante_id,nome_exibicao,genero").catch(() => []),
+      sbGet("bot_telefones?select=participante_id,nome_exibicao,genero,telefone_whatsapp,is_humano").catch(() => []),
     ]);
     const cfgMap: Record<string, string> = {};
     for (const row of cfg) cfgMap[row.key] = row.value;
