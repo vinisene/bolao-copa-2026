@@ -24,13 +24,14 @@ Os números aqui são referência aproximada (estado em ~3250 linhas).
 - Redesign visual Copa 26 **concluído e no ar** (tokens de cor/fonte, identidade Ratazana).
 - **Identidade Visual Copa 2026 (fontes/cantos/cores) — MESCLADA e NO AR em `main`.** Trabalhada na `ratazana`, com merge já feito e publicado em produção (ver detalhes em §3 e §7). Ver §12 para o resumo completo desta leva.
 - **Robô Ratazana + admin de placares — MESCLADOS e NO AR em `main`** (merge `8c2bd88`, jul/2026; safepoint `v13-prod-pre-robo-admin` criado na `main` antes do merge). Bot de WhatsApp (Edge Function `ratazana-cobranca`) + página `admin-860c200f.html` + travas de integridade do placar. **O robô ainda aponta pro grupo de TESTE** — trocar pro oficial é decisão do Vini. Ver §13 (robô), §14 (admin) e §15 (pendências).
+- **Leva do lançamento v2 do robô — MESCLADA e NO AR em `main`** (merge `1659253`, jul/2026; safepoint `v15-prod-pre-ratazana-lancamento` na `main` antes do merge; Cloudflare confirmado por hash idêntico do admin servido): persona v2.1.1, admin com botão único "Acordar" (pessoa+direcionamento+destino, sem preview), destino explícito, listar grupos JID/Name, mensagem inaugural definitiva, filtro de sanidade. ⚠️ Função no ar segue a **v1.9 (versão 11)** — o deploy da v1.10 (menção real) segue pendente de autorização explícita (§15 item -1).
 - Cabeçalho **NÃO é sticky** — foi a correção do bug de clique do chaveamento; não voltar.
 - `ratazana` → branch de trabalho diário; publica em `ratazana.bolao-ratazana00.pages.dev`.
 - Projeto antigo `bolao-ratazana-copa26.pages.dev` ainda existe mas **não é o oficial**.
 - `congelado-fase-grupos` → museu (fase de grupos, congelada). **Não recebe mudanças.**
 
 **Safepoints (tags):**
-`v4-pre-redesign` · `v5-prod-pre-redesign` · `v6-prod-pre-fix-palpite` · `v7-prod-pre-mano-gi` · `v8-prod-pre-melhorias` · `v9-prod-pre-fotos` · `v10-pre-visual-v2` · `v10-pre-identidade-copa` · `v11-pre-chaveamento-novo` · `v11-pre-robo-ratazana` · `v12-prod-pre-visual-redesign` · `v12-pre-admin-placar` · `v13-prod-pre-robo-admin`
+`v4-pre-redesign` · `v5-prod-pre-redesign` · `v6-prod-pre-fix-palpite` · `v7-prod-pre-mano-gi` · `v8-prod-pre-melhorias` · `v9-prod-pre-fotos` · `v10-pre-visual-v2` · `v10-pre-identidade-copa` · `v11-pre-chaveamento-novo` · `v11-pre-robo-ratazana` · `v12-prod-pre-visual-redesign` · `v12-pre-admin-placar` · `v13-prod-pre-robo-admin` · `v14-prod-pre-identidade-institucional` · `v15-prod-pre-ratazana-lancamento`
 Voltar: `git checkout <tag>`. Listar: `git tag -n1`.
 ⚠️ Há **pares de tags com o mesmo número** vindos de levas distintas (não confundir):
 `v10-pre-visual-v2` (navegação) ≠ `v10-pre-identidade-copa` (fontes/cantos/cores, §12);
