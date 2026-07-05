@@ -8,7 +8,7 @@
 > - **Sempre crie safepoint (tag) antes de merge pra `main`**.
 > - Não toque na `congelado-fase-grupos` (museu) nem na `dev` (backup antigo congelado).
 > - **Robô Ratazana (bot WhatsApp) EM PRODUÇÃO**, ainda só no grupo de TESTE — ver §13. Admin de placares no ar — ver §14. **Persona v2.1.2 + função v1.11 DEPLOYADA (versão 14, jul/2026, autorização explícita) + `bot_telefones` PREENCHIDA (9 participantes, prod e dev). Menção real, fix do truncamento e filtro de sanidade por script TESTADOS ao vivo no grupo de teste.** A URL de disparo da cobrança exige `&destino=teste`.
-- **Fase 2 (Ouvidos) COMEÇOU (v1.14, jul/2026)** — captura bruta das mensagens do grupo de TESTE: modo `?tipo=webhook` (recebe eventos da ZapZap, grava terceiros em `mensagens_grupo`, ignora o bot e qualquer outro grupo incl. o oficial) + utilitário `?tipo=configurar_webhook` (a função auto-registra a URL de captura na ZapZap) + aviso único "o Ratazana vê tudo" na 1ª captura (trava atômica em `bot_config`). Tabela `mensagens_grupo` JÁ CRIADA em produção (RLS sem policy pública — privacidade). **Nenhuma resposta a menção/citação ainda — Fase 3.** Ver §13.
+- **Função v1.14+v1.15 DEPLOYADA (versão 17, jul/2026, autorização explícita)** — Fase 2 (Ouvidos, captura bruta do grupo de TESTE via `?tipo=webhook` + auto-registro `?tipo=configurar_webhook` + aviso único "o Ratazana vê tudo") e blindagem da última chamada (claim-then-act atômico em `bot_config`, helpers `claimUmaVez`/`liberaClaim`). Tabela `mensagens_grupo` criada em produção (RLS sem policy pública — privacidade). Verificado sem enviar nada: 401 nosso sem token (Verify JWT OFF). **Pra ligar a captura falta: chamar `?tipo=configurar_webhook` 1x (Vini) + mensagens reais no grupo de teste. Nenhuma resposta a menção/citação ainda — Fase 3.** Ver §13.
 - **Função v1.13 DEPLOYADA (versão 16, jul/2026, autorização explícita)** — agenda e cobrança separadas de vez: `?tipo=agenda` (9h, só jogos/turbo/zebra/liderança, NUNCA fala de quem falta palpitar) + `?tipo=cobranca_dia` (9h01, mesmo pipeline da cobrança manual, só envia se faltar alguém) + `?tipo=ultima_chamada` (T-60min, só envia se faltar alguém NAQUELE jogo) — ver §13. **Persona v2.2**: ganhou o viés emocional Brasil×Argentina (torcedor roxo do Brasil, implicância com a Argentina), aplicada em prod+dev via REST. **⚠️ `supabase_pg_cron.sql` agora aponta os 3 jobs pro `&destino=oficial`** (pedido explícito do Vini nesta leva — antes era `teste` de propósito). **pg_cron/pg_net AINDA NÃO habilitados no banco** (auditoria confirmou zero automação): SQL pronto, aguardando o Vini rodar no SQL Editor (armadilha 8 — DDL de extensão é automação bloqueada pro Claude Code). **A partir do momento em que esse SQL rodar, os 3 jobs passam a mandar mensagem de verdade pro grupo oficial da família, sozinhos, todo dia** — até lá, os modos só disparam se alguém chamar a URL manualmente.
 > - **⚠️ Repo é PÚBLICO** — nada sensível em arquivo versionado (ver armadilha 9).
 
@@ -660,23 +660,23 @@ o banco.
 
 ## 15. Pendências abertas (jul/2026)
 
--5. **Blindagem v1.15 COMMITADA (claim-then-act na última chamada + timeout do
-   pg_net)** — idempotência da última chamada deixou de ser check-then-act sobre
-   `bot_log` (fail-open, com corrida de ~5-15s durante a geração da IA) e virou
-   reserva atômica em `bot_config` ANTES da IA (ver §13). `supabase_pg_cron.sql`
-   ganhou `timeout_milliseconds := 60000` nos 3 jobs (default ~5s do pg_net era
-   mais curto que a execução real da função). Deploy da v1.14+v1.15 PENDENTE de
-   autorização explícita. Rodar o SQL de novo é seguro: `cron.schedule` com o
-   mesmo jobname substitui o job existente.
--4. **Fase 2 (Ouvidos) — v1.14 COMMITADA; captura precisa de 3 passos pra ligar:**
-   (1) deploy da v1.14 (autorização explícita do Vini, como sempre); (2) chamar
-   `?tipo=configurar_webhook` UMA vez (registra a URL de captura na ZapZap — só
-   quem tem o token consegue); (3) alguém mandar mensagem no grupo de TESTE.
-   Tabela `mensagens_grupo` JÁ CRIADA em produção (RLS sem policy pública).
-   O aviso "o Ratazana vê tudo" sai sozinho na 1ª captura (1x na vida, trava em
-   `bot_config.ouvidos_aviso_enviado`). Amostra real pro relatório (2-3 mensagens
-   com mentions/quoted preenchidos) só depois desses passos. Fase 3 (responder
-   menção/citação) NÃO começou — nenhuma lógica de resposta existe.
+-5. **✅ v1.15 DEPLOYADA (versão 17, jul/2026, autorização explícita, junto com a
+   v1.14)** — claim-then-act na última chamada: idempotência deixou de ser
+   check-then-act sobre `bot_log` (fail-open, com corrida de ~5-15s durante a
+   geração da IA) e virou reserva atômica em `bot_config` ANTES da IA (ver §13).
+   `supabase_pg_cron.sql` ganhou `timeout_milliseconds := 60000` nos 3 jobs
+   (default ~5s do pg_net era mais curto que a execução real da função). Rodar o
+   SQL de novo é seguro: `cron.schedule` com o mesmo jobname substitui o job.
+   **Com isso o pg_cron está LIBERADO pra ativar** — só falta o Vini rodar o SQL.
+-4. **✅ v1.14 (Ouvidos) DEPLOYADA (versão 17); captura precisa de 2 passos pra
+   ligar:** (1) chamar `?tipo=configurar_webhook` UMA vez (registra a URL de
+   captura na ZapZap — só quem tem o token consegue); (2) alguém mandar mensagem
+   no grupo de TESTE. Tabela `mensagens_grupo` JÁ CRIADA em produção (RLS sem
+   policy pública). O aviso "o Ratazana vê tudo" sai sozinho na 1ª captura (1x na
+   vida, trava em `bot_config.ouvidos_aviso_enviado`). Amostra real pro relatório
+   (2-3 mensagens com mentions/quoted preenchidos) só depois desses passos.
+   Fase 3 (responder menção/citação) NÃO começou — nenhuma lógica de resposta
+   existe.
 -3. **✅ v1.13 DEPLOYADA (versão 16, jul/2026, autorização explícita)** — agenda e
    cobrança separadas de vez (agenda não fala mais de quem falta palpitar),
    `?tipo=cobranca_dia` novo (mesmo pipeline da
