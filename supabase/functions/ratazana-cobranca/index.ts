@@ -1,6 +1,18 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // ROBÔ RATAZANA — Edge Function "ratazana-cobranca"
-// (v1.16.1 — FIX DO GATILHO DE MENÇÃO (achados do 1º teste real da Fase 3):
+// (v1.17 — CONVERSA COM CONTEXTO FACTUAL + MODO PAPO (achados do 2º teste
+//  real): 1) o "reply mudo" era o COOLDOWN de 30s, mais longo que o ritmo
+//  natural de conversa (replies reais em 13s/22s engolidos sem log) — caiu
+//  pra 10s e todo skip com gatilho disparado agora é logado em bot_log
+//  (status nao_enviado); o match de citação estava certo. 2) contexto da
+//  conversa ganhou data/hora de Brasília, resultados fechados dos últimos 3
+//  dias (com consequência) e situação atual de Brasil/Argentina calculada da
+//  chave — com instrução dura de nunca negar fato listado (o bot tinha
+//  NEGADO o jogo do Brasil por não ter o resultado no contexto). 3) TAREFA
+//  do modo conversa: responder primeiro o que a pessoa disse, dados do bolão
+//  só se relevantes, 1-3 linhas, humor coerente com o viés Brasil×Argentina.
+//  Persona v2.3: bordões com parcimônia (máx. 1/mensagem; "caderninho" raro).
+//  v1.16.1 — FIX DO GATILHO DE MENÇÃO (achados do 1º teste real da Fase 3):
 //  1) o campo de menções no envelope da ZapZap é "mentionedJID" (JID todo
 //  maiúsculo, em content.contextInfo) — adicionado ao parser (match de chave
 //  é case-sensitive; mentions vinha NULL em toda captura); 2) menção em grupo
@@ -889,7 +901,12 @@ async function avisoOuvidosUmaVez(grupoTeste: string): Promise<boolean> {
 // Sem gatilho → só arquiva (comportamento da Fase 2, intacto). SEM busca na
 // web e SEM ficha relacional nesta leva (próximas etapas da Fase 3).
 const CONVERSA_MAX_POR_HORA = 6;    // teto global anti-cascata
-const CONVERSA_COOLDOWN_SEG = 30;   // intervalo mínimo por pessoa
+// Cooldown por pessoa: 30s era MAIS LONGO que o ritmo natural de conversa —
+// no teste real os replies vieram 13s e 22s depois da resposta do bot e
+// foram engolidos em silêncio (parecia bug no match de citação; era isto).
+// 10s ainda barra spam/cascata (anti-eco + teto/hora seguram o resto) sem
+// matar o vai-e-vem normal de um papo.
+const CONVERSA_COOLDOWN_SEG = 10;
 
 // Identidades do WhatsApp da própria instância (base do gatilho de menção e
 // do anti-eco). Achado real do teste: o WhatsApp moderno usa DOIS
@@ -948,8 +965,22 @@ async function buscaMensagemBot(quotedId: string): Promise<Conf | null> {
 // Avalia os gatilhos e, se for o caso, gera e envia a resposta. Devolve o que
 // aconteceu (pro JSON do webhook e pro teste manual do Vini).
 async function conversaTalvezResponder(m: Conf, grupoTeste: string, telefoneRemetente: string) {
-  const semResposta = (motivo: string, gatilho: string | null = null) =>
-    ({ respondida: false, gatilho, motivo });
+  // Skip com gatilho DISPARADO fica auditável em bot_log (status nao_enviado,
+  // que o rate-limit ignora — ele só conta status ok). Lição do teste real:
+  // o cooldown engoliu dois replies em silêncio e pareceu bug de match de
+  // citação — nunca mais skip mudo. Skip sem gatilho (mensagem comum) segue
+  // sem log, senão o bot_log viraria espelho do grupo.
+  const semResposta = async (motivo: string, gatilho: string | null = null) => {
+    if (gatilho) {
+      await botLog({
+        tipo: "conversa",
+        destino: `teste (${grupoTeste}) [para:${telefoneRemetente || "?"}] [gatilho:${gatilho}]`,
+        status_envio: "nao_enviado",
+        erro: motivo,
+      });
+    }
+    return { respondida: false, gatilho, motivo };
+  };
 
   // gatilho a: menção real ao bot (compara contra o CONJUNTO de identidades
   // da instância — telefone E lid, ver botIdentidades)
@@ -1032,16 +1063,87 @@ async function conversaTalvezResponder(m: Conf, grupoTeste: string, telefoneReme
         return `${t.a?.name || "A definir"} × ${t.b?.name || "A definir"} às ${i.tm}${MM_TURBO.has(c.id) ? " (⚡ turbo)" : ""}`;
       });
 
+    // ─ Contexto factual (v1.17) — achado grave do teste real: perguntaram do
+    // jogo do Brasil de ontem e o bot NEGOU que houve jogo (não tinha nenhum
+    // resultado no contexto). Aqui entram data/hora, os placares fechados dos
+    // últimos 3 dias e a situação atual das duas seleções do viés emocional. ─
+    const agoraD = new Date();
+    const dataHoje = new Intl.DateTimeFormat("pt-BR", { dateStyle: "full", timeZone: "America/Sao_Paulo" }).format(agoraD);
+    const horaAgora = new Intl.DateTimeFormat("pt-BR", { timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(agoraD);
+
+    const tresDiasAtras = Date.now() - 3 * 24 * 3600_000;
+    const resultadosRecentes = confrontos
+      .filter((c: Conf) => !mmIsTest(c) && c.finished && c.real_a != null && c.real_b != null)
+      .map((c: Conf) => ({ c, d: mmGameDate(c) }))
+      .filter((x: Conf) => x.d && x.d.getTime() >= tresDiasAtras)
+      .sort((a: Conf, b: Conf) => b.d.getTime() - a.d.getTime())
+      .map(({ c, d }: Conf) => {
+        const t = teamsOf(c);
+        const nomeA = t.a?.name || c.team_a || "A";
+        const nomeB = t.b?.name || c.team_b || "B";
+        const rw = mmRealWinner(c);
+        const venceu = rw === "A" ? nomeA : nomeB;
+        const perdeu = rw === "A" ? nomeB : nomeA;
+        const pen = (c.real_a === c.real_b && c.classificado) ? " nos pênaltis" : "";
+        const cons = c.id === "fin_1" ? `${venceu} CAMPEÃO da Copa`
+          : c.id === "tp_1" ? `${venceu} ficou com o 3º lugar`
+          : (() => {
+              const q = mmConsequencia(c.id);
+              return q.losePhase
+                ? `${venceu} avançou; ${perdeu} disputa o ${q.losePhase}`
+                : `${venceu} avançou; ${perdeu} ELIMINADO`;
+            })();
+        return `- ${diaSemana(d)} ${mmInfo(c).dt}: ${nomeA} ${c.real_a}×${c.real_b} ${nomeB}${pen} (${PH_LABEL[mmPhaseKeyOf(c.id)]}) — ${cons}`;
+      });
+
+    // Situação atual das seleções do viés emocional (v2.2) — calculada da
+    // chave, então continua correta conforme o torneio anda.
+    const situacaoTime = (time: string): string => {
+      const doTime = confrontos
+        .filter((c: Conf) => !mmIsTest(c))
+        .map((c: Conf) => ({ c, t: teamsOf(c), d: mmGameDate(c) }))
+        .filter((x: Conf) => x.t.a?.name === time || x.t.b?.name === time);
+      if (!doTime.length) return `${time}: fora do mata-mata`;
+      const fechados = doTime.filter((x: Conf) => x.c.finished && x.c.real_a != null)
+        .sort((a: Conf, b: Conf) => (b.d?.getTime() || 0) - (a.d?.getTime() || 0));
+      const ultimo = fechados[0];
+      if (ultimo) {
+        const lado = ultimo.t.a?.name === time ? "A" : "B";
+        const adv = lado === "A" ? (ultimo.t.b?.name || "?") : (ultimo.t.a?.name || "?");
+        const rw = mmRealWinner(ultimo.c);
+        const fase = PH_LABEL[mmPhaseKeyOf(ultimo.c.id)];
+        const quando = `${diaSemana(ultimo.d)} ${mmInfo(ultimo.c).dt}`;
+        if (rw && rw !== lado) {
+          const q = mmConsequencia(ultimo.c.id);
+          return q.losePhase
+            ? `${time}: perdeu pra ${adv} nas ${fase} (${quando}), ainda disputa o ${q.losePhase}`
+            : `${time}: ELIMINADO da Copa — perdeu pra ${adv} nas ${fase} (${quando})`;
+        }
+        if (ultimo.c.id === "fin_1") return `${time}: CAMPEÃO da Copa`;
+        return `${time}: VIVO no torneio — último jogo: venceu ${adv} nas ${fase} (${quando})`;
+      }
+      return `${time}: vivo no torneio (ainda sem jogo fechado no mata)`;
+    };
+
     userPrompt =
-      `DADOS VERIFICADOS DO BOLÃO (conversa no grupo de WhatsApp, gerados em ${agoraBrasilia()}, horário de Brasília). Use somente estes dados. Não calcule nem invente nada.\n\n` +
+      `DADOS VERIFICADOS DO BOLÃO (conversa no grupo de WhatsApp). Hoje é ${dataHoje}, ${horaAgora} em Brasília. Use somente estes dados. Não calcule nem invente nada.\n\n` +
       `MENSAGEM RECEBIDA AGORA:\n` +
       `- De: ${nome}${genero ? ` (${genero})` : ""}${posPessoa ? ` — ${posPessoa}º lugar no Ranking do Bolão com ${fmtPts(rank[posPessoa - 1].total)} pts` : ""}\n` +
       `- Texto: "${String(m.texto).slice(0, 600)}"\n` +
       (gatilho === "mencao" ? `- Você foi marcado nessa mensagem.\n` : "") +
       (msgOriginal ? `- Ela é RESPOSTA a esta mensagem que você mandou no grupo antes: "${String(msgOriginal.texto || "").slice(0, 400)}"\n` : "") +
-      `\nJOGOS DE HOJE (ainda abertos): ${jogosHoje.length ? jogosHoje.join("; ") : "nenhum"}\n` +
+      `\nRESULTADOS RECENTES (últimos 3 dias, placares FINAIS — são fatos):\n` +
+      `${resultadosRecentes.length ? resultadosRecentes.join("\n") : "- nenhum jogo fechado nos últimos 3 dias"}\n` +
+      `SITUAÇÃO DAS SELEÇÕES DO SEU CORAÇÃO:\n- ${situacaoTime("Brasil")}\n- ${situacaoTime("Argentina")}\n` +
+      `JOGOS DE HOJE (ainda abertos): ${jogosHoje.length ? jogosHoje.join("; ") : "nenhum"}\n` +
       `RANKING DO BOLÃO: top 3: ${top3}. Você está em ${posRat}º com ${fmtPts(rank[posRat - 1].total)} pts.\n` +
-      `\nTAREFA: responda a mensagem de ${nome} no grupo (1 a 4 linhas, mensagem única), em personagem, dirigindo-se a ${nome === "alguém do grupo" ? "quem falou" : nome} pelo nome. Responda o que a pessoa disse/perguntou de verdade — use os dados acima só se vierem ao caso. Calibre a intensidade pelo gênero. Não use @. Sem link do bolão. Não cobre palpite a menos que perguntem sobre isso.`;
+      `\nTAREFA — MODO CONVERSA (isto NÃO é mensagem programada; o formato de 4 a 7 linhas NÃO vale aqui):\n` +
+      `1. PRIMEIRO responda diretamente o que ${nome === "alguém do grupo" ? "a pessoa" : nome} disse ou perguntou, como num papo de verdade.\n` +
+      `2. Jogos do dia, palpites e ranking só entram se tiverem relação com o que a pessoa falou — ou como fecho de UMA frase, opcional. Nunca como corpo principal não pedido.\n` +
+      `3. Curto: 1 a 3 linhas na maioria das vezes. Tom de conversa, ácido, em personagem.\n` +
+      `4. COERÊNCIA FACTUAL OBRIGATÓRIA: os resultados e situações acima são FATOS que você conhece e comenta com naturalidade. NUNCA negue algo que está listado — se está nos resultados, aconteceu. Se perguntarem de algo que NÃO está nos dados, admita que não acompanhou esse lance; jamais afirme que não aconteceu.\n` +
+      `5. Seu humor nesta conversa decorre da SITUAÇÃO DAS SELEÇÕES DO SEU CORAÇÃO acima, aplicando o seu viés declarado (ex.: Brasil eliminado = luto mal disfarçado e implicância redobrada com a Argentina, coerente com o que você mesmo já postou no grupo).\n` +
+      `6. Calibre a intensidade pelo gênero. Não use @. Sem link do bolão. Não cobre palpite a menos que perguntem sobre isso.`;
 
     const ia = await chamaIA(modelo, systemPrompt, userPrompt, 2500);
     respostaIA = ia.texto;
