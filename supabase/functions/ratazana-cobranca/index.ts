@@ -1,6 +1,19 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // ROBÔ RATAZANA — Edge Function "ratazana-cobranca"
-// (v1.18 — CALIBRAGEM DA CONVERSA (3ª rodada de testes reais, SÓ grupo de
+// (v1.18.1 — RANKING SEM BURACOS + REGRA DAS IAs VIRA COMPORTAMENTO: achado
+//  real de teste — perguntado "quem é o lanterna", o bot respondeu o 11º em
+//  vez do 14º real, porque o ranking da conversa FILTRAVA as IAs fora do
+//  top 3 antes de montar a lista (tirava linhas do meio, distorcendo posição
+//  relativa mesmo entre humanos). Agora o ranking da conversa é SEMPRE
+//  completo (14 posições reais, sem buraco) e a "regra de existência das
+//  IAs concorrentes" deixou de filtrar dado — virou regra de comportamento
+//  na persona: só fala de IA fora do top 3 se for perguntado direto sobre
+//  ela. `pessoasCitadasBloco` também passou a varrer todo MATA_PARTS_BOT
+//  (antes só varria os citáveis, então uma IA fora do top 3 citada por nome
+//  nem entrava na busca). Mensagens programadas (agenda/cobrança/pós-jogo)
+//  não mudaram — lá o filtro de dado permanece (nunca há "pergunta direta"
+//  numa transmissão).
+//  v1.18 — CALIBRAGEM DA CONVERSA (3ª rodada de testes reais, SÓ grupo de
 //  TESTE): 1) RECONHECIMENTO DE PESSOAS — coluna `lid` em bot_telefones faz
 //  a ponte LID→participante (remetente em grupo chega como ...@lid); match
 //  do remetente por telefone OU lid; auto-aprendizado grava o lid sozinho
@@ -1117,17 +1130,17 @@ async function conversaTalvezResponder(m: Conf, grupoTeste: string, telefoneReme
       .sort((a, b) => b.total - a.total || b.eHits - a.eHits || b.rHits - a.rHits);
     const posPessoa = part ? rank.findIndex((r) => r.p.id === part.id) + 1 : 0;
     const posRat = rank.findIndex((r) => r.p.id === RATAZANA_ID) + 1;
-    // Ranking COMPLETO (v1.18) — todas as posições dos citáveis, com a
-    // numeração REAL do app. A regra de existência das IAs concorrentes segue
-    // intacta: IA fora do top 3 não aparece (a posição dela fica sem linha —
-    // instrução no prompt manda não inventar nome pra posição ausente).
-    const citaveis = participantesCitaveis(rank);
-    const citaveisIds = new Set(citaveis.map((p) => p.id));
+    // Ranking COMPLETO E SEM BURACOS (v1.18.1) — TODAS as posições, humanos e
+    // IAs, com a numeração real do app. Achado real de teste: filtrar IAs
+    // fora do top 3 aqui (como a v1.18 fazia) tirava linhas do meio da
+    // lista e o modelo perdia a noção de quem é o último/quinto/etc mesmo
+    // entre HUMANOS (perguntado "quem é o lanterna", respondeu 11º em vez do
+    // 14º real). A regra de existência das IAs concorrentes deixou de ser
+    // filtro de DADO e virou regra de COMPORTAMENTO na persona: o modelo tem
+    // a lista inteira, mas só fala de IA fora do top 3 se for perguntado
+    // direto sobre ela.
     const rankingCompleto = rank
-      .map((r, ix) => citaveisIds.has(r.p.id)
-        ? `${ix + 1}º ${r.p.nome} — ${fmtPts(r.total)} pts (${r.eHits} placares cravados)`
-        : null)
-      .filter(Boolean)
+      .map((r, ix) => `${ix + 1}º ${r.p.nome} — ${fmtPts(r.total)} pts (${r.eHits} placares cravados)`)
       .join("\n");
 
     const { ddmm } = limitesBrasiliaHojeISO();
@@ -1202,10 +1215,13 @@ async function conversaTalvezResponder(m: Conf, grupoTeste: string, telefoneReme
       return `${time}: vivo no torneio (ainda sem jogo fechado no mata)`;
     };
 
-    // Pessoas CITADAS na mensagem (v1.18): por menção real (@, resolvida por
-    // telefone/lid) e por nome escrito (match caso/acento-insensitivo com
-    // borda de palavra — "Du" não pode casar dentro de "durante"). IAs
-    // concorrentes seguem a regra de existência (só se citáveis/top 3).
+    // Pessoas CITADAS na mensagem (v1.18.1): por menção real (@, resolvida
+    // por telefone/lid) e por nome escrito (match caso/acento-insensitivo com
+    // borda de palavra — "Du" não pode casar dentro de "durante"). Varre TODO
+    // MATA_PARTS_BOT (não só os citáveis): se a pergunta for direta sobre uma
+    // IA fora do top 3, o dado precisa estar disponível — quem decide se fala
+    // dela por iniciativa própria é a persona (regra de comportamento), não
+    // a busca de dados.
     const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
     const escapaRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const citadasIds = new Set<string>();
@@ -1216,7 +1232,7 @@ async function conversaTalvezResponder(m: Conf, grupoTeste: string, telefoneReme
       if (t) citadasIds.add(t.participante_id);
     }
     const txtNorm = norm(String(m.texto));
-    for (const p of citaveis) {
+    for (const p of MATA_PARTS_BOT) {
       if (part && p.id === part.id) continue;   // quem fala não é "pessoa citada"
       if (p.id === RATAZANA_ID) continue;       // falar do bot não é citar terceiro
       const apelido = (telefones as Conf[]).find((t: Conf) => t.participante_id === p.id)?.nome_exibicao;
@@ -1273,12 +1289,13 @@ async function conversaTalvezResponder(m: Conf, grupoTeste: string, telefoneReme
       `RANKING DO BOLÃO COMPLETO (posições e pontos reais; você está em ${posRat}º):\n${rankingCompleto}\n` +
       `\nTAREFA — MODO CONVERSA (isto NÃO é mensagem programada; o formato de 4 a 7 linhas NÃO vale aqui):\n` +
       `1. PRIMEIRO responda diretamente o que ${nome === "alguém do grupo" ? "a pessoa" : nome} disse ou perguntou, como num papo de verdade.\n` +
-      `2. Perguntou posição, pontos ou palpite de alguém? Responda com o dado REAL listado acima, com gosto e zoeira — NUNCA mande consultar o app nem "conferir depois": você é a fonte. Posição que não aparece na lista não existe pra você: não invente nome pra ela.\n` +
-      `3. Jogos do dia, palpites e ranking que NÃO foram perguntados só entram se tiverem relação com o assunto — ou como fecho de UMA frase, opcional. Nunca como corpo principal não pedido.\n` +
-      `4. Curto: 1 a 3 linhas na maioria das vezes. Tom de conversa, ácido, em personagem.\n` +
-      `5. COERÊNCIA FACTUAL OBRIGATÓRIA: os resultados e situações acima são FATOS que você conhece e comenta com naturalidade. NUNCA negue algo que está listado — se está nos resultados, aconteceu. Se perguntarem de algo que NÃO está nos dados (recorde histórico, estatística de jogador, notícia), NÃO crave: responda no tom "de cabeça eu diria X, mas não ponho a mão no fogo" e, se contestado, admita que pode estar desatualizado.\n` +
-      `6. Seu humor de fundo decorre da SITUAÇÃO DAS SELEÇÕES DO SEU CORAÇÃO acima — mas é humor de FUNDO: não verbalize o luto nem a implicância em toda resposta (dosagem está na sua persona).\n` +
-      `7. Calibre a intensidade pelo gênero. Não use @. Sem link do bolão. Não cobre palpite a menos que perguntem sobre isso.`;
+      `2. Perguntou posição, pontos ou palpite de alguém (o RANKING acima é COMPLETO e REAL, 1º ao último, sem buraco nenhum — inclusive as IAs concorrentes)? Responda com o dado REAL, com gosto e zoeira — NUNCA mande consultar o app nem "conferir depois": você é a fonte. Nunca invente que uma posição ou pessoa "não existe".\n` +
+      `3. IAs concorrentes fora do top 3: você tem o dado, mas só fala delas se PERGUNTADO DIRETO sobre aquela posição/jogo/pessoa especificamente — nunca por iniciativa própria, nunca como assunto voluntário.\n` +
+      `4. Jogos do dia, palpites e ranking que NÃO foram perguntados só entram se tiverem relação com o assunto — ou como fecho de UMA frase, opcional. Nunca como corpo principal não pedido.\n` +
+      `5. Curto: 1 a 3 linhas na maioria das vezes. Tom de conversa, ácido, em personagem.\n` +
+      `6. COERÊNCIA FACTUAL OBRIGATÓRIA: os resultados e situações acima são FATOS que você conhece e comenta com naturalidade. NUNCA negue algo que está listado — se está nos resultados, aconteceu. Se perguntarem de algo que NÃO está nos dados (recorde histórico, estatística de jogador, notícia), NÃO crave: responda no tom "de cabeça eu diria X, mas não ponho a mão no fogo" e, se contestado, admita que pode estar desatualizado.\n` +
+      `7. Seu humor de fundo decorre da SITUAÇÃO DAS SELEÇÕES DO SEU CORAÇÃO acima — mas é humor de FUNDO: não verbalize o luto nem a implicância em toda resposta (dosagem está na sua persona).\n` +
+      `8. Calibre a intensidade pelo gênero. Não use @. Sem link do bolão. Não cobre palpite a menos que perguntem sobre isso.`;
 
     const ia = await chamaIA(modelo, systemPrompt, userPrompt, 2500);
     respostaIA = ia.texto;
