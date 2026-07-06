@@ -8,7 +8,7 @@
 > - **Sempre crie safepoint (tag) antes de merge pra `main`**.
 > - Não toque na `congelado-fase-grupos` (museu) nem na `dev` (backup antigo congelado).
 > - **Robô Ratazana (bot WhatsApp) EM PRODUÇÃO**, ainda só no grupo de TESTE — ver §13. Admin de placares no ar — ver §14. **Persona v2.1.2 + função v1.11 DEPLOYADA (versão 14, jul/2026, autorização explícita) + `bot_telefones` PREENCHIDA (9 participantes, prod e dev). Menção real, fix do truncamento e filtro de sanidade por script TESTADOS ao vivo no grupo de teste.** A URL de disparo da cobrança exige `&destino=teste`.
-- **Fase 3 (Conversa) — v1.18.1 DEPLOYADA (jul/2026, commit `754e89b`) + persona v2.5** — ranking da conversa deixou de ter buracos (14 posições reais sempre) e a regra das IAs concorrentes virou comportamento (só fala de IA fora do top 3 se perguntado direto), não mais filtro de dado. Ver item -11 em §15. **v1.18 DEPLOYADA (versão 23, jul/2026) + persona v2.4** — o webhook responde quando o bot é mencionado (@) ou quando alguém responde/cita mensagem dele; SÓ grupo de TESTE; anti-cascata com **limites POR GRUPO** (keys `conversa_max_hora_*`/`conversa_cooldown_seg_*` em `bot_config`; TESTE = 30/hora + cooldown 5s, OFICIAL herda os defaults 6/hora + 10s; skip com gatilho é LOGADO). **v1.18 (calibragem):** coluna `lid` em `bot_telefones` (LID→participante; auto-aprendizado via `sender_pn` do payload; LID do Vini preenchido), remetente resolvido por telefone OU lid (fallback `senderName`), contexto com RANKING COMPLETO dos citáveis + dados das PESSOAS CITADAS na mensagem (menção real ou nome escrito). **Persona v2.4:** dosagem do viés Brasil×Argentina (luto máx. 1 a cada 3-4 respostas, decrescente), "você é a fonte" (nunca mandar consultar o app), humildade factual fora do bolão (fato externo nunca é cravado; contestado, admite — caso real: Klose artilheiro). Tabela `bot_mensagens_enviadas` criada em produção (registra o message_id de todo envio do bot; ⚠️ gatilho de citação só enxerga envios PÓS-v1.16). **v1.17 pós 2º teste real:** o "reply mudo" era o cooldown de 30s (mais longo que o ritmo de papo; match de citação estava certo); conversa ganhou CONTEXTO FACTUAL (data/hora, resultados dos últimos 3 dias, situação Brasil/Argentina pela chave, regra "nunca negar fato listado" — o bot tinha negado o jogo do Brasil) e MODO PAPO (responde primeiro o que a pessoa disse; dados do bolão só se relevantes; 1-3 linhas). **Persona v2.3**: bordões com parcimônia (máx. 1/mensagem; "caderninho" raro), aplicada em prod+dev. Reteste pendente. Sem busca na web/ficha relacional ainda. Ver §13/§15 item -7. **Compatibilidade `enviar_texto` × `net.http_post` do pg_net CONFERIDA — nenhum ajuste necessário.**
+- **Fase 3 (Conversa) — v1.18.2 DEPLOYADA (jul/2026, commit `5a54465`) + persona v2.6** — fix do bug real de menção não resolvida (marcar contato sem LID mapeado fazia o bot reaproveitar por engano a identidade da mensagem citada) + BUSCA NA WEB ligada só no modo conversa (`web_search_20250305`, pra fato de futebol/Copa fora dos dados do bolão). Ver item -12 em §15. **v1.18.1 DEPLOYADA (jul/2026, commit `754e89b`) + persona v2.5** — ranking da conversa deixou de ter buracos (14 posições reais sempre) e a regra das IAs concorrentes virou comportamento (só fala de IA fora do top 3 se perguntado direto), não mais filtro de dado. Ver item -11 em §15. **v1.18 DEPLOYADA (versão 23, jul/2026) + persona v2.4** — o webhook responde quando o bot é mencionado (@) ou quando alguém responde/cita mensagem dele; SÓ grupo de TESTE; anti-cascata com **limites POR GRUPO** (keys `conversa_max_hora_*`/`conversa_cooldown_seg_*` em `bot_config`; TESTE = 30/hora + cooldown 5s, OFICIAL herda os defaults 6/hora + 10s; skip com gatilho é LOGADO). **v1.18 (calibragem):** coluna `lid` em `bot_telefones` (LID→participante; auto-aprendizado via `sender_pn` do payload; LID do Vini preenchido), remetente resolvido por telefone OU lid (fallback `senderName`), contexto com RANKING COMPLETO dos citáveis + dados das PESSOAS CITADAS na mensagem (menção real ou nome escrito). **Persona v2.4:** dosagem do viés Brasil×Argentina (luto máx. 1 a cada 3-4 respostas, decrescente), "você é a fonte" (nunca mandar consultar o app), humildade factual fora do bolão (fato externo nunca é cravado; contestado, admite — caso real: Klose artilheiro). Tabela `bot_mensagens_enviadas` criada em produção (registra o message_id de todo envio do bot; ⚠️ gatilho de citação só enxerga envios PÓS-v1.16). **v1.17 pós 2º teste real:** o "reply mudo" era o cooldown de 30s (mais longo que o ritmo de papo; match de citação estava certo); conversa ganhou CONTEXTO FACTUAL (data/hora, resultados dos últimos 3 dias, situação Brasil/Argentina pela chave, regra "nunca negar fato listado" — o bot tinha negado o jogo do Brasil) e MODO PAPO (responde primeiro o que a pessoa disse; dados do bolão só se relevantes; 1-3 linhas). **Persona v2.3**: bordões com parcimônia (máx. 1/mensagem; "caderninho" raro), aplicada em prod+dev. Reteste pendente. Sem busca na web/ficha relacional ainda. Ver §13/§15 item -7. **Compatibilidade `enviar_texto` × `net.http_post` do pg_net CONFERIDA — nenhum ajuste necessário.**
 - **Função v1.15.1 DEPLOYADA (versão 18, jul/2026)** — fix do registro do webhook: o 1º `configurar_webhook` real falhou com "URL do webhook é obrigatória" (o backend da ZapZap valida `webhook_url`, não o `url` documentado no POST da instância) → body agora leva os DOIS nomes; resposta ganhou `configured` (sucesso conferido RELENDO a config, não só o 2xx), `dica` honesta por resultado e redação do token (`[token]`) em tudo que ecoa. Engloba v1.14+v1.15 (Ouvidos + claim-then-act, autorização explícita). Tabela `mensagens_grupo` criada em produção (RLS sem policy pública — privacidade). **Pra ligar a captura falta: Vini chamar `?tipo=configurar_webhook` de novo (agora deve vir `ok:true, configured:true`) + mensagens reais no grupo de teste. Nenhuma resposta a menção/citação ainda — Fase 3.** Ver §13.
 - **Função v1.13 DEPLOYADA (versão 16, jul/2026, autorização explícita)** — agenda e cobrança separadas de vez: `?tipo=agenda` (9h, só jogos/turbo/zebra/liderança, NUNCA fala de quem falta palpitar) + `?tipo=cobranca_dia` (9h01, mesmo pipeline da cobrança manual, só envia se faltar alguém) + `?tipo=ultima_chamada` (T-60min, só envia se faltar alguém NAQUELE jogo) — ver §13. **Persona v2.2**: ganhou o viés emocional Brasil×Argentina (torcedor roxo do Brasil, implicância com a Argentina), aplicada em prod+dev via REST. **⚠️ `supabase_pg_cron.sql` agora aponta os 3 jobs pro `&destino=oficial`** (pedido explícito do Vini nesta leva — antes era `teste` de propósito). **pg_cron/pg_net AINDA NÃO habilitados no banco** (auditoria confirmou zero automação): SQL pronto, aguardando o Vini rodar no SQL Editor (armadilha 8 — DDL de extensão é automação bloqueada pro Claude Code). **A partir do momento em que esse SQL rodar, os 3 jobs passam a mandar mensagem de verdade pro grupo oficial da família, sozinhos, todo dia** — até lá, os modos só disparam se alguém chamar a URL manualmente.
 > - **⚠️ Repo é PÚBLICO** — nada sensível em arquivo versionado (ver armadilha 9).
@@ -683,6 +683,40 @@ o banco.
 
 ## 15. Pendências abertas (jul/2026)
 
+-12. **✅ v1.18.2 DEPLOYADA (jul/2026, commit `5a54465`) + persona v2.6 — fix
+   da menção não resolvida + busca na web (SÓ modo conversa):** (A) achado
+   real de teste — marcaram @Jeca de verdade (mentionedJID real) ANTES do
+   LID dela estar aprendido em `bot_telefones`; sem nenhum sinal disso no
+   prompt, o bot respondeu como se a marcação fosse a pessoa discutida na
+   mensagem citada (Claude Tonius) em vez de admitir que não conhecia o
+   contato. Toda menção real sem match agora vira `mencaoNaoResolvida`; se,
+   mesmo com o fallback por nome escrito na mensagem, nenhuma pessoa real
+   sobra (`contatoDesconhecido`), o prompt avisa o modelo explicitamente
+   pra nunca adivinhar/reaproveitar identidade de quem quer que seja — só
+   admitir que ainda não conhece o contato e convidar a mandar mensagem
+   pra aprender quem é. **Bloqueante pro lançamento no grupo oficial** (9
+   pessoas sem LID mapeado inicialmente — cenário vai ser muito mais
+   comum lá do que no teste). (B) BUSCA NA WEB: tool nativa
+   `web_search_20250305` (versão básica, não a `_20260209` com filtragem
+   dinâmica — de propósito, pra funcionar também no fallback Haiku 4.5)
+   ligada só na chamada do modo conversa; o modelo decide sozinho quando
+   buscar (fato de futebol/Copa fora dos dados do bolão, ex.: artilheiro
+   geral do torneio) via instrução na TAREFA — nunca pra pergunta sobre
+   dado do próprio bolão. Join dos blocos de texto da resposta virou `""`
+   (era `"\n"`): blocos fatiados por citação da busca são pra colar
+   direto, senão uma frase contínua vira quebrada no meio. Persona v2.6:
+   humildade factual fora do bolão ganhou exceção pra fato pesquisado
+   agora (pode afirmar com confiança, não é mais "de cabeça"); parágrafos
+   novos "BUSCA NA WEB" e "CONTATO NÃO RECONHECIDO" na persona (reforço do
+   comportamento, não só na TAREFA por mensagem). Deploy feito pelo
+   dashboard do Supabase (Monaco `model.setValue()` com o conteúdo puxado
+   direto do GitHub raw do commit `5a54465` — sem token de API). RETESTE
+   sugerido: mencionar alguém dos `bot_telefones` que ainda não mandou
+   mensagem no grupo de teste (LID não mapeado) e conferir a resposta de
+   "não conheço" em vez de errar a identidade; perguntar algo fora do
+   bolão tipo "quem é o artilheiro dessa Copa até agora" pra ver a busca
+   funcionando; perguntar um dado do bolão (ranking/palpite) e confirmar
+   que continua respondendo rápido, sem acionar busca à toa.
 -11. **✅ v1.18.1 DEPLOYADA (jul/2026) + persona v2.5 — ranking sem buracos +
    regra das IAs vira comportamento (achado real de teste):** perguntado
    "quem é o lanterna", o bot respondeu o 11º em vez do 14º real, porque o
