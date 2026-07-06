@@ -48,3 +48,28 @@ CREATE INDEX IF NOT EXISTS mensagens_grupo_grupo_ts_idx
 
 -- RLS ligado, SEM policies (ver aviso de privacidade no topo).
 ALTER TABLE mensagens_grupo ENABLE ROW LEVEL SECURITY;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- CONVERSA (Fase 3) — registro dos envios do próprio bot
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Cada mensagem que o Ratazana envia (agenda, cobrança, pós-jogo, aviso,
+-- conversa) tem o message_id devolvido pela ZapZap gravado aqui (best-effort,
+-- em enviaEmPartes/registraEnvioBot). É o que permite ao webhook detectar
+-- "responderam uma mensagem do bot": quoted_message_id da captura × esta
+-- tabela. Mesma postura de privacidade da mensagens_grupo: RLS ligado, SEM
+-- policy pública (o texto das mensagens do bot mora aqui).
+
+CREATE TABLE IF NOT EXISTS bot_mensagens_enviadas (
+  id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  message_id  text NOT NULL,       -- id devolvido pela ZapZap no envio
+  grupo_jid   text,                -- pra onde foi (...@g.us)
+  texto       text,                -- o conteúdo enviado (contexto da citação)
+  created_at  timestamptz NOT NULL DEFAULT now()
+);
+
+-- Índice único PLENO (nunca parcial — lição do 42P10 da mensagens_grupo):
+-- o ON CONFLICT do PostgREST precisa dele pro ignore-duplicates.
+CREATE UNIQUE INDEX IF NOT EXISTS bot_mensagens_enviadas_mid_uidx
+  ON bot_mensagens_enviadas (message_id);
+
+ALTER TABLE bot_mensagens_enviadas ENABLE ROW LEVEL SECURITY;

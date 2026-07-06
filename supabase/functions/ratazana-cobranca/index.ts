@@ -1,6 +1,14 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // ROBÔ RATAZANA — Edge Function "ratazana-cobranca"
-// (v1.15 — BLINDAGEM DA ÚLTIMA CHAMADA: idempotência vira claim-then-act —
+// (v1.16 — CONVERSA (Fase 3, versão inicial, SÓ GRUPO DE TESTE): o webhook
+//  passa a responder quando (a) o bot é MENCIONADO (@) ou (b) alguém RESPONDE/
+//  cita uma mensagem que o bot mandou. Todo envio do bot registra o message_id
+//  devolvido pela ZapZap em bot_mensagens_enviadas (base do gatilho b).
+//  Resposta gerada pela persona com contexto (quem falou, gênero, posição no
+//  ranking, jogos do dia). Anti-cascata: teto de 6 respostas/hora + cooldown
+//  de 30s por pessoa + anti-eco (fromMe, remetente==instância), fail-closed.
+//  SEM busca na web e SEM ficha relacional ainda. Sem gatilho → só arquiva.
+//  v1.15 — BLINDAGEM DA ÚLTIMA CHAMADA: idempotência vira claim-then-act —
 //  reserva atômica (key uc_<dd-mm>_<jogo>_<destino> em bot_config, INSERT
 //  ignore-duplicates) ANTES de chamar a IA; quem não cria a key desiste na
 //  hora, e falha de envio devolve a key pro próximo tick. Elimina a corrida
@@ -82,7 +90,9 @@
 //       TESTE em mensagens_grupo (schema: supabase_ouvidos.sql); tudo que não
 //       for do grupo de teste (ou for do próprio bot) é ignorado. Não é
 //       chamado por humano: a URL (com token) é registrada na ZapZap pelo
-//       modo abaixo.
+//       modo abaixo. CONVERSA (Fase 3, v1.16): depois de arquivar, responde
+//       se o bot foi mencionado ou se a mensagem cita um envio do bot —
+//       ver seção "Conversa" (gatilhos, contexto, teto/cooldown anti-cascata).
 //   ...&tipo=configurar_webhook → registra na instância ZapZap a URL de
 //       captura acima (a função monta a própria URL com o próprio token).
 //       Chamar UMA vez; devolve a config anterior e a resposta da ZapZap.
@@ -579,8 +589,17 @@ async function zapEnviaTexto(numero: string, texto: string, mentions: string[] =
     headers: zapHeaders(),
     body: JSON.stringify(body),
   });
-  const corpo = (await r.text()).slice(0, 600);
-  return { ok: r.ok, detalhe: `HTTP ${r.status}: ${corpo}` };
+  const corpoCompleto = await r.text();
+  // v1.16 (Conversa): o id da mensagem enviada é a chave pro gatilho de
+  // "responderam uma mensagem do bot" — extraído da resposta da ZapZap
+  // (parse ANTES do slice do detalhe; achaProfundo é hoisted, definido abaixo).
+  let messageId: string | null = null;
+  try {
+    const j = JSON.parse(corpoCompleto);
+    messageId = achaProfundo(j, ["id", "Id", "messageid", "messageId", "MessageID"],
+      (v) => typeof v === "string" && v.length >= 8 && !v.includes("@")) || null;
+  } catch { /* corpo não-JSON: segue sem id */ }
+  return { ok: r.ok, detalhe: `HTTP ${r.status}: ${corpoCompleto.slice(0, 600)}`, messageId };
 }
 // Divide um texto em até 3 partes (blocos "---" + rede de segurança de tamanho).
 // Compartilhado entre o envio real e o modo preview (que mostra sem enviar).
@@ -678,6 +697,26 @@ function linhaProvocacao(telefones: Conf[], excluirIds: Set<string>) {
   return { linha: frase.split("{@}").join("@" + tel), mention: tel, alvo: alvo.participante_id };
 }
 
+// Registro dos envios do bot (v1.16 — Conversa): cada mensagem que o Ratazana
+// manda (qualquer tipo: agenda, cobrança, pós-jogo, aviso, conversa) fica em
+// bot_mensagens_enviadas com o message_id devolvido pela ZapZap — é isso que
+// permite ao webhook detectar "responderam uma mensagem do bot" cruzando com
+// o quoted_message_id de uma resposta capturada. Best-effort: falha aqui NUNCA
+// derruba o envio (só perde o gatilho de citação daquela mensagem específica).
+async function registraEnvioBot(grupo: string, pares: { id: string; texto: string }[]) {
+  if (!pares.length) return;
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/bot_mensagens_enviadas?on_conflict=message_id`, {
+      method: "POST",
+      headers: { ...sbHeaders(), Prefer: "resolution=ignore-duplicates,return=minimal" },
+      body: JSON.stringify(pares.map((p) => ({ message_id: p.id, grupo_jid: grupo, texto: p.texto.slice(0, 2000) }))),
+    });
+    if (!r.ok) console.error("[conversa] registro de envio falhou:", r.status, (await r.text()).slice(0, 200));
+  } catch (e) {
+    console.error("[conversa] registro de envio falhou:", e);
+  }
+}
+
 // Envia como até 3 mensagens sequenciais no WhatsApp. Usado pela cobrança,
 // pelo fim de jogo e pelo enviar_texto. O padrão continua sendo mensagem única.
 // mentions: números com marcação real — cada parte só recebe os que aparecem
@@ -693,11 +732,15 @@ async function enviaEmPartes(grupo: string, texto: string, mentions: string[] = 
   }
   const partes = divideEmPartes(texto);
   if (!partes.length) throw new Error("texto ficou vazio após a divisão em blocos");
-  const envios: { ok: boolean; detalhe: string }[] = [];
+  const envios: { ok: boolean; detalhe: string; messageId?: string | null }[] = [];
   for (const parte of partes) {
     envios.push(await zapEnviaTexto(grupo, parte, mentions.filter((n) => parte.includes("@" + n))));
     if (partes.length > 1) await new Promise((res) => setTimeout(res, 900));
   }
+  // registra os ids das partes que saíram (gatilho de citação da Conversa)
+  await registraEnvioBot(grupo, envios
+    .map((e, ix) => ({ id: e.messageId || "", texto: partes[ix] }))
+    .filter((p) => p.id));
   return {
     partes,
     ok: envios.every((e) => e.ok),
@@ -823,6 +866,173 @@ async function avisoOuvidosUmaVez(grupoTeste: string): Promise<boolean> {
     await liberaClaim("ouvidos_aviso_enviado");
     await botLog({ tipo: "ouvidos_aviso", destino: `teste (${grupoTeste})`, status_envio: "erro", erro: String((e as Error)?.message || e) });
     return false;
+  }
+}
+
+// ─── Conversa (Fase 3, v1.16) — responde menção ou resposta a mensagem do bot ─
+// Versão inicial e RESTRITA AO GRUPO DE TESTE (roda dentro do modo webhook,
+// que já filtra GRUPO_TESTE_ID). Dois gatilhos, qualquer um dispara:
+//   a) o bot foi MENCIONADO (@) na mensagem — detectado comparando os JIDs de
+//      `mentions` com o número da própria instância;
+//   b) a mensagem é RESPOSTA (citação) a algo que o próprio bot mandou —
+//      quoted_message_id cruzado com bot_mensagens_enviadas.
+// Sem gatilho → só arquiva (comportamento da Fase 2, intacto). SEM busca na
+// web e SEM ficha relacional nesta leva (próximas etapas da Fase 3).
+const CONVERSA_MAX_POR_HORA = 6;    // teto global anti-cascata
+const CONVERSA_COOLDOWN_SEG = 30;   // intervalo mínimo por pessoa
+
+// Número do WhatsApp da própria instância (base do gatilho de menção).
+// Ordem: override manual em bot_config ('bot_numero_whatsapp') → API da
+// ZapZap (GET de gestão /instances/{id}, mesmo par de chaves) → cache em
+// memória do isolate. Sem número resolvido, o gatilho de menção fica mudo
+// (o de citação continua funcionando) — nunca derruba a captura.
+let BOT_NUMERO_CACHE = "";
+async function botNumero(): Promise<string> {
+  if (BOT_NUMERO_CACHE) return BOT_NUMERO_CACHE;
+  try {
+    const cfg = await sbGet("bot_config?key=eq.bot_numero_whatsapp&select=value");
+    if (Array.isArray(cfg) && cfg.length && cfg[0].value) {
+      BOT_NUMERO_CACHE = String(cfg[0].value).replace(/\D/g, "");
+      return BOT_NUMERO_CACHE;
+    }
+  } catch { /* segue pro fallback via API */ }
+  try {
+    const instId = zapBase().split("/").filter(Boolean).pop() || "";
+    const urlInst = zapBase().replace(/\/[^/]+\/?$/, `/instances/${instId}`);
+    const r = await fetch(urlInst, { headers: zapHeaders() });
+    if (r.ok) {
+      const j = await r.json();
+      const num = achaProfundo(j, ["phone_number", "phoneNumber", "phone", "number"],
+        (v) => typeof v === "string" && /\d{8,}/.test(v));
+      if (num) BOT_NUMERO_CACHE = String(num).replace(/\D/g, "");
+    }
+  } catch (e) {
+    console.error("[conversa] número da instância indisponível (gatilho de menção mudo):", e);
+  }
+  return BOT_NUMERO_CACHE;
+}
+
+// A mensagem citada é do bot? Os formatos de id variam entre o envio
+// (ZapZap costuma devolver OWNER:MSGID achatado) e a citação (stanzaId do
+// Baileys costuma ser só o MSGID) — tenta match exato e depois por sufixo.
+async function buscaMensagemBot(quotedId: string): Promise<Conf | null> {
+  const puro = quotedId.includes(":") ? (quotedId.split(":").pop() || quotedId) : quotedId;
+  const porEq = await sbGet(`bot_mensagens_enviadas?message_id=eq.${encodeURIComponent(quotedId)}&select=message_id,texto&limit=1`).catch(() => []);
+  if (Array.isArray(porEq) && porEq.length) return porEq[0];
+  const porSufixo = await sbGet(`bot_mensagens_enviadas?message_id=like.${encodeURIComponent("*" + puro)}&select=message_id,texto&limit=1`).catch(() => []);
+  return (Array.isArray(porSufixo) && porSufixo.length) ? porSufixo[0] : null;
+}
+
+// Avalia os gatilhos e, se for o caso, gera e envia a resposta. Devolve o que
+// aconteceu (pro JSON do webhook e pro teste manual do Vini).
+async function conversaTalvezResponder(m: Conf, grupoTeste: string, telefoneRemetente: string) {
+  const semResposta = (motivo: string, gatilho: string | null = null) =>
+    ({ respondida: false, gatilho, motivo });
+
+  // gatilho a: menção real ao bot
+  const digitos = (s: string) => String(s || "").split("@")[0].split(":")[0].replace(/\D/g, "");
+  let gatilho: string | null = null;
+  const numBot = await botNumero();
+  // cinto extra anti-eco (além do fromMe do webhook): se o remetente for a
+  // própria instância, nunca responde — impossível entrar em loop consigo
+  if (numBot && m.remetenteJid && digitos(m.remetenteJid) === numBot) {
+    return semResposta("mensagem da própria instância (eco)");
+  }
+  if (numBot && Array.isArray(m.mentions) && m.mentions.some((j: string) => digitos(j) === numBot)) {
+    gatilho = "mencao";
+  }
+  // gatilho b: resposta/citação a uma mensagem que o bot enviou
+  let msgOriginal: Conf = null;
+  if (m.quotedId) {
+    msgOriginal = await buscaMensagemBot(m.quotedId);
+    if (msgOriginal && !gatilho) gatilho = "citacao";
+  }
+  if (!gatilho) return semResposta("nenhum gatilho (arquivada)");
+  if (!m.texto) return semResposta("mensagem sem texto (mídia?)", gatilho);
+
+  // Anti-cascata (fail-CLOSED: rate-limit ilegível = não responde):
+  // teto global por hora + cooldown por pessoa, ambos sobre bot_log.
+  const desdeHora = new Date(Date.now() - 3600_000).toISOString();
+  const recentes = await sbGet(
+    `bot_log?tipo=eq.conversa&status_envio=eq.ok&created_at=gte.${encodeURIComponent(desdeHora)}&select=created_at,destino`
+  ).catch(() => null);
+  if (recentes === null) return semResposta("rate-limit ilegível (fail-closed, não responde)", gatilho);
+  if (recentes.length >= CONVERSA_MAX_POR_HORA) {
+    return semResposta(`teto de ${CONVERSA_MAX_POR_HORA} respostas/hora atingido`, gatilho);
+  }
+  const cooldownDesde = Date.now() - CONVERSA_COOLDOWN_SEG * 1000;
+  if (telefoneRemetente && recentes.some((r: Conf) =>
+    String(r.destino || "").includes(`[para:${telefoneRemetente}]`) &&
+    new Date(r.created_at).getTime() > cooldownDesde)) {
+    return semResposta(`cooldown de ${CONVERSA_COOLDOWN_SEG}s por pessoa`, gatilho);
+  }
+
+  const logBase = { tipo: "conversa", destino: `teste (${grupoTeste}) [para:${telefoneRemetente || "?"}] [gatilho:${gatilho}]` };
+  let userPrompt: string | null = null;
+  let respostaIA: string | null = null;
+  try {
+    // Contexto: quem mandou + ranking + jogos de hoje (dados que a persona
+    // pode usar; a IA nunca calcula nada)
+    const [confrontos, palpites, cfg, telefones] = await Promise.all([
+      sbGet("mata_confrontos?select=*"),
+      sbGet("mata_palpites?select=confronto_id,pid,gols_a,gols_b,quem_passa"),
+      sbGet("bot_config?key=in.(system_prompt_ratazana,modelo_ia)&select=key,value"),
+      sbGet("bot_telefones?select=participante_id,nome_exibicao,genero,telefone_whatsapp").catch(() => []),
+    ]);
+    const cfgMap: Record<string, string> = {};
+    for (const row of cfg) cfgMap[row.key] = row.value;
+    const systemPrompt = cfgMap["system_prompt_ratazana"];
+    const modelo = (cfgMap["modelo_ia"] || "").trim() || MODELO_FALLBACK;
+    if (!systemPrompt) throw new Error("bot_config sem 'system_prompt_ratazana'");
+
+    const tel = (telefones as Conf[]).find((t: Conf) =>
+      String(t.telefone_whatsapp || "").replace(/\D/g, "") === (telefoneRemetente || "").replace(/\D/g, ""));
+    const part = tel ? MATA_PARTS_BOT.find((p) => p.id === tel.participante_id) : null;
+    const nome = tel?.nome_exibicao || part?.nome || "alguém do grupo";
+    const genero = (tel?.genero || "").toUpperCase();
+
+    const PAL: Record<string, Record<string, Conf>> = {};
+    for (const p of palpites) (PAL[p.confronto_id] ??= {})[p.pid] = p;
+    const rank = MATA_PARTS_BOT.map((p) => ({ p, ...mataStats(p.id, confrontos, PAL) }))
+      .sort((a, b) => b.total - a.total || b.eHits - a.eHits || b.rHits - a.rHits);
+    const posPessoa = part ? rank.findIndex((r) => r.p.id === part.id) + 1 : 0;
+    const posRat = rank.findIndex((r) => r.p.id === RATAZANA_ID) + 1;
+    const top3 = rank.slice(0, 3).map((r, ix) => `${ix + 1}º ${r.p.nome} ${fmtPts(r.total)} pts`).join("; ");
+
+    const { ddmm } = limitesBrasiliaHojeISO();
+    const teamsOf = makeResolver(confrontos);
+    const jogosHoje = confrontos
+      .filter((c: Conf) => !mmIsTest(c) && !c.finished && MM_AGENDA[c.id]?.dt === ddmm)
+      .map((c: Conf) => {
+        const t = teamsOf(c);
+        const i = mmInfo(c);
+        return `${t.a?.name || "A definir"} × ${t.b?.name || "A definir"} às ${i.tm}${MM_TURBO.has(c.id) ? " (⚡ turbo)" : ""}`;
+      });
+
+    userPrompt =
+      `DADOS VERIFICADOS DO BOLÃO (conversa no grupo de WhatsApp, gerados em ${agoraBrasilia()}, horário de Brasília). Use somente estes dados. Não calcule nem invente nada.\n\n` +
+      `MENSAGEM RECEBIDA AGORA:\n` +
+      `- De: ${nome}${genero ? ` (${genero})` : ""}${posPessoa ? ` — ${posPessoa}º lugar no Ranking do Bolão com ${fmtPts(rank[posPessoa - 1].total)} pts` : ""}\n` +
+      `- Texto: "${String(m.texto).slice(0, 600)}"\n` +
+      (gatilho === "mencao" ? `- Você foi marcado nessa mensagem.\n` : "") +
+      (msgOriginal ? `- Ela é RESPOSTA a esta mensagem que você mandou no grupo antes: "${String(msgOriginal.texto || "").slice(0, 400)}"\n` : "") +
+      `\nJOGOS DE HOJE (ainda abertos): ${jogosHoje.length ? jogosHoje.join("; ") : "nenhum"}\n` +
+      `RANKING DO BOLÃO: top 3: ${top3}. Você está em ${posRat}º com ${fmtPts(rank[posRat - 1].total)} pts.\n` +
+      `\nTAREFA: responda a mensagem de ${nome} no grupo (1 a 4 linhas, mensagem única), em personagem, dirigindo-se a ${nome === "alguém do grupo" ? "quem falou" : nome} pelo nome. Responda o que a pessoa disse/perguntou de verdade — use os dados acima só se vierem ao caso. Calibre a intensidade pelo gênero. Não use @. Sem link do bolão. Não cobre palpite a menos que perguntem sobre isso.`;
+
+    const ia = await chamaIA(modelo, systemPrompt, userPrompt, 2500);
+    respostaIA = ia.texto;
+    const envio = await enviaEmPartes(grupoTeste, respostaIA);
+    await botLog({
+      ...logBase, prompt_enviado: userPrompt, resposta_ia: respostaIA,
+      mensagem_enviada: envio.partes.join("\n\n"),
+      status_envio: envio.ok ? "ok" : "erro", erro: envio.ok ? null : envio.detalhe,
+    });
+    return { respondida: envio.ok, gatilho, motivo: envio.ok ? "respondida" : "falha no envio" };
+  } catch (e) {
+    const msg = String((e as Error)?.message || e);
+    await botLog({ ...logBase, prompt_enviado: userPrompt, resposta_ia: respostaIA, status_envio: "erro", erro: msg });
+    return semResposta(`erro ao gerar/enviar: ${msg}`, gatilho);
   }
 }
 
@@ -1015,7 +1225,16 @@ Deno.serve(async (req: Request) => {
 
       // primeira captura da história → aviso único "o Ratazana vê tudo"
       const avisoEnviado = inserida ? await avisoOuvidosUmaVez(grupoTeste) : false;
-      return json({ ok: true, capturada: inserida, duplicada: !inserida, aviso_enviado: avisoEnviado });
+
+      // Fase 3 (Conversa): só pra mensagem RECÉM-inserida (reentrega/duplicata
+      // nunca responde de novo — dedup do INSERT é também dedup da resposta)
+      const conversa = inserida
+        ? await conversaTalvezResponder(m, grupoTeste, telefone)
+        : { respondida: false, gatilho: null, motivo: "duplicada" };
+      return json({
+        ok: true, capturada: inserida, duplicada: !inserida, aviso_enviado: avisoEnviado,
+        respondida: conversa.respondida, gatilho: conversa.gatilho, motivo_conversa: conversa.motivo,
+      });
     } catch (e) {
       const msg = String((e as Error)?.message || e);
       // O payload bruto vai junto no log de erro: se o INSERT falhar, a
