@@ -1,6 +1,13 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // ROBÔ RATAZANA — Edge Function "ratazana-cobranca"
-// (v1.16 — CONVERSA (Fase 3, versão inicial, SÓ GRUPO DE TESTE): o webhook
+// (v1.16.1 — FIX DO GATILHO DE MENÇÃO (achados do 1º teste real da Fase 3):
+//  1) o campo de menções no envelope da ZapZap é "mentionedJID" (JID todo
+//  maiúsculo, em content.contextInfo) — adicionado ao parser (match de chave
+//  é case-sensitive; mentions vinha NULL em toda captura); 2) menção em grupo
+//  chega como LID de privacidade (...@lid), NÃO como telefone — o gatilho
+//  agora compara contra o CONJUNTO de identidades da instância (telefone e
+//  LID, bot_config 'bot_numero_whatsapp' com vírgula — ver botIdentidades).
+//  v1.16 — CONVERSA (Fase 3, versão inicial, SÓ GRUPO DE TESTE): o webhook
 //  passa a responder quando (a) o bot é MENCIONADO (@) ou (b) alguém RESPONDE/
 //  cita uma mensagem que o bot mandou. Todo envio do bot registra o message_id
 //  devolvido pela ZapZap em bot_mensagens_enviadas (base do gatilho b).
@@ -797,7 +804,10 @@ function extraiMensagemWebhook(payload: Conf) {
     achaProfundo(payload, ["id", "Id", "ID"], (v) => typeof v === "string" && v.length >= 8 && !v.includes("@") && !v.includes("-"));
   const texto = achaProfundo(payload, ["conversation", "Conversation", "text", "Text", "caption", "Caption"],
     (v) => typeof v === "string" && v.trim() !== "");
-  const mentions = achaProfundo(payload, ["mentionedJid", "MentionedJid", "mentionedJIDs", "mentionedjid", "mentions", "Mentions"],
+  // "mentionedJID" (JID maiúsculo) é o nome REAL no envelope da ZapZap
+  // (content.contextInfo.mentionedJID — achado no payload capturado; o match
+  // de chaves é case-sensitive e a 1ª versão só tinha mentionedJid/JIDs)
+  const mentions = achaProfundo(payload, ["mentionedJID", "mentionedJid", "MentionedJid", "mentionedJIDs", "mentionedJids", "mentionedjid", "mentions", "Mentions"],
     (v) => Array.isArray(v) && v.every((x: Conf) => typeof x === "string"));
   const quotedId = achaProfundo(payload, ["stanzaId", "StanzaId", "stanzaID", "quotedMessageId", "quotedMsgId", "QuotedID"],
     (v) => typeof v === "string" && v.length >= 8);
@@ -881,35 +891,47 @@ async function avisoOuvidosUmaVez(grupoTeste: string): Promise<boolean> {
 const CONVERSA_MAX_POR_HORA = 6;    // teto global anti-cascata
 const CONVERSA_COOLDOWN_SEG = 30;   // intervalo mínimo por pessoa
 
-// Número do WhatsApp da própria instância (base do gatilho de menção).
-// Ordem: override manual em bot_config ('bot_numero_whatsapp') → API da
-// ZapZap (GET de gestão /instances/{id}, mesmo par de chaves) → cache em
-// memória do isolate. Sem número resolvido, o gatilho de menção fica mudo
-// (o de citação continua funcionando) — nunca derruba a captura.
-let BOT_NUMERO_CACHE = "";
-async function botNumero(): Promise<string> {
-  if (BOT_NUMERO_CACHE) return BOT_NUMERO_CACHE;
+// Identidades do WhatsApp da própria instância (base do gatilho de menção e
+// do anti-eco). Achado real do teste: o WhatsApp moderno usa DOIS
+// identificadores pro mesmo perfil — o telefone (5511...@s.whatsapp.net) e o
+// LID de privacidade (...@lid) — e MENÇÃO EM GRUPO CHEGA COMO LID (no nosso
+// caso "61032206725341@lid", enquanto o telefone da instância é outro
+// número). Comparar menção só contra o telefone nunca bate. Por isso
+// bot_config 'bot_numero_whatsapp' aceita VÁRIOS ids separados por vírgula
+// (telefone,LID); fallback: só o telefone via API de gestão da ZapZap (não
+// cobre o LID — preencher a key é o caminho de verdade). Cache no isolate.
+// Sem nenhum id resolvido, o gatilho de menção fica mudo (o de citação
+// continua funcionando) — nunca derruba a captura.
+let BOT_IDS_CACHE: string[] | null = null;
+async function botIdentidades(): Promise<Set<string>> {
+  if (BOT_IDS_CACHE) return new Set(BOT_IDS_CACHE);
+  const ids = new Set<string>();
   try {
     const cfg = await sbGet("bot_config?key=eq.bot_numero_whatsapp&select=value");
     if (Array.isArray(cfg) && cfg.length && cfg[0].value) {
-      BOT_NUMERO_CACHE = String(cfg[0].value).replace(/\D/g, "");
-      return BOT_NUMERO_CACHE;
+      for (const parte of String(cfg[0].value).split(",")) {
+        const d = parte.replace(/\D/g, "");
+        if (d) ids.add(d);
+      }
     }
   } catch { /* segue pro fallback via API */ }
-  try {
-    const instId = zapBase().split("/").filter(Boolean).pop() || "";
-    const urlInst = zapBase().replace(/\/[^/]+\/?$/, `/instances/${instId}`);
-    const r = await fetch(urlInst, { headers: zapHeaders() });
-    if (r.ok) {
-      const j = await r.json();
-      const num = achaProfundo(j, ["phone_number", "phoneNumber", "phone", "number"],
-        (v) => typeof v === "string" && /\d{8,}/.test(v));
-      if (num) BOT_NUMERO_CACHE = String(num).replace(/\D/g, "");
+  if (!ids.size) {
+    try {
+      const instId = zapBase().split("/").filter(Boolean).pop() || "";
+      const urlInst = zapBase().replace(/\/[^/]+\/?$/, `/instances/${instId}`);
+      const r = await fetch(urlInst, { headers: zapHeaders() });
+      if (r.ok) {
+        const j = await r.json();
+        const num = achaProfundo(j, ["phone_number", "phoneNumber", "phone", "number"],
+          (v) => typeof v === "string" && /\d{8,}/.test(v));
+        if (num) ids.add(String(num).replace(/\D/g, ""));
+      }
+    } catch (e) {
+      console.error("[conversa] identidades da instância indisponíveis (gatilho de menção mudo):", e);
     }
-  } catch (e) {
-    console.error("[conversa] número da instância indisponível (gatilho de menção mudo):", e);
   }
-  return BOT_NUMERO_CACHE;
+  if (ids.size) BOT_IDS_CACHE = [...ids];
+  return ids;
 }
 
 // A mensagem citada é do bot? Os formatos de id variam entre o envio
@@ -929,16 +951,17 @@ async function conversaTalvezResponder(m: Conf, grupoTeste: string, telefoneReme
   const semResposta = (motivo: string, gatilho: string | null = null) =>
     ({ respondida: false, gatilho, motivo });
 
-  // gatilho a: menção real ao bot
+  // gatilho a: menção real ao bot (compara contra o CONJUNTO de identidades
+  // da instância — telefone E lid, ver botIdentidades)
   const digitos = (s: string) => String(s || "").split("@")[0].split(":")[0].replace(/\D/g, "");
   let gatilho: string | null = null;
-  const numBot = await botNumero();
+  const idsBot = await botIdentidades();
   // cinto extra anti-eco (além do fromMe do webhook): se o remetente for a
-  // própria instância, nunca responde — impossível entrar em loop consigo
-  if (numBot && m.remetenteJid && digitos(m.remetenteJid) === numBot) {
+  // própria instância (telefone ou lid), nunca responde — sem loop consigo
+  if (idsBot.size && m.remetenteJid && idsBot.has(digitos(m.remetenteJid))) {
     return semResposta("mensagem da própria instância (eco)");
   }
-  if (numBot && Array.isArray(m.mentions) && m.mentions.some((j: string) => digitos(j) === numBot)) {
+  if (idsBot.size && Array.isArray(m.mentions) && m.mentions.some((j: string) => idsBot.has(digitos(j)))) {
     gatilho = "mencao";
   }
   // gatilho b: resposta/citação a uma mensagem que o bot enviou
