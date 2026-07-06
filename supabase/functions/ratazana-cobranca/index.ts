@@ -967,9 +967,12 @@ Deno.serve(async (req: Request) => {
   // Sempre responde 200 (mesmo em erro, com ok:false + bot_log): comportamento
   // de retry da ZapZap não é documentado e um 5xx nosso não pode virar loop.
   if (url.searchParams.get("tipo") === "webhook") {
+    // payload fica fora do try: o catch precisa dele pro log de erro (o body
+    // do Request só pode ser lido uma vez — req.clone() tardio não funciona)
+    let payload: Conf = null;
     try {
       if (req.method !== "POST") return json({ ok: true, ignorado: "webhook só processa POST" });
-      const payload = await req.json().catch(() => null);
+      payload = await req.json().catch(() => null);
       if (!payload) return json({ ok: true, ignorado: "body não é JSON" });
       const grupoTeste = Deno.env.get("GRUPO_TESTE_ID") || "";
       if (!grupoTeste) return json({ ok: false, erro: "Secret GRUPO_TESTE_ID não configurado" });
@@ -1015,7 +1018,13 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true, capturada: inserida, duplicada: !inserida, aviso_enviado: avisoEnviado });
     } catch (e) {
       const msg = String((e as Error)?.message || e);
-      await botLog({ tipo: "webhook_captura", destino: "(grupo de teste)", status_envio: "erro", erro: msg });
+      // O payload bruto vai junto no log de erro: se o INSERT falhar, a
+      // mensagem não se perde — dá pra reprocessar a partir do bot_log
+      // (lição do bug do índice parcial: 3 capturas reais perdidas porque o
+      // erro não guardava o evento).
+      let payloadTxt: string | null = null;
+      try { payloadTxt = payload ? JSON.stringify(payload).slice(0, 8000) : null; } catch { /* payload não serializável */ }
+      await botLog({ tipo: "webhook_captura", destino: "(grupo de teste)", prompt_enviado: payloadTxt, status_envio: "erro", erro: msg });
       return json({ ok: false, erro: msg }); // 200 de propósito, ver comentário acima
     }
   }

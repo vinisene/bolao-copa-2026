@@ -33,8 +33,14 @@ CREATE TABLE IF NOT EXISTS mensagens_grupo (
 
 -- Dedup: a ZapZap pode reentregar o mesmo evento; o INSERT do webhook usa
 -- on_conflict=message_id com ignore-duplicates.
+-- ⚠️ Índice único PLENO de propósito (bug real em produção: a 1ª versão era
+-- parcial, "WHERE message_id IS NOT NULL", e o ON CONFLICT do PostgREST não
+-- consegue usar índice parcial — 42P10 em toda captura). NULL não conflita
+-- com NULL no Postgres, então linhas sem message_id continuariam permitidas
+-- mesmo no índice pleno (o webhook nem insere sem id, de toda forma).
+DROP INDEX IF EXISTS mensagens_grupo_message_id_uidx;
 CREATE UNIQUE INDEX IF NOT EXISTS mensagens_grupo_message_id_uidx
-  ON mensagens_grupo (message_id) WHERE message_id IS NOT NULL;
+  ON mensagens_grupo (message_id);
 
 -- Leitura típica da Fase 3: últimas mensagens do grupo em ordem cronológica.
 CREATE INDEX IF NOT EXISTS mensagens_grupo_grupo_ts_idx
