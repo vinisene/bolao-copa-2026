@@ -29,6 +29,12 @@
   #recarregar{background:none;border:1px solid var(--brd);color:var(--mu);border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer;}
   .linklike{background:none;border:none;color:var(--mu);font-size:11px;text-decoration:underline;cursor:pointer;padding:0;}
 
+  /* aviso de troca de fase (v1.19) — consumido do bot_config no boot */
+  #fase-aviso{border-radius:4px 16px 4px 4px;padding:12px 40px 12px 14px;margin:10px 0;font-size:13.5px;line-height:1.5;position:relative;}
+  #fase-aviso.ok{background:var(--verde);color:var(--lime);border:1px solid var(--lime);}
+  #fase-aviso.warn{background:#3a2e00;color:var(--gold);border:1px solid var(--gold);}
+  #fase-aviso .fa-close{position:absolute;top:8px;right:10px;background:none;border:none;color:inherit;font-size:18px;line-height:1;cursor:pointer;opacity:.75;padding:2px 4px;}
+
   #token-box{background:var(--card);border:1px solid var(--gold);border-radius:4px 16px 4px 4px;padding:14px;margin:12px 0;}
   #token-box p{font-size:13px;color:var(--mu);margin-bottom:8px;}
   #token-box input{width:100%;padding:10px;background:#0c100c;color:var(--ink);border:1.5px solid var(--brd);border-radius:8px;font-size:14px;margin-bottom:8px;}
@@ -133,6 +139,8 @@
 <body>
 <h1>🐀 Lançar placares <span id="env-badge" class="badge"></span></h1>
 <div class="sub">Fechar jogo grava o placar final pela função (a senha protege a escrita) e <b>não envia mensagem nenhuma</b>: o Ratazana só fala quando você acordar ele no card do jogo fechado. Jogo fechado pode ser reaberto pra corrigir.</div>
+
+<div id="fase-aviso" hidden></div>
 
 <div id="token-box" style="display:none">
   <p><b>Senha do admin</b> — guardada só neste navegador.</p>
@@ -589,11 +597,43 @@ async function reabrirJogo(cid){
   carregar();
 }
 
+// ─── Aviso de troca de fase (v1.19) ───────────────────────────────────────────
+// bot_config.admin_aviso_fase é gravado pela Edge Function (fechar_placar →
+// verificaEAvancaFaseAtiva) quando fechar um jogo completa a fase ativa: OU
+// já trocou sozinha pra próxima fase (tipo:'trocou'), OU não trocou por não
+// conseguir decidir com segurança e precisa de confirmação manual
+// (tipo:'ambiguo'). Lido e CONSUMIDO (apagado) no boot — é sempre tabela de
+// PRODUÇÃO (fase_ativa não tem variante dev), igual bot_telefones.
+async function checkFaseAviso(){
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/bot_config?select=value&key=eq.admin_aviso_fase`,{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY}});
+    if(!r.ok)return;
+    const rows=await r.json();
+    if(!Array.isArray(rows)||!rows.length||!rows[0].value)return;
+    let aviso;
+    try{ aviso=JSON.parse(rows[0].value); }catch(_){ return; }
+    const lbl=k=>(MM_COLS.find(c=>c.key===k)||{}).label||k;
+    const el=document.getElementById('fase-aviso');
+    if(aviso.tipo==='trocou'){
+      el.className='ok';
+      el.innerHTML=`<button class="fa-close" onclick="this.parentElement.hidden=true">×</button>🔄 <b>Fase mudou automaticamente de ${esc(lbl(aviso.de))} para ${esc(lbl(aviso.para))}.</b> Todos os jogos de ${esc(lbl(aviso.de))} já estavam fechados — nada a fazer, é só um aviso.`;
+    }else if(aviso.tipo==='ambiguo'){
+      el.className='warn';
+      el.innerHTML=`<button class="fa-close" onclick="this.parentElement.hidden=true">×</button>⚠️ <b>Fase ativa pode precisar de ajuste manual.</b> ${esc(aviso.motivo||'')}`;
+    }else{
+      return;
+    }
+    el.hidden=false;
+    fetch(`${SUPABASE_URL}/rest/v1/bot_config?key=eq.admin_aviso_fase`,{method:'DELETE',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY}}).catch(()=>{});
+  }catch(_){/* aviso é só conveniência — nunca trava o admin */}
+}
+
 // ─── Boot ────────────────────────────────────────────────────────────────────
 document.getElementById('env-badge').textContent=IS_DEV?'DEV (tabelas dev_)':'PRODUÇÃO';
 document.getElementById('env-badge').className='badge'+(IS_DEV?' dev':'');
 if(IS_DEV)document.title='TESTES - '+document.title;
 if(!temToken())document.getElementById('token-box').style.display='block';
+checkFaseAviso();
 carregarTelefones().finally(carregar);
 </script>
 </body>
