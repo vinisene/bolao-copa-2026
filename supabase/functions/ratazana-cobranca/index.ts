@@ -1,5 +1,21 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // ROBÔ RATAZANA — Edge Function "ratazana-cobranca"
+// (v1.20 — OUVIDOS + CONVERSA NO GRUPO OFICIAL: o modo webhook reconhecia só
+//  GRUPO_TESTE_ID; agora reconhece os DOIS grupos, com captura (Ouvidos) e
+//  conversa (Fase 3) como CONTROLES INDEPENDENTES por grupo — antes viviam
+//  atrás do mesmo filtro. Teste: os dois nascem ligados, incondicional, como
+//  sempre foi. Oficial: cada um exige opt-in explícito em bot_config
+//  (`captura_ativa_oficial`/`conversa_ativa_oficial` = '1'; ausente/qualquer
+//  outro valor = desligado, fail-closed) — dá pra ligar só a captura primeiro
+//  (observar sem responder) antes de ligar a conversa. Fix junto: dentro de
+//  `conversaTalvezResponder`, o `destino` gravado em bot_log tinha "teste"
+//  LITERAL hardcoded (não o `destinoLabel` recebido por parâmetro) — chamar
+//  a função pro oficial gravaria log dizendo "teste", quebrando em silêncio
+//  a contagem de teto/cooldown por grupo (que já lê por `destinoLabel`
+//  corretamente). Parâmetro renomeado `grupoTeste`→`grupoJid` pra deixar
+//  claro que a função é genérica. O aviso único "o Ratazana vê tudo"
+//  continua SÓ pro teste (checado explicitamente, além do claim global já
+//  existente) — a estreia do oficial é um Comunicado fixo, manual.
 // (v1.19 — AVANÇO AUTOMÁTICO DE FASE (fechar_placar): a cada jogo de
 //  PRODUÇÃO fechado (nunca reabertura, nunca &env=dev), verificaEAvancaFaseAtiva
 //  confere se isso completou a fase de bot_config.fase_ativa; se sim E a
@@ -1074,8 +1090,13 @@ async function avisoOuvidosUmaVez(grupoTeste: string): Promise<boolean> {
 }
 
 // ─── Conversa (Fase 3, v1.16) — responde menção ou resposta a mensagem do bot ─
-// Versão inicial e RESTRITA AO GRUPO DE TESTE (roda dentro do modo webhook,
-// que já filtra GRUPO_TESTE_ID). Dois gatilhos, qualquer um dispara:
+// v1.20: chamada pros DOIS grupos (teste sempre; oficial só com o opt-in
+// bot_config.conversa_ativa_oficial='1' — checado no modo webhook, ANTES de
+// chamar esta função). `grupoJid`/`destinoLabel` identificam qual grupo
+// gerou a mensagem — nunca hardcode "teste" dentro desta função (já foi bug:
+// o botLog usava o literal "teste" mesmo quando chamada pro oficial, o que
+// quebrava silenciosamente a contagem de teto/cooldown POR GRUPO). Dois
+// gatilhos, qualquer um dispara:
 //   a) o bot foi MENCIONADO (@) na mensagem — detectado comparando os JIDs de
 //      `mentions` com o número da própria instância;
 //   b) a mensagem é RESPOSTA (citação) a algo que o próprio bot mandou —
@@ -1170,7 +1191,7 @@ async function buscaMensagemBot(quotedId: string): Promise<Conf | null> {
 
 // Avalia os gatilhos e, se for o caso, gera e envia a resposta. Devolve o que
 // aconteceu (pro JSON do webhook e pro teste manual do Vini).
-async function conversaTalvezResponder(m: Conf, grupoTeste: string, telefoneRemetente: string, destinoLabel = "teste") {
+async function conversaTalvezResponder(m: Conf, grupoJid: string, telefoneRemetente: string, destinoLabel = "teste") {
   // Skip com gatilho DISPARADO fica auditável em bot_log (status nao_enviado,
   // que o rate-limit ignora — ele só conta status ok). Lição do teste real:
   // o cooldown engoliu dois replies em silêncio e pareceu bug de match de
@@ -1180,7 +1201,7 @@ async function conversaTalvezResponder(m: Conf, grupoTeste: string, telefoneReme
     if (gatilho) {
       await botLog({
         tipo: "conversa",
-        destino: `teste (${grupoTeste}) [para:${telefoneRemetente || "?"}] [gatilho:${gatilho}]`,
+        destino: `${destinoLabel} (${grupoJid}) [para:${telefoneRemetente || "?"}] [gatilho:${gatilho}]`,
         status_envio: "nao_enviado",
         erro: motivo,
       });
@@ -1232,7 +1253,7 @@ async function conversaTalvezResponder(m: Conf, grupoTeste: string, telefoneReme
     return semResposta(`cooldown de ${cooldownSeg}s por pessoa`, gatilho);
   }
 
-  const logBase = { tipo: "conversa", destino: `teste (${grupoTeste}) [para:${telefoneRemetente || "?"}] [gatilho:${gatilho}]` };
+  const logBase = { tipo: "conversa", destino: `${destinoLabel} (${grupoJid}) [para:${telefoneRemetente || "?"}] [gatilho:${gatilho}]` };
   let userPrompt: string | null = null;
   let respostaIA: string | null = null;
   try {
@@ -1449,7 +1470,7 @@ async function conversaTalvezResponder(m: Conf, grupoTeste: string, telefoneReme
 
     const ia = await chamaIA(modelo, systemPrompt, userPrompt, 2500, WEB_SEARCH_TOOLS);
     respostaIA = ia.texto;
-    const envio = await enviaEmPartes(grupoTeste, respostaIA);
+    const envio = await enviaEmPartes(grupoJid, respostaIA);
     await botLog({
       ...logBase, prompt_enviado: userPrompt, resposta_ia: respostaIA,
       mensagem_enviada: envio.partes.join("\n\n"),
@@ -1600,29 +1621,60 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  // ─── Modo WEBHOOK (Fase 2 — Ouvidos, v1.14): captura bruta de mensagens ──────
+  // ─── Modo WEBHOOK (Fase 2 — Ouvidos, v1.14; DOIS GRUPOS desde v1.20) ────────
   // POST vindo da ZapZap a cada evento da instância (a URL com o token
-  // embutido é registrada pelo modo configurar_webhook, abaixo). Nesta fase a
-  // captura é EXCLUSIVA do grupo de TESTE: mensagem de qualquer outro chat
-  // (incluindo o grupo oficial) é ignorada. Mensagens do próprio bot (fromMe)
-  // também. Sem NENHUMA lógica de resposta ainda — isso é a Fase 3.
+  // embutido é registrada pelo modo configurar_webhook, abaixo). Reconhece os
+  // DOIS grupos monitorados (GRUPO_TESTE_ID e GRUPO_OFICIAL_ID) — qualquer
+  // outro chat é ignorado. Captura (Ouvidos) e Conversa (Fase 3) são DOIS
+  // CONTROLES INDEPENDENTES por grupo (antes viviam atrás do mesmo filtro
+  // "é o grupo de teste?"): o de TESTE nasceu ligado nos dois desde o início
+  // e continua incondicional; o OFICIAL exige opt-in explícito em
+  // bot_config (`captura_ativa_oficial`/`conversa_ativa_oficial` = '1' —
+  // ausente ou qualquer outro valor = desligado, fail-closed). Isso permite
+  // ligar a captura sozinha primeiro (só observar, sem responder) antes de
+  // ligar a conversa. Mensagens do próprio bot (fromMe) são sempre ignoradas.
   // Sempre responde 200 (mesmo em erro, com ok:false + bot_log): comportamento
   // de retry da ZapZap não é documentado e um 5xx nosso não pode virar loop.
   if (url.searchParams.get("tipo") === "webhook") {
-    // payload fica fora do try: o catch precisa dele pro log de erro (o body
-    // do Request só pode ser lido uma vez — req.clone() tardio não funciona)
+    // payload/destinoLabel ficam fora do try: o catch precisa deles pro log
+    // de erro (o body do Request só pode ser lido uma vez — req.clone()
+    // tardio não funciona; destinoLabel pode não ter sido decidido ainda se
+    // o erro aconteceu antes, daí o log cai no fallback "grupo desconhecido").
     let payload: Conf = null;
+    let destinoLabel: "teste" | "oficial" | null = null;
     try {
       if (req.method !== "POST") return json({ ok: true, ignorado: "webhook só processa POST" });
       payload = await req.json().catch(() => null);
       if (!payload) return json({ ok: true, ignorado: "body não é JSON" });
       const grupoTeste = Deno.env.get("GRUPO_TESTE_ID") || "";
+      const grupoOficial = Deno.env.get("GRUPO_OFICIAL_ID") || "";
       if (!grupoTeste) return json({ ok: false, erro: "Secret GRUPO_TESTE_ID não configurado" });
 
       const m = extraiMensagemWebhook(payload);
-      if (!m.chatJid || m.chatJid !== grupoTeste) return json({ ok: true, ignorado: "fora do grupo de teste" });
+      if (m.chatJid && m.chatJid === grupoTeste) destinoLabel = "teste";
+      else if (m.chatJid && grupoOficial && m.chatJid === grupoOficial) destinoLabel = "oficial";
+      if (!destinoLabel) return json({ ok: true, ignorado: "fora dos grupos monitorados" });
+      const grupoAtual = destinoLabel === "oficial" ? grupoOficial : grupoTeste;
       if (m.fromMe) return json({ ok: true, ignorado: "mensagem do próprio bot" });
       if (!m.messageId) return json({ ok: true, ignorado: "evento sem id de mensagem" });
+
+      // Controles por grupo (v1.20): teste sempre ligado nos dois; oficial
+      // só com o opt-in explícito. Uma consulta só, feita SÓ quando o
+      // destino é oficial (zero custo extra no caminho do teste).
+      let capturaHabilitada = true;
+      let conversaHabilitada = destinoLabel === "teste";
+      if (destinoLabel === "oficial") {
+        const cfgOficial = await sbGet(
+          "bot_config?key=in.(captura_ativa_oficial,conversa_ativa_oficial)&select=key,value"
+        ).catch(() => []);
+        const cfgMap: Record<string, string> = {};
+        for (const r of (cfgOficial as Conf[])) cfgMap[r.key] = r.value;
+        capturaHabilitada = cfgMap.captura_ativa_oficial === "1";
+        conversaHabilitada = cfgMap.conversa_ativa_oficial === "1";
+      }
+      if (!capturaHabilitada) {
+        return json({ ok: true, grupo: destinoLabel, ignorado: "captura desligada pro grupo oficial (bot_config.captura_ativa_oficial)" });
+      }
 
       // remetente_telefone: dígitos do JID, trocados pelo E.164 tabelado em
       // bot_telefones quando houver correspondência por TELEFONE ou por LID
@@ -1679,16 +1731,22 @@ Deno.serve(async (req: Request) => {
       let inserida = false;
       try { inserida = JSON.parse(corpo).length > 0; } catch { /* return=representation sempre é JSON */ }
 
-      // primeira captura da história → aviso único "o Ratazana vê tudo"
-      const avisoEnviado = inserida ? await avisoOuvidosUmaVez(grupoTeste) : false;
+      // primeira captura da história → aviso único "o Ratazana vê tudo".
+      // v1.20: SÓ pro grupo de TESTE — a estreia do oficial é o Comunicado
+      // Oficial (texto fixo, disparado manualmente via enviar_texto), nunca
+      // esse aviso automático. Reforço explícito de intenção aqui, mesmo o
+      // claim de bot_config já sendo permanente/global por natureza.
+      const avisoEnviado = (inserida && destinoLabel === "teste") ? await avisoOuvidosUmaVez(grupoAtual) : false;
 
       // Fase 3 (Conversa): só pra mensagem RECÉM-inserida (reentrega/duplicata
       // nunca responde de novo — dedup do INSERT é também dedup da resposta)
-      const conversa = inserida
-        ? await conversaTalvezResponder(m, grupoTeste, telefone, "teste")
-        : { respondida: false, gatilho: null, motivo: "duplicada" };
+      // E só se a conversa estiver ligada pro grupo (teste sempre; oficial
+      // com o opt-in checado acima).
+      const conversa = (inserida && conversaHabilitada)
+        ? await conversaTalvezResponder(m, grupoAtual, telefone, destinoLabel)
+        : { respondida: false, gatilho: null, motivo: inserida ? "conversa desligada pro grupo" : "duplicada" };
       return json({
-        ok: true, capturada: inserida, duplicada: !inserida, aviso_enviado: avisoEnviado,
+        ok: true, grupo: destinoLabel, capturada: inserida, duplicada: !inserida, aviso_enviado: avisoEnviado,
         respondida: conversa.respondida, gatilho: conversa.gatilho, motivo_conversa: conversa.motivo,
       });
     } catch (e) {
@@ -1699,7 +1757,7 @@ Deno.serve(async (req: Request) => {
       // erro não guardava o evento).
       let payloadTxt: string | null = null;
       try { payloadTxt = payload ? JSON.stringify(payload).slice(0, 8000) : null; } catch { /* payload não serializável */ }
-      await botLog({ tipo: "webhook_captura", destino: "(grupo de teste)", prompt_enviado: payloadTxt, status_envio: "erro", erro: msg });
+      await botLog({ tipo: "webhook_captura", destino: destinoLabel ? `(grupo ${destinoLabel})` : "(grupo desconhecido)", prompt_enviado: payloadTxt, status_envio: "erro", erro: msg });
       return json({ ok: false, erro: msg }); // 200 de propósito, ver comentário acima
     }
   }
