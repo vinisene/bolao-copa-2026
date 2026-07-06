@@ -1,6 +1,24 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // ROBÔ RATAZANA — Edge Function "ratazana-cobranca"
-// (v1.18.1 — RANKING SEM BURACOS + REGRA DAS IAs VIRA COMPORTAMENTO: achado
+// (v1.18.2 — FIX DA MENÇÃO NÃO RESOLVIDA + BUSCA NA WEB (SÓ CONVERSA):
+//  achado real de teste — marcaram @Jeca de verdade (mentionedJID real)
+//  antes do LID dela estar aprendido em bot_telefones; sem nenhum sinal
+//  disso no prompt, o bot respondeu como se a marcação fosse a pessoa da
+//  mensagem citada (Claude Tonius). Agora toda menção real sem match em
+//  bot_telefones vira `mencaoNaoResolvida`; se, mesmo com o fallback por
+//  nome escrito, nenhuma pessoa real sobra (`contatoDesconhecido`), o
+//  prompt avisa o modelo explicitamente pra nunca adivinhar/reaproveitar
+//  identidade — só admitir que ainda não conhece o contato. BUSCA NA WEB:
+//  tool nativa `web_search_20250305` (versão básica — compatível com o
+//  fallback Haiku 4.5, que não tem a variante `_20260209`) ligada SÓ na
+//  chamada do modo conversa; o modelo decide sozinho quando buscar (fato
+//  de futebol/Copa fora dos dados do Bolão) via instrução na TAREFA;
+//  perguntas sobre dado do Bolão continuam sem tool nenhuma envolvida.
+//  Join dos blocos de texto da resposta virou "" (era "\n") — blocos
+//  fatiados por citação da busca são pra colar direto, não quebrar linha.
+//  Persona v2.6: humildade factual fora do bolão ganhou exceção pra fato
+//  pesquisado agora (pode afirmar com confiança, não é mais "de cabeça").
+//  v1.18.1 — RANKING SEM BURACOS + REGRA DAS IAs VIRA COMPORTAMENTO: achado
 //  real de teste — perguntado "quem é o lanterna", o bot respondeu o 11º em
 //  vez do 14º real, porque o ranking da conversa FILTRAVA as IAs fora do
 //  top 3 antes de montar a lista (tirava linhas do meio, distorcendo posição
@@ -570,7 +588,15 @@ function jaRodouHoje(logs: Conf[], tipo: string, destino: "teste" | "oficial", c
 // (ids 69/72-74). Por isso: teto generoso (4000; pior caso realista de
 // mensagem de 4-7 linhas + thinking cabe com folga) e checagem EXPLÍCITA de
 // stop_reason — max_tokens = falha bloqueante, nunca envia texto parcial.
-async function chamaIA(modelo: string, systemPrompt: string, userPrompt: string, maxTokens = 4000) {
+// Busca na web (v1.18.2, SÓ modo conversa) — tool nativa da Anthropic. Versão
+// "básica" (não a `_20260209` com filtragem dinâmica) de propósito: o modelo
+// configurável em bot_config pode cair pro fallback Haiku 4.5, que não tem a
+// variante dinâmica — a básica funciona em qualquer modelo atual. `max_uses`
+// evita loop de busca numa pergunta de papo (bem generoso pro caso comum de
+// 1 busca só).
+const WEB_SEARCH_TOOLS = [{ type: "web_search_20250305", name: "web_search", max_uses: 3 }];
+
+async function chamaIA(modelo: string, systemPrompt: string, userPrompt: string, maxTokens = 4000, tools?: Conf[]) {
   const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -583,14 +609,18 @@ async function chamaIA(modelo: string, systemPrompt: string, userPrompt: string,
       max_tokens: maxTokens,
       system: systemPrompt,
       messages: [{ role: "user", content: userPrompt }],
+      ...(tools && tools.length ? { tools } : {}),
     }),
   });
   if (!r.ok) throw new Error(`Anthropic (${modelo}) → HTTP ${r.status}: ${(await r.text()).slice(0, 300)}`);
   const data = await r.json();
+  // Blocos de texto com citação (achado da busca web) chegam fatiados no
+  // limite exato de cada citação — são pra colar direto, sem separador, ou
+  // uma frase contínua vira quebrada no meio ("O artilheiro\n é fulano").
   const texto = (data.content || [])
     .filter((b: Conf) => b.type === "text")
     .map((b: Conf) => b.text)
-    .join("\n").trim();
+    .join("").trim();
   // Resposta parcial NÃO VAZIA também é falha: texto cortado no meio da frase
   // não pode ir pro WhatsApp. Detalhe técnico completo só no log do servidor.
   if (data.stop_reason === "max_tokens") {
@@ -1225,11 +1255,19 @@ async function conversaTalvezResponder(m: Conf, grupoTeste: string, telefoneReme
     const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
     const escapaRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const citadasIds = new Set<string>();
+    // Achado real de teste (v1.18.2): @Jeca mencionada de verdade, LID dela
+    // ainda não aprendido em bot_telefones → a menção não resolvia pra
+    // ninguém e, sem nenhum sinal disso no prompt, o modelo respondeu como
+    // se a marcação fosse a pessoa discutida na mensagem citada (Claude
+    // Tonius). `mencaoNaoResolvida` marca esse caso pra avisar o modelo
+    // explicitamente em vez de deixar a lacuna aberta pra ele preencher.
+    let mencaoNaoResolvida = false;
     for (const j of (m.mentions || [])) {
       const d = digitos(j);
       if (!d || idsBot.has(d)) continue;
       const t = achaTel(d);
       if (t) citadasIds.add(t.participante_id);
+      else mencaoNaoResolvida = true;
     }
     const txtNorm = norm(String(m.texto));
     for (const p of MATA_PARTS_BOT) {
@@ -1241,6 +1279,9 @@ async function conversaTalvezResponder(m: Conf, grupoTeste: string, telefoneReme
         if (re.test(txtNorm)) { citadasIds.add(p.id); break; }
       }
     }
+    // Só é "contato desconhecido" se, MESMO depois do fallback por nome
+    // escrito acima, nenhuma pessoa real ficou disponível pro modelo.
+    const contatoDesconhecido = mencaoNaoResolvida && citadasIds.size === 0;
     const abertosProximos = confrontos
       .filter((c: Conf) => !mmIsTest(c) && !c.finished)
       .map((c: Conf) => ({ c, d: mmGameDate(c) }))
@@ -1280,6 +1321,7 @@ async function conversaTalvezResponder(m: Conf, grupoTeste: string, telefoneReme
       `- De: ${nome}${genero ? ` (${genero})` : ""}${posPessoa ? ` — ${posPessoa}º lugar no Ranking do Bolão com ${fmtPts(rank[posPessoa - 1].total)} pts` : ""}\n` +
       `- Texto: "${String(m.texto).slice(0, 600)}"\n` +
       (gatilho === "mencao" ? `- Você foi marcado nessa mensagem.\n` : "") +
+      (contatoDesconhecido ? `- ATENÇÃO: essa marcação (@) é de um contato que você AINDA NÃO CONHECE (o número dele não está no seu cadastro ainda). Não é ninguém que já apareceu nesta conversa, nem a pessoa da mensagem citada abaixo (se houver), nem qualquer outra pessoa do Bolão — não tem como saber quem é.\n` : "") +
       (msgOriginal ? `- Ela é RESPOSTA a esta mensagem que você mandou no grupo antes: "${String(msgOriginal.texto || "").slice(0, 400)}"\n` : "") +
       (pessoasCitadasBloco ? `\nPESSOAS CITADAS NA MENSAGEM (dados reais delas no Bolão):\n${pessoasCitadasBloco}\n` : "") +
       `\nRESULTADOS RECENTES (últimos 3 dias, placares FINAIS — são fatos):\n` +
@@ -1289,15 +1331,17 @@ async function conversaTalvezResponder(m: Conf, grupoTeste: string, telefoneReme
       `RANKING DO BOLÃO COMPLETO (posições e pontos reais; você está em ${posRat}º):\n${rankingCompleto}\n` +
       `\nTAREFA — MODO CONVERSA (isto NÃO é mensagem programada; o formato de 4 a 7 linhas NÃO vale aqui):\n` +
       `1. PRIMEIRO responda diretamente o que ${nome === "alguém do grupo" ? "a pessoa" : nome} disse ou perguntou, como num papo de verdade.\n` +
-      `2. Perguntou posição, pontos ou palpite de alguém (o RANKING acima é COMPLETO e REAL, 1º ao último, sem buraco nenhum — inclusive as IAs concorrentes)? Responda com o dado REAL, com gosto e zoeira — NUNCA mande consultar o app nem "conferir depois": você é a fonte. Nunca invente que uma posição ou pessoa "não existe".\n` +
-      `3. IAs concorrentes fora do top 3: você tem o dado, mas só fala delas se PERGUNTADO DIRETO sobre aquela posição/jogo/pessoa especificamente — nunca por iniciativa própria, nunca como assunto voluntário.\n` +
-      `4. Jogos do dia, palpites e ranking que NÃO foram perguntados só entram se tiverem relação com o assunto — ou como fecho de UMA frase, opcional. Nunca como corpo principal não pedido.\n` +
-      `5. Curto: 1 a 3 linhas na maioria das vezes. Tom de conversa, ácido, em personagem.\n` +
-      `6. COERÊNCIA FACTUAL OBRIGATÓRIA: os resultados e situações acima são FATOS que você conhece e comenta com naturalidade. NUNCA negue algo que está listado — se está nos resultados, aconteceu. Se perguntarem de algo que NÃO está nos dados (recorde histórico, estatística de jogador, notícia), NÃO crave: responda no tom "de cabeça eu diria X, mas não ponho a mão no fogo" e, se contestado, admita que pode estar desatualizado.\n` +
-      `7. Seu humor de fundo decorre da SITUAÇÃO DAS SELEÇÕES DO SEU CORAÇÃO acima — mas é humor de FUNDO: não verbalize o luto nem a implicância em toda resposta (dosagem está na sua persona).\n` +
-      `8. Calibre a intensidade pelo gênero. Não use @. Sem link do bolão. Não cobre palpite a menos que perguntem sobre isso.`;
+      `2. Marcou (@) um contato desconhecido (aviso acima)? NUNCA adivinhe quem é e NUNCA reaproveite a identidade de quem apareceu antes na conversa (nem da mensagem citada, nem de ninguém) — trate como desconhecido de verdade e diga isso com naturalidade, convidando a pessoa a mandar uma mensagem no grupo pra você aprender quem ela é. Se a MESMA mensagem também escrever o nome dela por extenso, o dado real já está no bloco de PESSOAS CITADAS acima — use normalmente, sem esse aviso.\n` +
+      `3. Perguntou posição, pontos ou palpite de alguém (o RANKING acima é COMPLETO e REAL, 1º ao último, sem buraco nenhum — inclusive as IAs concorrentes)? Responda com o dado REAL, com gosto e zoeira — NUNCA mande consultar o app nem "conferir depois": você é a fonte. Nunca invente que uma posição ou pessoa "não existe".\n` +
+      `4. IAs concorrentes fora do top 3: você tem o dado, mas só fala delas se PERGUNTADO DIRETO sobre aquela posição/jogo/pessoa especificamente — nunca por iniciativa própria, nunca como assunto voluntário.\n` +
+      `5. Jogos do dia, palpites e ranking que NÃO foram perguntados só entram se tiverem relação com o assunto — ou como fecho de UMA frase, opcional. Nunca como corpo principal não pedido.\n` +
+      `6. Pergunta sobre fato de FUTEBOL/COPA que NÃO está em nenhum dado acima (artilheiro geral do torneio, recorde histórico, notícia, lesão de jogador)? Você TEM ferramenta de busca na internet pra esses casos — use-a. NUNCA pesquise pra responder algo que já está nos dados acima (ranking, palpites, pontos, jogos do Bolão) — isso é só demora à toa, você já é a fonte disso. Resposta com busca continua no tamanho e tom padrão de conversa (1 a 3 linhas, no seu jeito) — nunca despeje texto corrido da pesquisa nem cite fonte/link, resuma o fato com suas próprias palavras.\n` +
+      `7. Curto: 1 a 3 linhas na maioria das vezes. Tom de conversa, ácido, em personagem.\n` +
+      `8. COERÊNCIA FACTUAL OBRIGATÓRIA: os resultados e situações acima são FATOS que você conhece e comenta com naturalidade. NUNCA negue algo que está listado — se está nos resultados, aconteceu. Se perguntarem de algo que NÃO está nos dados nem foi pesquisado agora, NÃO crave: responda no tom "de cabeça eu diria X, mas não ponho a mão no fogo" e, se contestado, admita que pode estar desatualizado. Se você pesquisou (item 6) e achou resposta atual e clara, pode afirmar com confiança — não precisa da ressalva de "de cabeça".\n` +
+      `9. Seu humor de fundo decorre da SITUAÇÃO DAS SELEÇÕES DO SEU CORAÇÃO acima — mas é humor de FUNDO: não verbalize o luto nem a implicância em toda resposta (dosagem está na sua persona).\n` +
+      `10. Calibre a intensidade pelo gênero. Não use @. Sem link do bolão. Não cobre palpite a menos que perguntem sobre isso.`;
 
-    const ia = await chamaIA(modelo, systemPrompt, userPrompt, 2500);
+    const ia = await chamaIA(modelo, systemPrompt, userPrompt, 2500, WEB_SEARCH_TOOLS);
     respostaIA = ia.texto;
     const envio = await enviaEmPartes(grupoTeste, respostaIA);
     await botLog({
