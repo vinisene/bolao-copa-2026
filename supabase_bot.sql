@@ -109,6 +109,17 @@ ON CONFLICT (key) DO NOTHING;
 INSERT INTO dev_bot_config (key, value) VALUES ('fase_ativa', '16avos')
 ON CONFLICT (key) DO NOTHING;
 
+-- 6c) Limites da CONVERSA por grupo (v1.17.1, opcionais). Sem a key, valem
+--     os defaults conservadores do código (6 respostas/hora, cooldown 10s) —
+--     é o regime do grupo OFICIAL. O grupo de TESTE ganha teto folgado pra
+--     sessões de calibragem (o teto de 6/h matou uma sessão real de testes).
+--     Keys reconhecidas: conversa_max_hora_<teste|oficial>,
+--     conversa_cooldown_seg_<teste|oficial>. Não sobrescreve se já existir.
+INSERT INTO bot_config (key, value) VALUES ('conversa_max_hora_teste', '30')
+ON CONFLICT (key) DO NOTHING;
+INSERT INTO dev_bot_config (key, value) VALUES ('conversa_max_hora_teste', '30')
+ON CONFLICT (key) DO NOTHING;
+
 -- 7) Seed do system prompt do personagem (key = 'system_prompt_ratazana')
 --    Versão v2.3: bordões com parcimônia (máx. 1 por mensagem, "caderninho"
 --    raro — no teste real ele apareceu em TODA resposta de conversa, às vezes

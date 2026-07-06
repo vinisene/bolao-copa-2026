@@ -1,6 +1,13 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // ROBÔ RATAZANA — Edge Function "ratazana-cobranca"
-// (v1.17 — CONVERSA COM CONTEXTO FACTUAL + MODO PAPO (achados do 2º teste
+// (v1.17.1 — LIMITES DE CONVERSA POR GRUPO: sessão de calibragem real morreu
+//  no teto fixo de 6 respostas/hora (bot_log 105-106, "teto atingido"). Teto
+//  e cooldown agora são resolvidos por grupo via keys opcionais de bot_config
+//  — conversa_max_hora_<destino> / conversa_cooldown_seg_<destino> — com os
+//  defaults conservadores (6/h, 10s) valendo pra qualquer grupo sem key
+//  (o OFICIAL nasce conservador). Grupo de teste: key = 30/hora. A contagem
+//  do teto/cooldown também virou por grupo.
+//  v1.17 — CONVERSA COM CONTEXTO FACTUAL + MODO PAPO (achados do 2º teste
 //  real): 1) o "reply mudo" era o COOLDOWN de 30s, mais longo que o ritmo
 //  natural de conversa (replies reais em 13s/22s engolidos sem log) — caiu
 //  pra 10s e todo skip com gatilho disparado agora é logado em bot_log
@@ -900,13 +907,37 @@ async function avisoOuvidosUmaVez(grupoTeste: string): Promise<boolean> {
 //      quoted_message_id cruzado com bot_mensagens_enviadas.
 // Sem gatilho → só arquiva (comportamento da Fase 2, intacto). SEM busca na
 // web e SEM ficha relacional nesta leva (próximas etapas da Fase 3).
-const CONVERSA_MAX_POR_HORA = 6;    // teto global anti-cascata
+// Limites anti-cascata — os DEFAULTS abaixo são o piso conservador e valem
+// pra qualquer grupo sem override (ou seja: o OFICIAL, quando a conversa
+// chegar lá, nasce no modo conservador). Por grupo, keys opcionais em
+// bot_config sobrescrevem: `conversa_max_hora_<destino>` e
+// `conversa_cooldown_seg_<destino>` (destino = "teste" | "oficial").
+// Motivo (v1.17.1): sessão de calibragem real no grupo de teste morreu no
+// teto de 6/hora (bot_log 105-106) — teste precisa de folga (key = 30/hora),
+// o oficial não.
+const CONVERSA_MAX_POR_HORA = 6;    // default conservador
 // Cooldown por pessoa: 30s era MAIS LONGO que o ritmo natural de conversa —
 // no teste real os replies vieram 13s e 22s depois da resposta do bot e
 // foram engolidos em silêncio (parecia bug no match de citação; era isto).
 // 10s ainda barra spam/cascata (anti-eco + teto/hora seguram o resto) sem
-// matar o vai-e-vem normal de um papo.
-const CONVERSA_COOLDOWN_SEG = 10;
+// matar o vai-e-vem normal de um papo (0 skips de cooldown nos logs desde então).
+const CONVERSA_COOLDOWN_SEG = 10;   // default
+async function limitesConversa(destinoLabel: string): Promise<{ maxHora: number; cooldownSeg: number }> {
+  let maxHora = CONVERSA_MAX_POR_HORA;
+  let cooldownSeg = CONVERSA_COOLDOWN_SEG;
+  try {
+    const rows = await sbGet(
+      `bot_config?key=in.(conversa_max_hora_${destinoLabel},conversa_cooldown_seg_${destinoLabel})&select=key,value`
+    );
+    for (const r of (rows as Conf[])) {
+      const n = parseInt(String(r.value), 10);
+      if (!Number.isFinite(n) || n < 0) continue;
+      if (r.key === `conversa_max_hora_${destinoLabel}`) maxHora = n;
+      if (r.key === `conversa_cooldown_seg_${destinoLabel}`) cooldownSeg = n;
+    }
+  } catch { /* keys ilegíveis → fica no default conservador */ }
+  return { maxHora, cooldownSeg };
+}
 
 // Identidades do WhatsApp da própria instância (base do gatilho de menção e
 // do anti-eco). Achado real do teste: o WhatsApp moderno usa DOIS
@@ -964,7 +995,7 @@ async function buscaMensagemBot(quotedId: string): Promise<Conf | null> {
 
 // Avalia os gatilhos e, se for o caso, gera e envia a resposta. Devolve o que
 // aconteceu (pro JSON do webhook e pro teste manual do Vini).
-async function conversaTalvezResponder(m: Conf, grupoTeste: string, telefoneRemetente: string) {
+async function conversaTalvezResponder(m: Conf, grupoTeste: string, telefoneRemetente: string, destinoLabel = "teste") {
   // Skip com gatilho DISPARADO fica auditável em bot_log (status nao_enviado,
   // que o rate-limit ignora — ele só conta status ok). Lição do teste real:
   // o cooldown engoliu dois replies em silêncio e pareceu bug de match de
@@ -1005,20 +1036,25 @@ async function conversaTalvezResponder(m: Conf, grupoTeste: string, telefoneReme
   if (!m.texto) return semResposta("mensagem sem texto (mídia?)", gatilho);
 
   // Anti-cascata (fail-CLOSED: rate-limit ilegível = não responde):
-  // teto global por hora + cooldown por pessoa, ambos sobre bot_log.
+  // teto por hora + cooldown por pessoa, ambos sobre bot_log, com limites
+  // resolvidos POR GRUPO (keys de bot_config; default conservador — v1.17.1).
+  const { maxHora, cooldownSeg } = await limitesConversa(destinoLabel);
   const desdeHora = new Date(Date.now() - 3600_000).toISOString();
   const recentes = await sbGet(
     `bot_log?tipo=eq.conversa&status_envio=eq.ok&created_at=gte.${encodeURIComponent(desdeHora)}&select=created_at,destino`
   ).catch(() => null);
   if (recentes === null) return semResposta("rate-limit ilegível (fail-closed, não responde)", gatilho);
-  if (recentes.length >= CONVERSA_MAX_POR_HORA) {
-    return semResposta(`teto de ${CONVERSA_MAX_POR_HORA} respostas/hora atingido`, gatilho);
+  // teto e cooldown contam POR GRUPO (o limite é por grupo, a contagem também
+  // — senão uma sessão longa no teste comeria o teto do oficial e vice-versa)
+  const doGrupo = (recentes as Conf[]).filter((r: Conf) => String(r.destino || "").startsWith(destinoLabel + " ("));
+  if (doGrupo.length >= maxHora) {
+    return semResposta(`teto de ${maxHora} respostas/hora atingido`, gatilho);
   }
-  const cooldownDesde = Date.now() - CONVERSA_COOLDOWN_SEG * 1000;
-  if (telefoneRemetente && recentes.some((r: Conf) =>
+  const cooldownDesde = Date.now() - cooldownSeg * 1000;
+  if (telefoneRemetente && cooldownSeg > 0 && doGrupo.some((r: Conf) =>
     String(r.destino || "").includes(`[para:${telefoneRemetente}]`) &&
     new Date(r.created_at).getTime() > cooldownDesde)) {
-    return semResposta(`cooldown de ${CONVERSA_COOLDOWN_SEG}s por pessoa`, gatilho);
+    return semResposta(`cooldown de ${cooldownSeg}s por pessoa`, gatilho);
   }
 
   const logBase = { tipo: "conversa", destino: `teste (${grupoTeste}) [para:${telefoneRemetente || "?"}] [gatilho:${gatilho}]` };
@@ -1354,7 +1390,7 @@ Deno.serve(async (req: Request) => {
       // Fase 3 (Conversa): só pra mensagem RECÉM-inserida (reentrega/duplicata
       // nunca responde de novo — dedup do INSERT é também dedup da resposta)
       const conversa = inserida
-        ? await conversaTalvezResponder(m, grupoTeste, telefone)
+        ? await conversaTalvezResponder(m, grupoTeste, telefone, "teste")
         : { respondida: false, gatilho: null, motivo: "duplicada" };
       return json({
         ok: true, capturada: inserida, duplicada: !inserida, aviso_enviado: avisoEnviado,
