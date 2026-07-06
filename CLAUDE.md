@@ -8,7 +8,7 @@
 > - **Sempre crie safepoint (tag) antes de merge pra `main`**.
 > - Não toque na `congelado-fase-grupos` (museu) nem na `dev` (backup antigo congelado).
 > - **Robô Ratazana (bot WhatsApp) EM PRODUÇÃO**, ainda só no grupo de TESTE — ver §13. Admin de placares no ar — ver §14. **Persona v2.1.2 + função v1.11 DEPLOYADA (versão 14, jul/2026, autorização explícita) + `bot_telefones` PREENCHIDA (9 participantes, prod e dev). Menção real, fix do truncamento e filtro de sanidade por script TESTADOS ao vivo no grupo de teste.** A URL de disparo da cobrança exige `&destino=teste`.
-- **Fase 3 (Conversa) — v1.16 DEPLOYADA (versão 19, jul/2026, autorização explícita)** — o webhook responde quando o bot é mencionado (@) ou quando alguém responde/cita mensagem dele; SÓ grupo de TESTE; anti-cascata (6/hora + cooldown 30s + anti-eco). Tabela `bot_mensagens_enviadas` criada em produção (registra o message_id de todo envio do bot; ⚠️ gatilho de citação só enxerga envios PÓS-deploy). Sem busca na web/ficha relacional ainda. Ver §13. **Compatibilidade `enviar_texto` × `net.http_post` do pg_net CONFERIDA — nenhum ajuste necessário** (POST + Content-Type application/json default + query params na URL).
+- **Fase 3 (Conversa) — v1.16.1 DEPLOYADA (versão 20, jul/2026)** — o webhook responde quando o bot é mencionado (@) ou quando alguém responde/cita mensagem dele; SÓ grupo de TESTE; anti-cascata (6/hora + cooldown 30s + anti-eco). Tabela `bot_mensagens_enviadas` criada em produção (registra o message_id de todo envio do bot; ⚠️ gatilho de citação só enxerga envios PÓS-deploy). **Fix v1.16.1 pós-teste real: parser lê `mentionedJID` (maiúsculo) e o gatilho compara telefone E LID da instância (`bot_config.bot_numero_whatsapp`, multi-id com vírgula, preenchida). Reteste pendente.** Sem busca na web/ficha relacional ainda. Ver §13/§15 item -7. **Compatibilidade `enviar_texto` × `net.http_post` do pg_net CONFERIDA — nenhum ajuste necessário** (POST + Content-Type application/json default + query params na URL).
 - **Função v1.15.1 DEPLOYADA (versão 18, jul/2026)** — fix do registro do webhook: o 1º `configurar_webhook` real falhou com "URL do webhook é obrigatória" (o backend da ZapZap valida `webhook_url`, não o `url` documentado no POST da instância) → body agora leva os DOIS nomes; resposta ganhou `configured` (sucesso conferido RELENDO a config, não só o 2xx), `dica` honesta por resultado e redação do token (`[token]`) em tudo que ecoa. Engloba v1.14+v1.15 (Ouvidos + claim-then-act, autorização explícita). Tabela `mensagens_grupo` criada em produção (RLS sem policy pública — privacidade). **Pra ligar a captura falta: Vini chamar `?tipo=configurar_webhook` de novo (agora deve vir `ok:true, configured:true`) + mensagens reais no grupo de teste. Nenhuma resposta a menção/citação ainda — Fase 3.** Ver §13.
 - **Função v1.13 DEPLOYADA (versão 16, jul/2026, autorização explícita)** — agenda e cobrança separadas de vez: `?tipo=agenda` (9h, só jogos/turbo/zebra/liderança, NUNCA fala de quem falta palpitar) + `?tipo=cobranca_dia` (9h01, mesmo pipeline da cobrança manual, só envia se faltar alguém) + `?tipo=ultima_chamada` (T-60min, só envia se faltar alguém NAQUELE jogo) — ver §13. **Persona v2.2**: ganhou o viés emocional Brasil×Argentina (torcedor roxo do Brasil, implicância com a Argentina), aplicada em prod+dev via REST. **⚠️ `supabase_pg_cron.sql` agora aponta os 3 jobs pro `&destino=oficial`** (pedido explícito do Vini nesta leva — antes era `teste` de propósito). **pg_cron/pg_net AINDA NÃO habilitados no banco** (auditoria confirmou zero automação): SQL pronto, aguardando o Vini rodar no SQL Editor (armadilha 8 — DDL de extensão é automação bloqueada pro Claude Code). **A partir do momento em que esse SQL rodar, os 3 jobs passam a mandar mensagem de verdade pro grupo oficial da família, sozinhos, todo dia** — até lá, os modos só disparam se alguém chamar a URL manualmente.
 > - **⚠️ Repo é PÚBLICO** — nada sensível em arquivo versionado (ver armadilha 9).
@@ -677,17 +677,21 @@ o banco.
 
 ## 15. Pendências abertas (jul/2026)
 
--7. **✅ Fase 3 (Conversa) — v1.16 DEPLOYADA (versão 19, jul/2026, autorização
-   explícita):** webhook responde menção (@) e resposta/citação de mensagem do
-   bot, SÓ no grupo de TESTE (detalhes em §13). Tabela `bot_mensagens_enviadas`
-   JÁ CRIADA em produção (RLS sem policy). ⚠️ O gatilho de citação só enxerga
-   mensagens enviadas DEPOIS do deploy da v1.16 (o registro de message_id
-   começa aí — envios antigos não estão na tabela). Se o gatilho de menção
-   falhar no teste real, preencher `bot_config.bot_numero_whatsapp` com o
-   número da instância (override manual; o fallback via API de gestão da
-   ZapZap pode não trazer o campo esperado). Teste manual: mencionar o bot no
-   grupo de teste → resposta; responder/citar uma mensagem dele (pós-deploy) →
-   resposta; mensagem comum → só arquiva. Teste real ainda não feito.
+-7. **Fase 3 (Conversa) — v1.16.1 DEPLOYADA (versão 20, jul/2026); 1º teste real
+   achou e corrigiu DUAS causas do bot mudo:** (1) o campo de menções no
+   envelope da ZapZap é `content.contextInfo.mentionedJID` (JID MAIÚSCULO) —
+   faltava no parser (case-sensitive; `mentions` vinha NULL em toda captura);
+   (2) **menção em grupo chega como LID de privacidade (`...@lid`), NÃO como
+   telefone** — o gatilho agora compara contra o CONJUNTO de identidades da
+   instância (`botIdentidades`; key `bot_config.bot_numero_whatsapp` =
+   `"5511937366681,61032206725341"` = telefone,LID — PREENCHIDA em prod+dev
+   com valores confirmados no payload real). ⚠️ Remetentes também chegam como
+   LID → cruzamento com `bot_telefones` falha e o nome vira "alguém do grupo"
+   no contexto da conversa — limitação conhecida; mapear LID→participante é
+   leva futura. Gatilho de citação segue só enxergando envios PÓS-v1.16
+   (`bot_mensagens_enviadas` começou vazia). Teste manual: mencionar o bot →
+   resposta; responder mensagem dele (nova) → resposta; comum → só arquiva.
+   RETESTE PENDENTE do Vini após o fix.
 -6. **v1.15.1 DEPLOYADA (versão 18, jul/2026) — fix do configurar_webhook após
    FALHA REAL no 1º registro:** a ZapZap recusou `{url}` com "URL do webhook é
    obrigatória" (backend valida `webhook_url`; a doc pública do POST /webhook
