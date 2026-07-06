@@ -8,7 +8,7 @@
 > - **Sempre crie safepoint (tag) antes de merge pra `main`**.
 > - Não toque na `congelado-fase-grupos` (museu) nem na `dev` (backup antigo congelado).
 > - **Robô Ratazana (bot WhatsApp) EM PRODUÇÃO**, ainda só no grupo de TESTE — ver §13. Admin de placares no ar — ver §14. **Persona v2.1.2 + função v1.11 DEPLOYADA (versão 14, jul/2026, autorização explícita) + `bot_telefones` PREENCHIDA (9 participantes, prod e dev). Menção real, fix do truncamento e filtro de sanidade por script TESTADOS ao vivo no grupo de teste.** A URL de disparo da cobrança exige `&destino=teste`.
-- **Fase 3 (Conversa) — v1.17 DEPLOYADA (versão 21, jul/2026)** — o webhook responde quando o bot é mencionado (@) ou quando alguém responde/cita mensagem dele; SÓ grupo de TESTE; anti-cascata (6/hora + **cooldown 10s** + anti-eco; skip com gatilho agora é LOGADO). Tabela `bot_mensagens_enviadas` criada em produção (registra o message_id de todo envio do bot; ⚠️ gatilho de citação só enxerga envios PÓS-v1.16). **v1.17 pós 2º teste real:** o "reply mudo" era o cooldown de 30s (mais longo que o ritmo de papo; match de citação estava certo); conversa ganhou CONTEXTO FACTUAL (data/hora, resultados dos últimos 3 dias, situação Brasil/Argentina pela chave, regra "nunca negar fato listado" — o bot tinha negado o jogo do Brasil) e MODO PAPO (responde primeiro o que a pessoa disse; dados do bolão só se relevantes; 1-3 linhas). **Persona v2.3**: bordões com parcimônia (máx. 1/mensagem; "caderninho" raro), aplicada em prod+dev. Reteste pendente. Sem busca na web/ficha relacional ainda. Ver §13/§15 item -7. **Compatibilidade `enviar_texto` × `net.http_post` do pg_net CONFERIDA — nenhum ajuste necessário.**
+- **Fase 3 (Conversa) — v1.17.1 DEPLOYADA (versão 22, jul/2026)** — o webhook responde quando o bot é mencionado (@) ou quando alguém responde/cita mensagem dele; SÓ grupo de TESTE; anti-cascata com **limites POR GRUPO** (keys `conversa_max_hora_*`/`conversa_cooldown_seg_*` em `bot_config`; TESTE = 30/hora, OFICIAL herda os defaults 6/hora + cooldown 10s; skip com gatilho é LOGADO — foi assim que o teto de 6/h foi flagrado matando a sessão de testes, bot_log 105-106). Tabela `bot_mensagens_enviadas` criada em produção (registra o message_id de todo envio do bot; ⚠️ gatilho de citação só enxerga envios PÓS-v1.16). **v1.17 pós 2º teste real:** o "reply mudo" era o cooldown de 30s (mais longo que o ritmo de papo; match de citação estava certo); conversa ganhou CONTEXTO FACTUAL (data/hora, resultados dos últimos 3 dias, situação Brasil/Argentina pela chave, regra "nunca negar fato listado" — o bot tinha negado o jogo do Brasil) e MODO PAPO (responde primeiro o que a pessoa disse; dados do bolão só se relevantes; 1-3 linhas). **Persona v2.3**: bordões com parcimônia (máx. 1/mensagem; "caderninho" raro), aplicada em prod+dev. Reteste pendente. Sem busca na web/ficha relacional ainda. Ver §13/§15 item -7. **Compatibilidade `enviar_texto` × `net.http_post` do pg_net CONFERIDA — nenhum ajuste necessário.**
 - **Função v1.15.1 DEPLOYADA (versão 18, jul/2026)** — fix do registro do webhook: o 1º `configurar_webhook` real falhou com "URL do webhook é obrigatória" (o backend da ZapZap valida `webhook_url`, não o `url` documentado no POST da instância) → body agora leva os DOIS nomes; resposta ganhou `configured` (sucesso conferido RELENDO a config, não só o 2xx), `dica` honesta por resultado e redação do token (`[token]`) em tudo que ecoa. Engloba v1.14+v1.15 (Ouvidos + claim-then-act, autorização explícita). Tabela `mensagens_grupo` criada em produção (RLS sem policy pública — privacidade). **Pra ligar a captura falta: Vini chamar `?tipo=configurar_webhook` de novo (agora deve vir `ok:true, configured:true`) + mensagens reais no grupo de teste. Nenhuma resposta a menção/citação ainda — Fase 3.** Ver §13.
 - **Função v1.13 DEPLOYADA (versão 16, jul/2026, autorização explícita)** — agenda e cobrança separadas de vez: `?tipo=agenda` (9h, só jogos/turbo/zebra/liderança, NUNCA fala de quem falta palpitar) + `?tipo=cobranca_dia` (9h01, mesmo pipeline da cobrança manual, só envia se faltar alguém) + `?tipo=ultima_chamada` (T-60min, só envia se faltar alguém NAQUELE jogo) — ver §13. **Persona v2.2**: ganhou o viés emocional Brasil×Argentina (torcedor roxo do Brasil, implicância com a Argentina), aplicada em prod+dev via REST. **⚠️ `supabase_pg_cron.sql` agora aponta os 3 jobs pro `&destino=oficial`** (pedido explícito do Vini nesta leva — antes era `teste` de propósito). **pg_cron/pg_net AINDA NÃO habilitados no banco** (auditoria confirmou zero automação): SQL pronto, aguardando o Vini rodar no SQL Editor (armadilha 8 — DDL de extensão é automação bloqueada pro Claude Code). **A partir do momento em que esse SQL rodar, os 3 jobs passam a mandar mensagem de verdade pro grupo oficial da família, sozinhos, todo dia** — até lá, os modos só disparam se alguém chamar a URL manualmente.
 > - **⚠️ Repo é PÚBLICO** — nada sensível em arquivo versionado (ver armadilha 9).
@@ -565,11 +565,17 @@ Fala em primeira pessoa dos próprios palpites, pontos e posição.
     (best-effort, nunca derruba envio). Contexto da resposta: nome/gênero (por
     `bot_telefones`), posição no ranking, jogos do dia, texto citado; 1–4 linhas,
     sem @, sem link, `bot_log` tipo `conversa` com `[para:<tel>] [gatilho:...]`.
-    **Anti-cascata:** teto 6 respostas/hora (`CONVERSA_MAX_POR_HORA`) + cooldown
-    30s por pessoa (`CONVERSA_COOLDOWN_SEG`), fail-closed se o rate-limit estiver
-    ilegível; anti-eco duplo (fromMe + remetente==instância); dedup do INSERT
-    também deduplica a resposta. Sem gatilho → só arquiva (Fase 2 intacta).
-    SEM busca na web e SEM ficha relacional nesta leva.
+    **Anti-cascata (v1.17.1 — limites POR GRUPO):** defaults conservadores no
+    código (6 respostas/hora + cooldown 10s por pessoa), sobrescritos por grupo
+    pelas keys opcionais de `bot_config` `conversa_max_hora_<teste|oficial>` /
+    `conversa_cooldown_seg_<teste|oficial>` (`limitesConversa`). **Grupo de
+    TESTE: key gravada = 30/hora** (o teto de 6 matou uma sessão real de
+    calibragem — bot_log 105-106); o OFICIAL fica nos defaults até existir key.
+    Contagem do teto/cooldown também é por grupo. Fail-closed se o rate-limit
+    estiver ilegível; skip com gatilho é LOGADO (`nao_enviado`); anti-eco duplo
+    (fromMe + remetente==instância); dedup do INSERT também deduplica a
+    resposta. Sem gatilho → só arquiva (Fase 2 intacta). SEM busca na web e SEM
+    ficha relacional nesta leva.
 - **Governança de volume (v1.12+, `agenda`/`cobranca_dia`/`ultima_chamada`):** teto
   diário de mensagens automáticas — **4 mensagens em dia com jogo, 2 em dia sem
   jogo** (`TETO_MSGS_DIA_COM_JOGO`/`TETO_MSGS_DIA_SEM_JOGO` no código) — conta
@@ -677,6 +683,17 @@ o banco.
 
 ## 15. Pendências abertas (jul/2026)
 
+-9. **✅ v1.17.1 DEPLOYADA (versão 22, jul/2026) — limites da conversa POR
+   GRUPO:** o reteste da v1.17 passou (menção casual, jogo do Brasil e reply
+   via citação todos responderam — bot_log 99-104), mas a sessão morreu no
+   teto fixo de 6 respostas/hora (skips auditáveis 105-106 confirmaram na
+   hora, sem sessão de debug). Teto/cooldown agora vêm de keys por grupo em
+   `bot_config` (`conversa_max_hora_<destino>`/`conversa_cooldown_seg_<destino>`,
+   helper `limitesConversa`; contagem também por grupo): TESTE = 30/hora
+   (key gravada em prod+dev e seed no `supabase_bot.sql`), OFICIAL herda os
+   defaults conservadores do código (6/hora, 10s) até alguém criar key.
+   Cooldown de 10s intocado — zero skips de cooldown nos logs. RETESTE:
+   sequência longa (10+ mensagens) pra confirmar que a conversa não morre.
 -8. **✅ v1.17 DEPLOYADA (versão 21, jul/2026) — conversa com contexto factual +
    modo papo + fix do reply mudo (2º teste real):** (1) o reply em mensagem do
    bot não respondia por causa do COOLDOWN de 30s (replies reais em 13s/22s;
