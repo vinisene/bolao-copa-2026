@@ -1,6 +1,19 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // ROBÔ RATAZANA — Edge Function "ratazana-cobranca"
-// (v1.17.1 — LIMITES DE CONVERSA POR GRUPO: sessão de calibragem real morreu
+// (v1.18 — CALIBRAGEM DA CONVERSA (3ª rodada de testes reais, SÓ grupo de
+//  TESTE): 1) RECONHECIMENTO DE PESSOAS — coluna `lid` em bot_telefones faz
+//  a ponte LID→participante (remetente em grupo chega como ...@lid); match
+//  do remetente por telefone OU lid; auto-aprendizado grava o lid sozinho
+//  quando o payload traz sender_pn + lid juntos; senderName do payload é o
+//  fallback de nome. 2) DADOS COMPLETOS — contexto da conversa ganhou o
+//  ranking COMPLETO (posições reais dos citáveis; IA fora do top 3 segue
+//  inexistente) e bloco de dados das PESSOAS CITADAS na mensagem (menção
+//  real resolvida por telefone/lid + nome escrito com match caso/acento-
+//  insensitivo e borda de palavra), com instrução "nunca mande consultar o
+//  app". 3) Instrução de humildade factual fora do bolão no prompt (persona
+//  v2.4 tem a regra completa). Cooldown do teste: key = 5s (reply real de
+//  9s foi engolido — bot_log 121).
+//  v1.17.1 — LIMITES DE CONVERSA POR GRUPO: sessão de calibragem real morreu
 //  no teto fixo de 6 respostas/hora (bot_log 105-106, "teto atingido"). Teto
 //  e cooldown agora são resolvidos por grupo via keys opcionais de bot_config
 //  — conversa_max_hora_<destino> / conversa_cooldown_seg_<destino> — com os
@@ -838,7 +851,20 @@ function extraiMensagemWebhook(payload: Conf) {
     // segundos vs milissegundos: epoch em segundos só passa de 1e12 no ano 33658
     timestamp = new Date(n > 1e12 ? n : n * 1000).toISOString();
   }
-  return { chatJid, fromMe, remetenteJid, messageId, texto, mentions: mentions && mentions.length ? mentions : null, quotedId, timestamp };
+  // v1.18 (reconhecimento de pessoas): o envelope da ZapZap traz o nome de
+  // exibição do remetente (senderName) e, quando o WhatsApp expõe, o telefone
+  // (sender_pn) e o lid (sender_lid) — base do mapeamento LID→participante.
+  const senderName = achaProfundo(payload, ["senderName", "SenderName", "pushName", "PushName"],
+    (v) => typeof v === "string" && v.trim() !== "");
+  const senderPn = achaProfundo(payload, ["sender_pn", "senderPn", "SenderPn"],
+    (v) => typeof v === "string" && /\d{8,}/.test(v));
+  const senderLid = achaProfundo(payload, ["sender_lid", "senderLid", "SenderLid"],
+    (v) => typeof v === "string" && /\d{8,}/.test(v));
+  return {
+    chatJid, fromMe, remetenteJid, messageId, texto,
+    mentions: mentions && mentions.length ? mentions : null,
+    quotedId, timestamp, senderName, senderPn, senderLid,
+  };
 }
 // ─── Claim atômico (v1.15) ───────────────────────────────────────────────────
 // Trava "claim-then-act": INSERT com ignore-duplicates numa key de bot_config
@@ -1067,7 +1093,7 @@ async function conversaTalvezResponder(m: Conf, grupoTeste: string, telefoneReme
       sbGet("mata_confrontos?select=*"),
       sbGet("mata_palpites?select=confronto_id,pid,gols_a,gols_b,quem_passa"),
       sbGet("bot_config?key=in.(system_prompt_ratazana,modelo_ia)&select=key,value"),
-      sbGet("bot_telefones?select=participante_id,nome_exibicao,genero,telefone_whatsapp").catch(() => []),
+      sbGet("bot_telefones?select=participante_id,nome_exibicao,genero,telefone_whatsapp,lid").catch(() => []),
     ]);
     const cfgMap: Record<string, string> = {};
     for (const row of cfg) cfgMap[row.key] = row.value;
@@ -1075,10 +1101,14 @@ async function conversaTalvezResponder(m: Conf, grupoTeste: string, telefoneReme
     const modelo = (cfgMap["modelo_ia"] || "").trim() || MODELO_FALLBACK;
     if (!systemPrompt) throw new Error("bot_config sem 'system_prompt_ratazana'");
 
-    const tel = (telefones as Conf[]).find((t: Conf) =>
-      String(t.telefone_whatsapp || "").replace(/\D/g, "") === (telefoneRemetente || "").replace(/\D/g, ""));
+    // Quem fala: match por telefone OU lid (v1.18); sem match na tabela, o
+    // nome de exibição do WhatsApp (senderName) ainda dá um nome ao papo.
+    const achaTel = (idDigitos: string) => (telefones as Conf[]).find((t: Conf) =>
+      idDigitos && (String(t.telefone_whatsapp || "").replace(/\D/g, "") === idDigitos ||
+                    String(t.lid || "").replace(/\D/g, "") === idDigitos));
+    const tel = achaTel((telefoneRemetente || "").replace(/\D/g, ""));
     const part = tel ? MATA_PARTS_BOT.find((p) => p.id === tel.participante_id) : null;
-    const nome = tel?.nome_exibicao || part?.nome || "alguém do grupo";
+    const nome = tel?.nome_exibicao || part?.nome || m.senderName || "alguém do grupo";
     const genero = (tel?.genero || "").toUpperCase();
 
     const PAL: Record<string, Record<string, Conf>> = {};
@@ -1087,7 +1117,18 @@ async function conversaTalvezResponder(m: Conf, grupoTeste: string, telefoneReme
       .sort((a, b) => b.total - a.total || b.eHits - a.eHits || b.rHits - a.rHits);
     const posPessoa = part ? rank.findIndex((r) => r.p.id === part.id) + 1 : 0;
     const posRat = rank.findIndex((r) => r.p.id === RATAZANA_ID) + 1;
-    const top3 = rank.slice(0, 3).map((r, ix) => `${ix + 1}º ${r.p.nome} ${fmtPts(r.total)} pts`).join("; ");
+    // Ranking COMPLETO (v1.18) — todas as posições dos citáveis, com a
+    // numeração REAL do app. A regra de existência das IAs concorrentes segue
+    // intacta: IA fora do top 3 não aparece (a posição dela fica sem linha —
+    // instrução no prompt manda não inventar nome pra posição ausente).
+    const citaveis = participantesCitaveis(rank);
+    const citaveisIds = new Set(citaveis.map((p) => p.id));
+    const rankingCompleto = rank
+      .map((r, ix) => citaveisIds.has(r.p.id)
+        ? `${ix + 1}º ${r.p.nome} — ${fmtPts(r.total)} pts (${r.eHits} placares cravados)`
+        : null)
+      .filter(Boolean)
+      .join("\n");
 
     const { ddmm } = limitesBrasiliaHojeISO();
     const teamsOf = makeResolver(confrontos);
@@ -1161,6 +1202,62 @@ async function conversaTalvezResponder(m: Conf, grupoTeste: string, telefoneReme
       return `${time}: vivo no torneio (ainda sem jogo fechado no mata)`;
     };
 
+    // Pessoas CITADAS na mensagem (v1.18): por menção real (@, resolvida por
+    // telefone/lid) e por nome escrito (match caso/acento-insensitivo com
+    // borda de palavra — "Du" não pode casar dentro de "durante"). IAs
+    // concorrentes seguem a regra de existência (só se citáveis/top 3).
+    const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const escapaRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const citadasIds = new Set<string>();
+    for (const j of (m.mentions || [])) {
+      const d = digitos(j);
+      if (!d || idsBot.has(d)) continue;
+      const t = achaTel(d);
+      if (t) citadasIds.add(t.participante_id);
+    }
+    const txtNorm = norm(String(m.texto));
+    for (const p of citaveis) {
+      if (part && p.id === part.id) continue;   // quem fala não é "pessoa citada"
+      if (p.id === RATAZANA_ID) continue;       // falar do bot não é citar terceiro
+      const apelido = (telefones as Conf[]).find((t: Conf) => t.participante_id === p.id)?.nome_exibicao;
+      for (const cand of [p.nome, apelido].filter(Boolean)) {
+        const re = new RegExp(`(^|[^a-z0-9])${escapaRe(norm(String(cand)))}($|[^a-z0-9])`);
+        if (re.test(txtNorm)) { citadasIds.add(p.id); break; }
+      }
+    }
+    const abertosProximos = confrontos
+      .filter((c: Conf) => !mmIsTest(c) && !c.finished)
+      .map((c: Conf) => ({ c, d: mmGameDate(c) }))
+      .filter((x: Conf) => x.d && x.d.getTime() > Date.now())
+      .sort((a: Conf, b: Conf) => a.d.getTime() - b.d.getTime())
+      .slice(0, 2);
+    const ultimoFechado = confrontos
+      .filter((c: Conf) => !mmIsTest(c) && c.finished && c.real_a != null)
+      .map((c: Conf) => ({ c, d: mmGameDate(c) }))
+      .filter((x: Conf) => x.d)
+      .sort((a: Conf, b: Conf) => b.d.getTime() - a.d.getTime())[0];
+    const blocoPessoa = (pid: string): string => {
+      const ix = rank.findIndex((r) => r.p.id === pid);
+      if (ix < 0) return "";
+      const r = rank[ix];
+      const linhas = [`- ${r.p.nome}: ${ix + 1}º lugar, ${fmtPts(r.total)} pts, ${r.eHits} placares cravados`];
+      for (const { c } of abertosProximos) {
+        const t = teamsOf(c);
+        const jogo = `${t.a?.name || "A definir"} × ${t.b?.name || "A definir"}`;
+        const pal = PAL[c.id]?.[pid];
+        const qp = pal && pal.gols_a === pal.gols_b && pal.quem_passa
+          ? ` (${pal.quem_passa === "A" ? t.a?.name : t.b?.name} nos pênaltis)` : "";
+        linhas.push(`  ${jogo}: ${mmHasFullPred(pal) ? `palpite ${pal.gols_a}×${pal.gols_b}${qp}` : "SEM palpite ainda"}`);
+      }
+      if (ultimoFechado) {
+        const t = teamsOf(ultimoFechado.c);
+        const s = mmScore(PAL[ultimoFechado.c.id]?.[pid], ultimoFechado.c);
+        linhas.push(`  Último jogo fechado (${t.a?.name || "?"} ${ultimoFechado.c.real_a}×${ultimoFechado.c.real_b} ${t.b?.name || "?"}): ${s ? `${fmtPts(s.total)} pts` : "sem palpite"}`);
+      }
+      return linhas.join("\n");
+    };
+    const pessoasCitadasBloco = [...citadasIds].slice(0, 3).map(blocoPessoa).filter(Boolean).join("\n");
+
     userPrompt =
       `DADOS VERIFICADOS DO BOLÃO (conversa no grupo de WhatsApp). Hoje é ${dataHoje}, ${horaAgora} em Brasília. Use somente estes dados. Não calcule nem invente nada.\n\n` +
       `MENSAGEM RECEBIDA AGORA:\n` +
@@ -1168,18 +1265,20 @@ async function conversaTalvezResponder(m: Conf, grupoTeste: string, telefoneReme
       `- Texto: "${String(m.texto).slice(0, 600)}"\n` +
       (gatilho === "mencao" ? `- Você foi marcado nessa mensagem.\n` : "") +
       (msgOriginal ? `- Ela é RESPOSTA a esta mensagem que você mandou no grupo antes: "${String(msgOriginal.texto || "").slice(0, 400)}"\n` : "") +
+      (pessoasCitadasBloco ? `\nPESSOAS CITADAS NA MENSAGEM (dados reais delas no Bolão):\n${pessoasCitadasBloco}\n` : "") +
       `\nRESULTADOS RECENTES (últimos 3 dias, placares FINAIS — são fatos):\n` +
       `${resultadosRecentes.length ? resultadosRecentes.join("\n") : "- nenhum jogo fechado nos últimos 3 dias"}\n` +
       `SITUAÇÃO DAS SELEÇÕES DO SEU CORAÇÃO:\n- ${situacaoTime("Brasil")}\n- ${situacaoTime("Argentina")}\n` +
       `JOGOS DE HOJE (ainda abertos): ${jogosHoje.length ? jogosHoje.join("; ") : "nenhum"}\n` +
-      `RANKING DO BOLÃO: top 3: ${top3}. Você está em ${posRat}º com ${fmtPts(rank[posRat - 1].total)} pts.\n` +
+      `RANKING DO BOLÃO COMPLETO (posições e pontos reais; você está em ${posRat}º):\n${rankingCompleto}\n` +
       `\nTAREFA — MODO CONVERSA (isto NÃO é mensagem programada; o formato de 4 a 7 linhas NÃO vale aqui):\n` +
       `1. PRIMEIRO responda diretamente o que ${nome === "alguém do grupo" ? "a pessoa" : nome} disse ou perguntou, como num papo de verdade.\n` +
-      `2. Jogos do dia, palpites e ranking só entram se tiverem relação com o que a pessoa falou — ou como fecho de UMA frase, opcional. Nunca como corpo principal não pedido.\n` +
-      `3. Curto: 1 a 3 linhas na maioria das vezes. Tom de conversa, ácido, em personagem.\n` +
-      `4. COERÊNCIA FACTUAL OBRIGATÓRIA: os resultados e situações acima são FATOS que você conhece e comenta com naturalidade. NUNCA negue algo que está listado — se está nos resultados, aconteceu. Se perguntarem de algo que NÃO está nos dados, admita que não acompanhou esse lance; jamais afirme que não aconteceu.\n` +
-      `5. Seu humor nesta conversa decorre da SITUAÇÃO DAS SELEÇÕES DO SEU CORAÇÃO acima, aplicando o seu viés declarado (ex.: Brasil eliminado = luto mal disfarçado e implicância redobrada com a Argentina, coerente com o que você mesmo já postou no grupo).\n` +
-      `6. Calibre a intensidade pelo gênero. Não use @. Sem link do bolão. Não cobre palpite a menos que perguntem sobre isso.`;
+      `2. Perguntou posição, pontos ou palpite de alguém? Responda com o dado REAL listado acima, com gosto e zoeira — NUNCA mande consultar o app nem "conferir depois": você é a fonte. Posição que não aparece na lista não existe pra você: não invente nome pra ela.\n` +
+      `3. Jogos do dia, palpites e ranking que NÃO foram perguntados só entram se tiverem relação com o assunto — ou como fecho de UMA frase, opcional. Nunca como corpo principal não pedido.\n` +
+      `4. Curto: 1 a 3 linhas na maioria das vezes. Tom de conversa, ácido, em personagem.\n` +
+      `5. COERÊNCIA FACTUAL OBRIGATÓRIA: os resultados e situações acima são FATOS que você conhece e comenta com naturalidade. NUNCA negue algo que está listado — se está nos resultados, aconteceu. Se perguntarem de algo que NÃO está nos dados (recorde histórico, estatística de jogador, notícia), NÃO crave: responda no tom "de cabeça eu diria X, mas não ponho a mão no fogo" e, se contestado, admita que pode estar desatualizado.\n` +
+      `6. Seu humor de fundo decorre da SITUAÇÃO DAS SELEÇÕES DO SEU CORAÇÃO acima — mas é humor de FUNDO: não verbalize o luto nem a implicância em toda resposta (dosagem está na sua persona).\n` +
+      `7. Calibre a intensidade pelo gênero. Não use @. Sem link do bolão. Não cobre palpite a menos que perguntem sobre isso.`;
 
     const ia = await chamaIA(modelo, systemPrompt, userPrompt, 2500);
     respostaIA = ia.texto;
@@ -1354,12 +1453,36 @@ Deno.serve(async (req: Request) => {
       if (!m.messageId) return json({ ok: true, ignorado: "evento sem id de mensagem" });
 
       // remetente_telefone: dígitos do JID, trocados pelo E.164 tabelado em
-      // bot_telefones quando houver correspondência (cruzamento best-effort)
-      let telefone = m.remetenteJid ? m.remetenteJid.split("@")[0].split(":")[0].replace(/\D/g, "") : "";
+      // bot_telefones quando houver correspondência por TELEFONE ou por LID
+      // (v1.18 — remetente em grupo chega como ...@lid; a coluna lid de
+      // bot_telefones faz a ponte). Auto-aprendizado: quando o payload traz
+      // telefone (sender_pn) E lid do mesmo remetente, o lid é gravado na
+      // tabela sozinho (best-effort) — o mapeamento se completa com o uso.
+      const digitosDe = (s: string) => String(s || "").split("@")[0].split(":")[0].replace(/\D/g, "");
+      let telefone = digitosDe(m.remetenteJid);
       try {
-        const tels = await sbGet("bot_telefones?select=telefone_whatsapp");
-        const hit = (tels as Conf[]).find((t: Conf) => String(t.telefone_whatsapp || "").replace(/\D/g, "") === telefone);
-        if (hit) telefone = String(hit.telefone_whatsapp);
+        const tels = await sbGet("bot_telefones?select=participante_id,telefone_whatsapp,lid");
+        const dJid = telefone;
+        const dPn = digitosDe(m.senderPn || "");
+        const dLidMsg = m.remetenteJid && m.remetenteJid.includes("@lid")
+          ? dJid
+          : digitosDe(m.senderLid || "");
+        const hit = (tels as Conf[]).find((t: Conf) => {
+          const tTel = String(t.telefone_whatsapp || "").replace(/\D/g, "");
+          const tLid = String(t.lid || "").replace(/\D/g, "");
+          return (dJid && (tTel === dJid || (tLid && tLid === dJid))) || (dPn && tTel === dPn);
+        });
+        if (hit) {
+          telefone = String(hit.telefone_whatsapp);
+          if (dLidMsg && !String(hit.lid || "").trim()) {
+            // aprendeu um lid novo: grava pra próxima mensagem já resolver direto
+            fetch(`${SUPABASE_URL}/rest/v1/bot_telefones?participante_id=eq.${encodeURIComponent(hit.participante_id)}`, {
+              method: "PATCH",
+              headers: { ...sbHeaders(), Prefer: "return=minimal" },
+              body: JSON.stringify({ lid: dLidMsg }),
+            }).catch(() => {});
+          }
+        }
       } catch { /* sem cruzamento, ficam os dígitos crus do JID */ }
 
       const row = {
