@@ -152,10 +152,12 @@
   <button id="recarregar" onclick="carregar()">↻ Recarregar</button>
   <button class="utilbtn" onclick="toggleUtil('grupos')">📡 Listar grupos</button>
   <button class="utilbtn" onclick="toggleUtil('inaugural')">📣 Mensagem inaugural</button>
+  <button class="utilbtn" onclick="toggleUtil('comunicado002')">📢 Comunicado nº 002</button>
   <button class="linklike" onclick="trocarToken()">trocar senha</button>
 </div>
 <div id="util-grupos" class="util-box" hidden></div>
 <div id="util-inaugural" class="util-box" hidden></div>
+<div id="util-comunicado002" class="util-box" hidden></div>
 
 <div class="controls-row">
   <div class="status-toggle" id="status-wrap">
@@ -191,6 +193,18 @@ Fica instituída a fiscalização permanente: cobrar palpite atrasado, anunciar 
 Eu vejo os palpites, eu vejo os pontos, eu vejo quem some na hora de palpitar e aparece na hora de zoar. Tá tudo no caderninho.
 
 Boa sorte. Vocês vão precisar. 🐀`;
+
+// ─── COMUNICADO Nº 002 (texto FIXO — estreia da Conversa no grupo oficial;
+//     não passa por IA, é enviada exatamente como está) ────────────────────
+const MSG_COMUNICADO_002=`🐀 *COMUNICADO OFICIAL Nº 002*
+
+A fiscalização deste bolão acaba de ganhar novos poderes: a partir de agora, o Ratazana ouve tudo e responde.
+
+Quer saber tua posição, zoar um placar, tirar satisfação? Me marca (@) ou responde uma mensagem minha que eu apareço.
+
+Aviso desde já: elogio entra no registro, reclamação também. Usem com sabedoria.
+
+Ninguém escapa do Ratazana. 🐀`;
 
 // ─── Bandeiras (cópia fiel de flagImg/TAGFLAGS do index.html) ────────────────
 const TAGFLAGS={'🏴󠁧󠁢󠁳󠁣󠁴󠁿':'gb-sct','🏴󠁧󠁢󠁥󠁮󠁧󠁿':'gb-eng'};
@@ -531,11 +545,18 @@ async function postEnviarTexto(dest,texto,st){
   return true;
 }
 
-// ─── Utilitários do topo: listar grupos + mensagem inaugural ─────────────────
+// ─── Utilitários do topo: listar grupos + mensagem inaugural + comunicado 2 ──
 function toggleUtil(qual){
-  for(const k of ['grupos','inaugural']){
+  for(const k of ['grupos','inaugural','comunicado002']){
     const el=document.getElementById('util-'+k);
-    if(k===qual){ el.hidden=!el.hidden; if(!el.hidden)(k==='grupos'?renderGrupos():renderInaugural()); }
+    if(k===qual){
+      el.hidden=!el.hidden;
+      if(!el.hidden){
+        if(k==='grupos')renderGrupos();
+        else if(k==='inaugural')renderInaugural();
+        else renderComunicado002();
+      }
+    }
     else el.hidden=true;
   }
 }
@@ -582,6 +603,32 @@ async function enviarInaugural(){
     : 'Enviar a mensagem inaugural pro grupo de TESTE?';
   if(!confirm(aviso))return;
   await postEnviarTexto(dest,MSG_INAUGURAL,st);
+}
+function renderComunicado002(){
+  const el=document.getElementById('util-comunicado002');
+  el.innerHTML=`<div class="preview-box">
+    <div class="pv-label">COMUNICADO Nº 002 — TEXTO FIXO (pra trocar, edite a constante MSG_COMUNICADO_002 no script desta página)</div>
+    <pre class="pv-text">${esc(MSG_COMUNICADO_002)}</pre>
+    <div class="pv-dest">
+      <label><input type="radio" name="dest-comunicado002" value="teste" checked> Grupo de TESTE</label>
+      <label><input type="radio" name="dest-comunicado002" value="oficial"> <span class="of">Grupo OFICIAL</span></label>
+    </div>
+    <div class="pv-actions">
+      <button class="pv-send" onclick="enviarComunicado002()">📤 Enviar Comunicado nº 002</button>
+    </div>
+    <div class="status" id="pvst-comunicado002"></div>
+  </div>`;
+}
+async function enviarComunicado002(){
+  const st=document.getElementById('pvst-comunicado002');
+  const sel=document.querySelector('input[name="dest-comunicado002"]:checked');
+  const dest=sel?sel.value:'';
+  if(!dest){ st.className='status err'; st.textContent='Escolha o destino.'; return; }
+  const aviso=dest==='oficial'
+    ? '⚠️ Enviar o COMUNICADO Nº 002 pro grupo OFICIAL? É a estreia da Conversa pra família toda.'
+    : 'Enviar o Comunicado nº 002 pro grupo de TESTE?';
+  if(!confirm(aviso))return;
+  await postEnviarTexto(dest,MSG_COMUNICADO_002,st);
 }
 async function reabrirJogo(cid){
   const t=teams(byId(cid)||{id:cid});
