@@ -1020,39 +1020,62 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  // ─── Modo CONFIGURAR WEBHOOK (utilitário, v1.14): auto-registro na ZapZap ────
+  // ─── Modo CONFIGURAR WEBHOOK (utilitário, v1.14; fix v1.15.1): auto-registro ─
   // A própria função registra a URL de captura na instância (ela conhece o
   // próprio token via env e a própria URL via SUPABASE_URL) — o Vini só chama
   // ?tipo=configurar_webhook uma vez, sem copiar URL pra painel nenhum.
+  // O sucesso é CONFERIDO relendo a config depois do POST (campo "configured"),
+  // e a "dica" reflete o resultado real — não é mais texto fixo de sucesso.
   if (url.searchParams.get("tipo") === "configurar_webhook") {
     try {
       const faltamZap = ["ZAPZAP_API_KEY", "ZAPZAP_API_SECRET", "ZAPZAP_ENDPOINT_BASE"].filter((n) => !Deno.env.get(n));
       if (faltamZap.length) throw new Error(`Secrets faltando: ${faltamZap.join(", ")}`);
       const urlWebhook = `${SUPABASE_URL}/functions/v1/ratazana-cobranca?token=${TOKEN}&tipo=webhook`;
+      // A URL registrada carrega o token; tudo que sai na resposta/log passa
+      // por redação (a config da ZapZap ecoa a URL completa de volta).
+      const redige = (s: string) => s.split(TOKEN).join("[token]");
+      const parse = (s: string) => { try { return JSON.parse(redige(s)); } catch { return redige(s).slice(0, 500); } };
       const antes = await fetch(`${zapBase()}/webhook`, { headers: zapHeaders() })
         .then((r) => r.text()).catch((e) => `(falha ao ler config atual: ${e})`);
+      // Achado real (registro falhou com "URL do webhook é obrigatória"
+      // mandando só {url}): a doc pública documenta "url" no POST /webhook da
+      // instância e "webhook_url" no PUT de gestão — o backend valida o
+      // segundo nome. Vão os DOIS no body: campo extra é ignorado, e o que o
+      // validador procurar estará lá com o mesmo valor.
       const r = await fetch(`${zapBase()}/webhook`, {
         method: "POST",
         headers: zapHeaders(),
-        body: JSON.stringify({ url: urlWebhook, enabled: true }),
+        body: JSON.stringify({ url: urlWebhook, webhook_url: urlWebhook, enabled: true }),
       });
       const corpo = await r.text();
+      // Confirmação de verdade: relê a config e procura a NOSSA URL (token
+      // incluso) apontando pro modo webhook — não confia só no 2xx do POST.
+      const depois = await fetch(`${zapBase()}/webhook`, { headers: zapHeaders() })
+        .then((rr) => rr.text()).catch(() => "(falha ao reler a config)");
+      const configured = r.ok && depois.includes(TOKEN) && depois.includes("tipo=webhook");
       await botLog({
         tipo: "configurar_webhook", destino: "instância ZapZap",
-        mensagem_enviada: "(webhook de captura registrado; URL contém o token — não vai pro log)",
-        status_envio: r.ok ? "ok" : "erro", erro: r.ok ? null : corpo.slice(0, 300),
+        mensagem_enviada: configured ? "(webhook de captura registrado e conferido na releitura)" : null,
+        status_envio: configured ? "ok" : "erro",
+        erro: configured ? null : `POST HTTP ${r.status}: ${redige(corpo).slice(0, 300)}`,
       });
-      const parse = (s: string) => { try { return JSON.parse(s); } catch { return s.slice(0, 500); } };
+      const dica = configured
+        ? "Webhook registrado e CONFERIDO na config da instância. Mande uma mensagem no grupo de TESTE pra validar a captura em mensagens_grupo."
+        : r.ok
+          ? "A ZapZap respondeu 2xx ao registro, mas a releitura da config NÃO mostrou a URL de captura — confira webhook_atual abaixo antes de confiar."
+          : "O registro FALHOU (veja resposta_zapzap). A config vigente está em webhook_atual.";
       return json({
         ok: r.ok,
-        dica: "Webhook registrado apontando pra esta função (?tipo=webhook). Mande uma mensagem no grupo de TESTE pra validar a captura em mensagens_grupo.",
+        configured,
+        dica,
         webhook_anterior: parse(antes),
         resposta_zapzap: parse(corpo),
-      }, r.ok ? 200 : 502);
+        webhook_atual: parse(depois),
+      }, configured ? 200 : 502);
     } catch (e) {
       const msg = String((e as Error)?.message || e);
       await botLog({ tipo: "configurar_webhook", destino: "instância ZapZap", status_envio: "erro", erro: msg });
-      return json({ ok: false, erro: msg }, 500);
+      return json({ ok: false, configured: false, erro: msg }, 500);
     }
   }
 
