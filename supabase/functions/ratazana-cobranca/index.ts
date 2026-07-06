@@ -1,5 +1,18 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // ROBÔ RATAZANA — Edge Function "ratazana-cobranca"
+// (v1.19 — AVANÇO AUTOMÁTICO DE FASE (fechar_placar): a cada jogo de
+//  PRODUÇÃO fechado (nunca reabertura, nunca &env=dev), verificaEAvancaFaseAtiva
+//  confere se isso completou a fase de bot_config.fase_ativa; se sim E a
+//  próxima fase da sequência (MM_COLS) já tem TODOS os confrontos cadastrados
+//  em mata_confrontos, avança fase_ativa sozinho — um passo por vez, nunca
+//  "pulando" fase. Se não conseguir decidir com segurança (fase_ativa não
+//  reconhecida, ou próxima fase ainda sem confrontos cadastrados), NÃO troca
+//  nada: só grava um aviso pedindo confirmação manual. Todo resultado (trocou
+//  OU precisa de confirmação) vira um aviso em bot_config.admin_aviso_fase,
+//  que o admin-860c200f.html lê e CONSOME (apaga) no boot — banner visível na
+//  próxima vez que a tela abrir, não só log que ninguém lê. FASE_CANON virou
+//  constante de módulo (faseCanonica()) — compartilhada com a cobrança, que
+//  antes tinha sua própria cópia local.
 // (v1.18.2 — FIX DA MENÇÃO NÃO RESOLVIDA + BUSCA NA WEB (SÓ CONVERSA):
 //  achado real de teste — marcaram @Jeca de verdade (mentionedJID real)
 //  antes do LID dela estar aprendido em bot_telefones; sem nenhum sinal
@@ -277,6 +290,20 @@ function mmPhaseKeyOf(id: string) {
   const col = MM_COLS.find((c) => c.ids.includes(id));
   return col ? col.key : "32avos";
 }
+// Normalização de variantes do valor cru de bot_config.fase_ativa pra uma
+// chave de MM_COLS (v1.4; hoisted em v1.19 pra ser compartilhado com o
+// avanço automático de fase, além da cobrança).
+const FASE_CANON: Record<string, string> = {
+  "16avos": "32avos", "32avos": "32avos",
+  oitavas: "oitavas", "8as": "oitavas",
+  quartas: "quartas", "4as": "quartas",
+  semis: "semis", semifinal: "semis", semifinais: "semis",
+  "3lugar": "3lugar", terceirolugar: "3lugar",
+  final: "final",
+};
+function faseCanonica(raw: string): string | null {
+  return FASE_CANON[String(raw || "").trim().toLowerCase().replace(/\s+/g, "").replace(/º/g, "")] || null;
+}
 
 // ─── Zebras (cópia de MM_ZEBRA do index.html; azarao = lado A ou B) ──────────
 // Novas fases entram aqui quando o Vini definir (sempre espelhando o index.html).
@@ -527,6 +554,85 @@ async function botLog(row: Record<string, unknown>) {
     if (!r.ok) console.error("bot_log falhou:", r.status, (await r.text()).slice(0, 300));
   } catch (e) {
     console.error("bot_log falhou:", e);
+  }
+}
+// Upsert genérico em bot_config (cria a key se não existir, sobrescreve se
+// existir) — usado pelo avanço automático de fase pra gravar tanto o novo
+// valor de fase_ativa quanto o aviso que o admin lê. Nunca lança erro.
+async function upsertBotConfig(key: string, value: string) {
+  await fetch(`${SUPABASE_URL}/rest/v1/bot_config?on_conflict=key`, {
+    method: "POST",
+    headers: { ...sbHeaders(), Prefer: "resolution=merge-duplicates,return=minimal" },
+    body: JSON.stringify([{ key, value }]),
+  }).catch(() => {});
+}
+
+// ─── Avanço automático de fase (v1.19) ───────────────────────────────────────
+// Chamado depois de FECHAR um jogo de produção (nunca em reabertura, nunca em
+// &env=dev). Verifica se isso completou a fase hoje configurada em
+// bot_config.fase_ativa; se sim E a próxima fase da sequência (MM_COLS) já
+// tem TODOS os confrontos cadastrados em mata_confrontos, avança fase_ativa
+// sozinho — um passo por vez, nunca "pulando" fase. Se não conseguir decidir
+// com segurança (fase_ativa atual não reconhecida, ou próxima fase ainda sem
+// confrontos cadastrados), NÃO troca nada: só grava um aviso pedindo
+// confirmação manual. O aviso (de qualquer tipo) fica em bot_config.
+// admin_aviso_fase pro admin mostrar e consumir na próxima vez que abrir a
+// tela (§ "Boot" do admin-860c200f.html). Nunca lança erro — uma falha aqui
+// não pode derrubar o fechar_placar, que já gravou o placar com sucesso.
+async function verificaEAvancaFaseAtiva() {
+  try {
+    const [cfgRows, confrontos] = await Promise.all([
+      sbGet("bot_config?key=eq.fase_ativa&select=value"),
+      sbGet("mata_confrontos?select=id,finished"),
+    ]);
+    const faseRaw = (Array.isArray(cfgRows) && cfgRows[0]?.value) || "";
+    const faseAtual = faseCanonica(faseRaw);
+    if (!faseAtual) {
+      await upsertBotConfig("admin_aviso_fase", JSON.stringify({
+        tipo: "ambiguo",
+        motivo: `bot_config 'fase_ativa' está com um valor não reconhecido ("${faseRaw}") — confira e corrija manualmente.`,
+        em: new Date().toISOString(),
+      }));
+      return;
+    }
+    const idxAtual = MM_COLS.findIndex((c) => c.key === faseAtual);
+    const colAtual = MM_COLS[idxAtual];
+    if (!colAtual) return; // não deveria acontecer: faseCanonica só devolve chaves que existem em MM_COLS
+
+    const finishedById = new Map<string, boolean>(
+      (confrontos as Conf[]).map((c: Conf) => [c.id, c.finished === true]),
+    );
+    const faseCompleta = colAtual.ids.every((id) => finishedById.get(id) === true);
+    if (!faseCompleta) return; // ainda tem jogo aberto na fase atual — caso normal, nada a fazer
+
+    const proxima = MM_COLS[idxAtual + 1];
+    if (!proxima) return; // já é a última fase (final) — fim do torneio, sem próxima fase pra avançar
+
+    const proximaCadastrada = proxima.ids.every((id) => finishedById.has(id));
+    if (!proximaCadastrada) {
+      await upsertBotConfig("admin_aviso_fase", JSON.stringify({
+        tipo: "ambiguo",
+        motivo: `Todos os jogos de ${PH_LABEL[faseAtual]} terminaram, mas ${PH_LABEL[proxima.key]} ainda não está com todos os confrontos cadastrados no banco — confira e troque fase_ativa manualmente quando estiver pronto.`,
+        em: new Date().toISOString(),
+      }));
+      return;
+    }
+
+    await upsertBotConfig("fase_ativa", proxima.key);
+    await upsertBotConfig("admin_aviso_fase", JSON.stringify({
+      tipo: "trocou", de: faseAtual, para: proxima.key, em: new Date().toISOString(),
+    }));
+    await botLog({
+      tipo: "fase_ativa_auto",
+      destino: `${faseAtual} -> ${proxima.key}`,
+      status_envio: "ok",
+      mensagem_enviada: `Todos os jogos de ${PH_LABEL[faseAtual]} fechados; fase_ativa avançou automaticamente pra ${PH_LABEL[proxima.key]}.`,
+    });
+  } catch (e) {
+    await botLog({
+      tipo: "fase_ativa_auto", destino: "(erro)", status_envio: "erro",
+      erro: String((e as Error)?.message || e),
+    });
   }
 }
 
@@ -1443,6 +1549,11 @@ Deno.serve(async (req: Request) => {
         mensagem_enviada: JSON.stringify(row),
         status_envio: "ok",
       });
+      // Avanço automático de fase (v1.19): só ao FECHAR (nunca reabrir) e só
+      // em PRODUÇÃO (nunca &env=dev — fase_ativa não tem variante dev).
+      if (finishedParam === "1" && !pref) {
+        await verificaEAvancaFaseAtiva();
+      }
       return json({ ok: true, jogo: jogoId, ambiente: pref ? "dev" : "prod", gravado: row });
     } catch (e) {
       const msg = String((e as Error)?.message || e);
@@ -2300,18 +2411,14 @@ Deno.serve(async (req: Request) => {
     if (!systemPrompt) {
       throw new Error("bot_config sem 'system_prompt_ratazana' — rode o supabase_bot.sql no SQL Editor");
     }
-    // Fase ativa (v1.4): a cobrança NUNCA vaza de rodada. O Vini atualiza
-    // bot_config 'fase_ativa' no Table Editor quando abre uma rodada nova.
-    const FASE_CANON: Record<string, string> = {
-      "16avos": "32avos", "32avos": "32avos",
-      oitavas: "oitavas", "8as": "oitavas",
-      quartas: "quartas", "4as": "quartas",
-      semis: "semis", semifinal: "semis", semifinais: "semis",
-      "3lugar": "3lugar", terceirolugar: "3lugar",
-      final: "final",
-    };
+    // Fase ativa (v1.4): a cobrança NUNCA vaza de rodada. Desde a v1.19 o
+    // Vini normalmente NÃO precisa mais atualizar 'fase_ativa' manualmente —
+    // fechar o último jogo de uma fase no admin avança sozinho (ver
+    // verificaEAvancaFaseAtiva) — mas o Table Editor continua funcionando
+    // como via manual de emergência. FASE_CANON/faseCanonica são compartilhados
+    // com o avanço automático (hoisted em v1.19).
     const faseRaw = (cfgMap["fase_ativa"] || "").trim();
-    const faseAtiva = FASE_CANON[faseRaw.toLowerCase().replace(/\s+/g, "").replace(/º/g, "")] || null;
+    const faseAtiva = faseCanonica(faseRaw);
     if (!faseAtiva) {
       throw new Error(`bot_config 'fase_ativa' ausente ou inválida (valor: "${faseRaw}"). Aceitos: 16avos, oitavas, quartas, semis, 3lugar, final.`);
     }
