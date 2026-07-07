@@ -1,7 +1,7 @@
 # CLAUDE.md
 
-> ## 🚨 LEIA PRIMEIRO — handoff de sessão (07/07/2026 à tarde)
-> **Os 4 problemas do 1º dia de conversa no oficial foram CORRIGIDOS e DEPLOYADOS nesta sessão — Robô v1.21 (commit `c5f754c`, versão 28 no Supabase, ACTIVE, verify_jwt off).** Resumo de 30 segundos:
+> ## 🚨 LEIA PRIMEIRO — handoff de sessão (07/07/2026, fim de tarde)
+> **No ar: Robô v1.21.1 (commit `8ee9a49`, versão 29 no Supabase, ACTIVE, verify_jwt off).** O reteste real da auto-menção FALHOU de novo ("Vsf @Ratazana00" → "não tenho no cadastro", bot_log 183) por uma causa NOVA, na camada do MODELO — corrigida na v1.21.1: o payload provou que a menção veio única e com o LID já cadastrado (o resolvedor da v1.21 funcionou; nenhum aviso de desconhecido entrou no prompt), mas o texto mostrado ao modelo mantinha o token cru `@61032206725341` e o modelo — que não conhece o próprio LID, por kayfabe — tratou como terceiro. Agora os tokens são REESCRITOS antes do prompt (bot → `@Ratazana`, pessoa conhecida → `@<nome>`, desconhecido real fica cru), a linha "Você foi marcado" diz que a marcação É o próprio bot, e todo gatilho de menção loga `[men:...]` `[idbot:...]` no destino do bot_log (diagnóstico imediato, sem investigação manual). Ver §15 item -16. Abaixo, o resumo da v1.21 (mesma tarde):
 > - **No ar:** Edge Function v1.21. Fixes: **(A)** menção ao próprio bot não vira mais "contato desconhecido" (alias de LID por grupo tratado no loop de citados + cache de identidades só aceita conjunto completo de `bot_config` + auto-aprendizado do LID próprio em eventos `fromMe`); **(B)** busca na web agora é auditável — bot_log de conversa ganha `[busca:N]` no destino (N = buscas que a API rodou DE VERDADE), `chamaIA` continua o turno em `pause_turn`, e a TAREFA proíbe cravar fato externo sem busca ("pesquisa aí" explícito = busca obrigatória); **(C)** filtro de sanidade em modo conversa REMOVE glitch pontual (≤5 ocorrências) e envia; corrupção maior regenera 1x — nunca mais silêncio mudo; **(D)** teto diário (`contaEnviadasHoje`) não conta mais `conversa` — agenda 9h/cobrança 9h01 não são mais puladas por papo de manhã. Detalhes: §15 item -15.
 > - **Causas raiz confirmadas com bot_log real:** id 166 = "não conheço esse contato" com `gatilho:mencao` (menção do bot duplicada no payload, forma conhecida + alias desconhecido); id 164 = artilheiro errado cravado com confiança ("Messi 19 gols") — era impossível saber se buscou, agora o log diz; o "pesquisa aí" mudo teve DUAS causas em sequência: id 165 (teto de 6/h do oficial, 32s após a resposta errada) e ids 168/169 (filtro de sanidade, glitch `覆`); ids 175/176 = `pulado_teto` às 9h00/9h01 com 4 conversas ok antes (170-173) — os crons RODARAM na hora certa, quem pulou foi a própria função. **Teto do oficial subiu de 6/h → 20/h** (key `conversa_max_hora_oficial='20'` criada em `bot_config` prod+dev via REST + seed no `supabase_bot.sql`; cooldown segue 10s).
 > - **RETESTE AO VIVO PENDENTE (Vini, grupo oficial):** marcar @Ratazana00 (não pode mais dizer que não conhece); perguntar fato externo ("quem é o artilheiro dessa Copa?") e conferir `[busca:N]` com N≥1 no bot_log; contestar com "pesquisa aí" (tem que responder); amanhã de manhã, conferir agenda 9h + cobrança 9h01 saindo mesmo com conversa rolando antes.
@@ -16,6 +16,7 @@
 > - **Sempre crie safepoint (tag) antes de merge pra `main`**.
 > - Não toque na `congelado-fase-grupos` (museu) nem na `dev` (backup antigo congelado).
 > - **Robô Ratazana (bot WhatsApp) EM PRODUÇÃO**, ainda só no grupo de TESTE — ver §13. Admin de placares no ar — ver §14. **Persona v2.1.2 + função v1.11 DEPLOYADA (versão 14, jul/2026, autorização explícita) + `bot_telefones` PREENCHIDA (9 participantes, prod e dev). Menção real, fix do truncamento e filtro de sanidade por script TESTADOS ao vivo no grupo de teste.** A URL de disparo da cobrança exige `&destino=teste`.
+- **Robô v1.21.1 DEPLOYADA (07/07/2026 fim de tarde, commit `8ee9a49`, versão 29, ACTIVE) — auto-menção, causa nova na camada do MODELO.** O reteste real ("Vsf @Ratazana00", bot_log 183) provou que o resolvedor da v1.21 funcionou (payload com menção única e LID cadastrado; sem aviso de desconhecido no prompt), mas o token cru `@<lid>` no texto confundia o próprio modelo (não conhece o próprio LID — kayfabe). Fix: tokens reescritos antes do prompt (bot → `@Ratazana`; pessoa conhecida → `@<nome>`; desconhecido fica cru) + instrução explícita "a marcação é você mesmo" + log `[men:...] [idbot:...]` em todo gatilho de menção. Ver §15 item -16.
 - **Robô v1.21 DEPLOYADA (07/07/2026, commit `c5f754c`, versão 28, ACTIVE) — os 4 fixes do 1º dia de conversa no oficial.** (A) menção ao próprio bot ≠ contato desconhecido: entrada de `mentions` sem token `@<digitos>` visível no texto é alias da mesma marcação (nunca terceiro); cache de `botIdentidades` só guarda conjunto completo vindo de `bot_config` (fallback telefone-só da API não é mais cacheado); o bot APRENDE o próprio LID por grupo nos eventos `fromMe` (`aprendeIdentidadeBotDeFromMe`, guarda anti-poisoning: `sender_pn` tem que bater com telefone já cadastrado). O caso Jeca (pessoa real com LID não aprendido) continua protegido — testado em script isolado. (B) `chamaIA` devolve `buscas` (soma de `usage.server_tool_use.web_search_requests`) e continua o turno em `stop_reason:pause_turn`; conversa loga `[busca:N]` no destino do bot_log; TAREFA item 6 endurecida (fato externo sem busca = proibido cravar; pedido explícito de pesquisa = busca obrigatória). (C) `enviaEmPartes` ganhou modo `sanitiza` (só conversa): glitch pontual ≤5 ocorrências é removido e o envio segue; corrupção maior regenera 1x via `chamaIA` com aviso do glitch; programadas seguem estritas. (D) `contaEnviadasHoje` exclui tipo `conversa` (teto diário volta a ser só das programadas) + key `conversa_max_hora_oficial='20'` criada em prod+dev e no seed. Deploy via API do dashboard (fetch de dentro da página logada do Chrome — a UI do editor não renderizou, mas o endpoint `POST /v1/projects/<ref>/functions/deploy` funcionou; fonte = GitHub raw do commit). Ver §15 item -15.
 - **Robô v1.20 DEPLOYADA (jul/2026, commit `ecd996f`) — Ouvidos + Conversa NO GRUPO OFICIAL, AO VIVO.** Modo webhook reconhece os DOIS grupos (antes só teste); captura (Ouvidos) e conversa (Fase 3) viraram controles independentes por grupo via `bot_config`: `captura_ativa_oficial='1'` e `conversa_ativa_oficial='1'` — **ambos LIGADOS agora**, confirmados por teste real (captura sem resposta, depois menção real respondida certo, destino gravado como "oficial" e não mais confundido com "teste" — bug real da leva anterior, corrigido). Limites do oficial nos DEFAULTS conservadores do código (6 respostas/hora, cooldown 10s — confirmado: não existe `conversa_max_hora_oficial`/`conversa_cooldown_seg_oficial` em `bot_config`, só os overrides de teste `30`/`5s`). **Comunicado Oficial nº 002 (estreia da conversa) já foi enviado pro grupo oficial** (bot_log `envio_manual` id 159, `status_envio:ok`) — botão dedicado criado no admin (`admin-860c200f.html`, commit `4e2ee47` na `ratazana`) e **já MESCLADO pra `main`** (commit `615db5f`, confirmado ao vivo na URL de produção). **Os 3 bugs reais + o gap do teto achados nessa leva foram CORRIGIDOS na v1.21 — ver item -15 em §15.**
 - **Robô v1.19 DEPLOYADA (jul/2026, commit `e350abb`) — avanço automático de fase** — a cada jogo de PRODUÇÃO fechado no admin, `verificaEAvancaFaseAtiva` confere se isso completou `bot_config.fase_ativa`; se sim e a próxima fase já tem todos os confrontos cadastrados, avança sozinha (um passo por vez); se não conseguir decidir com segurança, não troca — só avisa. Aviso fica visível como banner no admin (`admin-860c200f.html`), não só em log. Ver item -13 em §15.
@@ -770,6 +771,40 @@ o banco.
 
 ## 15. Pendências abertas (jul/2026)
 
+-16. **✅ v1.21.1 DEPLOYADA (07/07/2026 fim de tarde, commit `8ee9a49`, versão 29
+   ACTIVE) — a auto-menção falhou DE NOVO no reteste real, por causa NOVA (camada
+   do modelo), agora corrigida:**
+   - **Incidente:** Tonius marcou "Vsf @Ratazana00" às 12:36 BRT → resposta "esse
+     contato eu não tenho no cadastro" (bot_log 183, `gatilho:mencao`).
+   - **Investigação com dado real (não suposição):** o payload bruto foi lido de
+     `mensagens_grupo` via SQL do dashboard: `mentionedJID = [61032206725341@lid]`
+     — menção ÚNICA, exatamente o LID já cadastrado em `bot_numero_whatsapp`.
+     Nada de alias, forma nova ou aprendizado atrasado. E o `prompt_enviado` do
+     bot_log 183 prova que o aviso de "contato desconhecido" NÃO entrou no
+     prompt — ou seja, o resolvedor da v1.21 funcionou perfeitamente.
+   - **Causa raiz REAL:** o texto mostrado ao modelo mantinha o token cru
+     (`Texto: "Vsf @61032206725341"`) e o modelo não tem como saber que aquele
+     número é ele mesmo (a persona não conhece o próprio LID — kayfabe). Sem
+     contexto na frase, tratou o token como terceiro e aplicou o comportamento
+     "contato não reconhecido" da persona POR CONTA PRÓPRIA. Prova de contraste:
+     bot_log 182, um minuto antes, MESMO token numa frase com contexto ("o
+     pessoal tá te xingando... vou te defender") → resposta certa.
+   - **Fix (v1.21.1):** tokens de menção reescritos ANTES de entrar no prompt —
+     dígitos em `idsBot` (ou alias visível do bot pela regra da v1.21) viram
+     `@Ratazana`; pessoa conhecida (tel/lid em `bot_telefones`) vira `@<nome>`;
+     desconhecido de verdade fica cru, casando com o aviso já existente. A linha
+     "Você foi marcado" agora afirma que a marcação `@Ratazana` é o próprio bot
+     e proíbe responder que "não conhece". Validado em script isolado com o caso
+     real 183 + alias + pessoa conhecida + desconhecido cru + sem menção.
+   - **Diagnóstico permanente (pedido do Vini):** todo gatilho de menção loga no
+     destino do bot_log `[men:<dígitos recebidos em mentions>]` e
+     `[idbot:<identidades conhecidas na hora>]` — a próxima falha de resolução
+     se diagnostica lendo o log, sem investigação manual.
+   - **Deploy:** mesmo caminho da v1.21 (API do dashboard de dentro da página
+     logada; fonte = GitHub raw do commit `8ee9a49`): versão 28 → 29, ACTIVE,
+     `verify_jwt:false`, 401 próprio conferido na URL.
+   - **RETESTE:** repetir a marcação seca ("Vsf @Ratazana00" ou similar) no
+     oficial — agora o modelo recebe `Vsf @Ratazana` + a instrução explícita.
 -15. **✅ v1.21 DEPLOYADA (07/07/2026 à tarde, commit `c5f754c`, versão 28 ACTIVE) —
    os 4 problemas do item -14 CORRIGIDOS, com causa raiz confirmada em bot_log:**
    - **(A) Menção ao próprio bot ≠ "contato desconhecido".** Incidente = bot_log
