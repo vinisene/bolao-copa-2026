@@ -1,5 +1,33 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // ROBÔ RATAZANA — Edge Function "ratazana-cobranca"
+// (v1.21 — 4 FIXES DOS BUGS REAIS DO 1º DIA DE CONVERSA NO OFICIAL:
+//  A) MENÇÃO AO PRÓPRIO BOT ≠ CONTATO DESCONHECIDO (bot_log 166): a marcação
+//     do bot pode vir duplicada no payload (forma conhecida + alias de LID por
+//     grupo) e o alias caía no loop de "pessoas citadas" como desconhecido —
+//     agora entrada de mentions sem token "@<digitos>" visível no texto é
+//     tratada como alias (nunca terceiro), o único token visível vira alias do
+//     bot quando ele foi marcado por forma invisível, o cache de botIdentidades
+//     só guarda conjunto COMPLETO vindo de bot_config (fallback telefone-só da
+//     API não é mais cacheado) e o bot APRENDE o próprio LID por grupo nos
+//     eventos fromMe (guarda anti-poisoning: sender_pn tem que bater com
+//     telefone já cadastrado).
+//  B) BUSCA NA WEB AUDITÁVEL E OBRIGATÓRIA PRA FATO EXTERNO (bot_log 164 —
+//     artilheiro errado cravado com confiança): chamaIA agora devolve `buscas`
+//     (usage.server_tool_use.web_search_requests somado) e a conversa loga
+//     [busca:N] no destino; chamaIA também continua o turno em stop_reason
+//     "pause_turn" (loop de tool de servidor) em vez de falhar; TAREFA item 6
+//     endurecida — fato externo sem busca = proibido cravar; pedido explícito
+//     de "pesquisa aí" = busca obrigatória.
+//  C) FILTRO DE SANIDADE NÃO SILENCIA MAIS A CONVERSA (bot_log 168/169 — um
+//     '覆' glitchado bloqueou a resposta e o grupo ficou no vácuo): modo
+//     `sanitiza` em enviaEmPartes (só conversa) remove glitch pontual (≤5
+//     ocorrências) e envia; corrupção maior regenera UMA vez via chamaIA com
+//     aviso do glitch antes de desistir. Mensagens programadas seguem estritas.
+//  D) TETO DIÁRIO SÓ PRA MENSAGENS PROGRAMADAS (bot_log 175/176 — 4 conversas
+//     de manhã esgotaram o teto e agenda 9h + cobrança 9h01 foram puladas):
+//     contaEnviadasHoje deixa de contar tipo `conversa` — resposta a quem
+//     chamou o bot tem governança própria (teto/hora + cooldown por grupo) e
+//     não compete mais com o orçamento das programadas.)
 // (v1.20 — OUVIDOS + CONVERSA NO GRUPO OFICIAL: o modo webhook reconhecia só
 //  GRUPO_TESTE_ID; agora reconhece os DOIS grupos, com captura (Ouvidos) e
 //  conversa (Fase 3) como CONTROLES INDEPENDENTES por grupo — antes viviam
@@ -681,11 +709,18 @@ async function botLogHoje(): Promise<Conf[]> {
 }
 // Mensagens de fato ENVIADAS hoje pro destino (qualquer tipo que manda WhatsApp;
 // fechar_placar/reabrir_placar não contam — não enviam mensagem nenhuma).
+// v1.21: `conversa` também NÃO conta — ela é RESPOSTA a quem chamou o bot (não
+// transmissão não solicitada) e já tem governança própria (teto/hora + cooldown
+// por grupo, ver limitesConversa). Incidente real de 07/07: 4 respostas de
+// conversa antes das 9h esgotaram o teto diário do oficial e a agenda (9h) e a
+// cobrança (9h01) foram PULADAS com pulado_teto (bot_log 175/176) — o teto
+// diário volta a valer só pras mensagens programadas, que é do que ele protege.
 function contaEnviadasHoje(logs: Conf[], destino: "teste" | "oficial"): number {
   return logs.filter((r: Conf) =>
     r.status_envio === "ok" &&
     String(r.destino || "").startsWith(destino + " (") &&
-    r.tipo !== "fechar_placar" && r.tipo !== "reabrir_placar"
+    r.tipo !== "fechar_placar" && r.tipo !== "reabrir_placar" &&
+    r.tipo !== "conversa"
   ).length;
 }
 // Idempotência: este "tipo" (com esta "chave" opcional, ex.: "[jogo:r16_3]")
@@ -719,23 +754,39 @@ function jaRodouHoje(logs: Conf[], tipo: string, destino: "teste" | "oficial", c
 const WEB_SEARCH_TOOLS = [{ type: "web_search_20250305", name: "web_search", max_uses: 3 }];
 
 async function chamaIA(modelo: string, systemPrompt: string, userPrompt: string, maxTokens = 4000, tools?: Conf[]) {
-  const r = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "x-api-key": Deno.env.get("ANTHROPIC_API_KEY") || "",
-      "anthropic-version": "2023-06-01",
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      model: modelo,
-      max_tokens: maxTokens,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userPrompt }],
-      ...(tools && tools.length ? { tools } : {}),
-    }),
-  });
-  if (!r.ok) throw new Error(`Anthropic (${modelo}) → HTTP ${r.status}: ${(await r.text()).slice(0, 300)}`);
-  const data = await r.json();
+  // v1.21: com tool de servidor (busca na web) a API roda um loop interno e
+  // pode devolver stop_reason "pause_turn" no meio dele — a resposta ainda
+  // não acabou. O jeito documentado de continuar é reenviar a conversa com o
+  // content parcial como turno assistant (SEM mensagem nova) — o servidor
+  // retoma de onde parou. Antes isso viraria "não retornou texto" e, na
+  // conversa, SILÊNCIO no grupo. Também soma usage.server_tool_use.
+  // web_search_requests de todas as voltas: `buscas` diz se a busca RODOU de
+  // verdade (auditoria do caso "cravou artilheiro errado sem pesquisar").
+  const messages: Conf[] = [{ role: "user", content: userPrompt }];
+  let data: Conf = null;
+  let buscas = 0;
+  for (let volta = 0; volta < 4; volta++) {
+    const r = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": Deno.env.get("ANTHROPIC_API_KEY") || "",
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model: modelo,
+        max_tokens: maxTokens,
+        system: systemPrompt,
+        messages,
+        ...(tools && tools.length ? { tools } : {}),
+      }),
+    });
+    if (!r.ok) throw new Error(`Anthropic (${modelo}) → HTTP ${r.status}: ${(await r.text()).slice(0, 300)}`);
+    data = await r.json();
+    buscas += Number(data?.usage?.server_tool_use?.web_search_requests || 0);
+    if (data.stop_reason !== "pause_turn") break;
+    messages.push({ role: "assistant", content: data.content });
+  }
   // Blocos de texto com citação (achado da busca web) chegam fatiados no
   // limite exato de cada citação — são pra colar direto, sem separador, ou
   // uma frase contínua vira quebrada no meio ("O artilheiro\n é fulano").
@@ -752,7 +803,7 @@ async function chamaIA(modelo: string, systemPrompt: string, userPrompt: string,
     throw new Error("Não consegui gerar a mensagem completa (estourou o limite de tokens). Clique em 🐀 Acordar o Ratazana de novo.");
   }
   if (!texto) throw new Error(`Anthropic não retornou texto (stop_reason: ${data.stop_reason})`);
-  return { texto, usage: data.usage || null };
+  return { texto, usage: data.usage || null, buscas };
 }
 
 // ─── ZapZap API (docs oficiais: https://api.zapzapapi.com/docs) ──────────────
@@ -925,8 +976,31 @@ async function registraEnvioBot(grupo: string, pares: { id: string; texto: strin
 // pelo fim de jogo e pelo enviar_texto. O padrão continua sendo mensagem única.
 // mentions: números com marcação real — cada parte só recebe os que aparecem
 // nela como token @<numero> (a linha da provocação normalmente é a última).
-async function enviaEmPartes(grupo: string, texto: string, mentions: string[] = []) {
-  const suspeitos = sanidadeTexto(texto);
+// `sanitiza` (v1.21, usado pela CONVERSA): glitch PONTUAL de caractere (caso
+// real: um '覆' solto no meio de frase coerente, bot_log 168/169) não pode
+// virar silêncio total no grupo — poucos caracteres bloqueados são REMOVIDOS
+// e o envio segue (com log no console); corrupção de verdade (muitas
+// ocorrências, ou texto que praticamente some depois da limpeza) continua
+// bloqueando como sempre — aí o chamador decide regenerar. Mensagens
+// programadas seguem no modo estrito (admin tem botão de retry; conversa não).
+async function enviaEmPartes(grupo: string, texto: string, mentions: string[] = [], sanitiza = false) {
+  let suspeitos = sanidadeTexto(texto);
+  if (suspeitos.length && sanitiza) {
+    const bloqueados = new Set(suspeitos.map((s) => s.ch));
+    let ocorrencias = 0;
+    let limpo = "";
+    for (const ch of texto) {
+      if (bloqueados.has(ch)) { ocorrencias++; continue; }
+      limpo += ch;
+    }
+    limpo = limpo.replace(/[ \t]{2,}/g, " ");
+    if (ocorrencias <= 5 && limpo.trim().length >= 20) {
+      console.error("[filtro de sanidade] glitch pontual REMOVIDO (modo conversa):",
+        [...bloqueados].join(" "), `(${ocorrencias} ocorrência(s))`);
+      texto = limpo;
+      suspeitos = [];
+    }
+  }
   if (suspeitos.length) {
     const detalhe = suspeitos
       .map((s) => `'${s.ch}' (U+${(s.ch.codePointAt(0) ?? 0).toString(16).toUpperCase().padStart(4, "0")}, ${s.script})`)
@@ -1150,6 +1224,7 @@ let BOT_IDS_CACHE: string[] | null = null;
 async function botIdentidades(): Promise<Set<string>> {
   if (BOT_IDS_CACHE) return new Set(BOT_IDS_CACHE);
   const ids = new Set<string>();
+  let deConfig = false;
   try {
     const cfg = await sbGet("bot_config?key=eq.bot_numero_whatsapp&select=value");
     if (Array.isArray(cfg) && cfg.length && cfg[0].value) {
@@ -1157,6 +1232,7 @@ async function botIdentidades(): Promise<Set<string>> {
         const d = parte.replace(/\D/g, "");
         if (d) ids.add(d);
       }
+      deConfig = ids.size > 0;
     }
   } catch { /* segue pro fallback via API */ }
   if (!ids.size) {
@@ -1174,8 +1250,47 @@ async function botIdentidades(): Promise<Set<string>> {
       console.error("[conversa] identidades da instância indisponíveis (gatilho de menção mudo):", e);
     }
   }
-  if (ids.size) BOT_IDS_CACHE = [...ids];
+  // v1.21: só o conjunto vindo de bot_config (telefone + LIDs, completo) pode
+  // ser CACHEADO. O fallback da API só conhece o telefone — cachear ele
+  // deixava o isolate inteiro cego pra menção por LID até reciclar (uma falha
+  // transitória do REST virava horas de "@Ratazana00 = contato desconhecido").
+  if (deConfig) BOT_IDS_CACHE = [...ids];
   return ids;
+}
+
+// v1.21 (bug real do oficial — bot tratando a PRÓPRIA menção como "contato
+// desconhecido"): o LID do bot pode variar por grupo/contexto (mesma classe
+// de problema já vista com bot_telefones.lid), então um id fixo em bot_config
+// não cobre todas as formas que a menção a ele pode assumir. O jeito CONFIÁVEL
+// de aprender o LID que um grupo usa é o mesmo dos humanos: um evento do
+// PRÓPRIO bot (fromMe) traz sender_pn + lid juntos. Guarda anti-poisoning: só
+// aprende quando o sender_pn do evento bate com um telefone JÁ cadastrado do
+// bot — nunca a partir de campo solto do payload (uma identidade errada em
+// idsBot silenciaria a pessoa pra sempre como "eco"). Best-effort: falha aqui
+// nunca derruba o webhook.
+async function aprendeIdentidadeBotDeFromMe(m: Conf) {
+  const dig = (s: string) => String(s || "").split("@")[0].split(":")[0].replace(/\D/g, "");
+  const pn = dig(m.senderPn || "");
+  const lid = (m.remetenteJid && String(m.remetenteJid).includes("@lid"))
+    ? dig(m.remetenteJid)
+    : dig(m.senderLid || "");
+  if (!pn || !lid || pn === lid) return;
+  try {
+    const cfg = await sbGet("bot_config?key=eq.bot_numero_whatsapp&select=value");
+    const valor = (Array.isArray(cfg) && cfg.length && cfg[0].value) ? String(cfg[0].value) : "";
+    if (!valor) return;
+    const atuais = valor.split(",").map((p) => p.replace(/\D/g, "")).filter(Boolean);
+    if (!atuais.includes(pn)) return;   // guarda: o telefone do evento tem que ser o do bot
+    if (atuais.includes(lid)) return;   // já conhecido
+    if (atuais.length >= 8) return;     // teto de segurança contra crescimento sem fim
+    await fetch(`${SUPABASE_URL}/rest/v1/bot_config?key=eq.bot_numero_whatsapp`, {
+      method: "PATCH",
+      headers: { ...sbHeaders(), Prefer: "return=minimal" },
+      body: JSON.stringify({ value: `${valor},${lid}` }),
+    });
+    BOT_IDS_CACHE = null;   // próximo botIdentidades() relê já com o id novo
+    console.log("[conversa] LID próprio novo aprendido de evento fromMe:", lid);
+  } catch { /* best-effort */ }
 }
 
 // A mensagem citada é do bot? Os formatos de id variam entre o envio
@@ -1389,12 +1504,33 @@ async function conversaTalvezResponder(m: Conf, grupoJid: string, telefoneRemete
     // Tonius). `mencaoNaoResolvida` marca esse caso pra avisar o modelo
     // explicitamente em vez de deixar a lacuna aberta pra ele preencher.
     let mencaoNaoResolvida = false;
+    // v1.21 (bug real do oficial): a marcação do PRÓPRIO bot pode vir
+    // DUPLICADA no payload — a mesma menção visível em duas formas (uma
+    // conhecida, que dispara o gatilho, + um alias de LID que ainda não
+    // conhecemos). A forma desconhecida caía aqui como "pessoa citada não
+    // resolvida" e o bot respondia que não conhece... ele mesmo (bot_log 166).
+    // Discriminação pelo TEXTO: cada marcação VISÍVEL vira um token
+    // "@<digitos>" no corpo da mensagem. Entrada de mentions cujos dígitos
+    // NÃO aparecem como token no texto é alias/fantasma de outra forma da
+    // mesma marcação — nunca uma pessoa distinta sendo citada. E se o único
+    // token visível é o não resolvido enquanto o bot foi marcado por uma
+    // forma que NÃO aparece no texto, esse token é o alias visível da
+    // marcação ao bot. O caso Jeca (v1.18.2 — pessoa real marcada antes do
+    // LID aprendido) continua protegido: lá o token visível dela existe no
+    // texto e não é explicável como alias do bot.
+    const tokensVisiveis = new Set((String(m.texto).match(/@\d{5,}/g) || []).map((t) => t.slice(1)));
+    const botMarcadoForaDoTexto = (m.mentions || []).some((j: string) => {
+      const d = digitos(j);
+      return idsBot.has(d) && !tokensVisiveis.has(d);
+    });
     for (const j of (m.mentions || [])) {
       const d = digitos(j);
       if (!d || idsBot.has(d)) continue;
       const t = achaTel(d);
-      if (t) citadasIds.add(t.participante_id);
-      else mencaoNaoResolvida = true;
+      if (t) { citadasIds.add(t.participante_id); continue; }
+      if (!tokensVisiveis.has(d)) continue;                       // entrada fantasma (alias)
+      if (tokensVisiveis.size === 1 && botMarcadoForaDoTexto) continue; // alias visível do bot
+      mencaoNaoResolvida = true;
     }
     const txtNorm = norm(String(m.texto));
     for (const p of MATA_PARTS_BOT) {
@@ -1462,15 +1598,36 @@ async function conversaTalvezResponder(m: Conf, grupoJid: string, telefoneRemete
       `3. Perguntou posição, pontos ou palpite de alguém (o RANKING acima é COMPLETO e REAL, 1º ao último, sem buraco nenhum — inclusive as IAs concorrentes)? Responda com o dado REAL, com gosto e zoeira — NUNCA mande consultar o app nem "conferir depois": você é a fonte. Nunca invente que uma posição ou pessoa "não existe".\n` +
       `4. IAs concorrentes fora do top 3: você tem o dado, mas só fala delas se PERGUNTADO DIRETO sobre aquela posição/jogo/pessoa especificamente — nunca por iniciativa própria, nunca como assunto voluntário.\n` +
       `5. Jogos do dia, palpites e ranking que NÃO foram perguntados só entram se tiverem relação com o assunto — ou como fecho de UMA frase, opcional. Nunca como corpo principal não pedido.\n` +
-      `6. Pergunta sobre fato de FUTEBOL/COPA que NÃO está em nenhum dado acima (artilheiro geral do torneio, recorde histórico, notícia, lesão de jogador)? Você TEM ferramenta de busca na internet pra esses casos — use-a. NUNCA pesquise pra responder algo que já está nos dados acima (ranking, palpites, pontos, jogos do Bolão) — isso é só demora à toa, você já é a fonte disso. Resposta com busca continua no tamanho e tom padrão de conversa (1 a 3 linhas, no seu jeito) — nunca despeje texto corrido da pesquisa nem cite fonte/link, resuma o fato com suas próprias palavras.\n` +
+      `6. Pergunta sobre fato de FUTEBOL/COPA que NÃO está em nenhum dado acima (artilheiro geral do torneio, recorde histórico, notícia, lesão de jogador)? Você TEM ferramenta de busca na internet — USE-A ANTES de responder, SEMPRE: sua memória de treino é antiga e já te fez cravar artilheiro errado com pose de certeza (a família cobrou). Número, recorde ou estatística externa SEM busca nesta resposta = PROIBIDO afirmar com confiança (vale a ressalva do item 8). Se pedirem explicitamente pra pesquisar/conferir, a busca é OBRIGATÓRIA — nunca responda de memória a um pedido desses. NUNCA pesquise pra responder algo que já está nos dados acima (ranking, palpites, pontos, jogos do Bolão) — você já é a fonte disso. Resposta com busca continua no tamanho e tom padrão de conversa (1 a 3 linhas, no seu jeito) — nunca despeje texto corrido da pesquisa nem cite fonte/link, resuma o fato com suas próprias palavras.\n` +
       `7. Curto: 1 a 3 linhas na maioria das vezes. Tom de conversa, ácido, em personagem.\n` +
       `8. COERÊNCIA FACTUAL OBRIGATÓRIA: os resultados e situações acima são FATOS que você conhece e comenta com naturalidade. NUNCA negue algo que está listado — se está nos resultados, aconteceu. Se perguntarem de algo que NÃO está nos dados nem foi pesquisado agora, NÃO crave: responda no tom "de cabeça eu diria X, mas não ponho a mão no fogo" e, se contestado, admita que pode estar desatualizado. Se você pesquisou (item 6) e achou resposta atual e clara, pode afirmar com confiança — não precisa da ressalva de "de cabeça".\n` +
       `9. Seu humor de fundo decorre da SITUAÇÃO DAS SELEÇÕES DO SEU CORAÇÃO acima — mas é humor de FUNDO: não verbalize o luto nem a implicância em toda resposta (dosagem está na sua persona).\n` +
       `10. Calibre a intensidade pelo gênero. Não use @. Sem link do bolão. Não cobre palpite a menos que perguntem sobre isso.`;
 
-    const ia = await chamaIA(modelo, systemPrompt, userPrompt, 2500, WEB_SEARCH_TOOLS);
+    let ia = await chamaIA(modelo, systemPrompt, userPrompt, 2500, WEB_SEARCH_TOOLS);
     respostaIA = ia.texto;
-    const envio = await enviaEmPartes(grupoJid, respostaIA);
+    // [busca:N] no destino do log: N = quantas buscas na web a API executou DE
+    // VERDADE nesta resposta (0 = respondeu sem pesquisar) — auditoria do caso
+    // real "cravou artilheiro errado com confiança, sem ressalva" (bot_log 164),
+    // em que era impossível saber se a tool tinha rodado.
+    logBase.destino += ` [busca:${ia.buscas}]`;
+    let envio;
+    try {
+      // sanitiza=true: glitch pontual de caractere é limpo e o envio segue
+      envio = await enviaEmPartes(grupoJid, respostaIA, [], true);
+    } catch (e1) {
+      const msg1 = String((e1 as Error)?.message || e1);
+      if (!msg1.includes("Filtro de sanidade")) throw e1;
+      // Corrupção grande demais pra limpar: regenera UMA vez avisando o modelo
+      // do glitch — desistir aqui era SILÊNCIO total pro grupo (caso real:
+      // pediram "pesquisa aí" e nada saiu — bot_log 168/169), o pior desfecho.
+      await botLog({ ...logBase, resposta_ia: respostaIA, status_envio: "erro", erro: `1ª geração bloqueada pelo filtro de sanidade — regenerando: ${msg1}` });
+      ia = await chamaIA(modelo, systemPrompt, userPrompt +
+        "\n\nATENÇÃO (regeneração): sua resposta anterior saiu corrompida com caracteres de outro alfabeto (glitch de geração) e foi bloqueada antes do envio. Gere a resposta de novo, do zero, usando SOMENTE letras e acentos do português + emojis.", 2500, WEB_SEARCH_TOOLS);
+      respostaIA = ia.texto;
+      logBase.destino += ` [busca2:${ia.buscas}]`;
+      envio = await enviaEmPartes(grupoJid, respostaIA, [], true);
+    }
     await botLog({
       ...logBase, prompt_enviado: userPrompt, resposta_ia: respostaIA,
       mensagem_enviada: envio.partes.join("\n\n"),
@@ -1655,7 +1812,13 @@ Deno.serve(async (req: Request) => {
       else if (m.chatJid && grupoOficial && m.chatJid === grupoOficial) destinoLabel = "oficial";
       if (!destinoLabel) return json({ ok: true, ignorado: "fora dos grupos monitorados" });
       const grupoAtual = destinoLabel === "oficial" ? grupoOficial : grupoTeste;
-      if (m.fromMe) return json({ ok: true, ignorado: "mensagem do próprio bot" });
+      if (m.fromMe) {
+        // v1.21: antes de descartar, aproveita o evento do PRÓPRIO bot pra
+        // aprender o LID dele NESTE grupo (base do fix "@Ratazana00 virou
+        // contato desconhecido" — ver aprendeIdentidadeBotDeFromMe).
+        await aprendeIdentidadeBotDeFromMe(m);
+        return json({ ok: true, ignorado: "mensagem do próprio bot" });
+      }
       if (!m.messageId) return json({ ok: true, ignorado: "evento sem id de mensagem" });
 
       // Controles por grupo (v1.20): teste sempre ligado nos dois; oficial

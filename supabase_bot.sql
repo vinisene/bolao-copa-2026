@@ -118,9 +118,9 @@ INSERT INTO dev_bot_config (key, value) VALUES ('fase_ativa', '16avos')
 ON CONFLICT (key) DO NOTHING;
 
 -- 6c) Limites da CONVERSA por grupo (v1.17.1, opcionais). Sem a key, valem
---     os defaults conservadores do código (6 respostas/hora, cooldown 10s) —
---     é o regime do grupo OFICIAL. O grupo de TESTE ganha teto folgado pra
---     sessões de calibragem (o teto de 6/h matou uma sessão real de testes).
+--     os defaults conservadores do código (6 respostas/hora, cooldown 10s).
+--     O grupo de TESTE ganha teto folgado pra sessões de calibragem (o teto
+--     de 6/h matou uma sessão real de testes).
 --     Keys reconhecidas: conversa_max_hora_<teste|oficial>,
 --     conversa_cooldown_seg_<teste|oficial>. Não sobrescreve se já existir.
 INSERT INTO bot_config (key, value) VALUES ('conversa_max_hora_teste', '30')
@@ -132,6 +132,16 @@ ON CONFLICT (key) DO NOTHING;
 INSERT INTO bot_config (key, value) VALUES ('conversa_cooldown_seg_teste', '5')
 ON CONFLICT (key) DO NOTHING;
 INSERT INTO dev_bot_config (key, value) VALUES ('conversa_cooldown_seg_teste', '5')
+ON CONFLICT (key) DO NOTHING;
+-- Teto do OFICIAL: 20/hora (v1.21 — o default de 6/h engoliu em silêncio uma
+-- resposta real no 1º dia de conversa ao vivo, bot_log 165: contestação com
+-- pedido de "pesquisa aí" 32s depois da resposta errada do artilheiro, e o
+-- grupo ficou no vácuo). Resposta de conversa é demand-driven (só sai quando
+-- alguém chama o bot), então 20/h continua conservador; cooldown segue 10s.
+-- Key JÁ GRAVADA em prod+dev via REST em 07/07/2026 — este seed é reforço.
+INSERT INTO bot_config (key, value) VALUES ('conversa_max_hora_oficial', '20')
+ON CONFLICT (key) DO NOTHING;
+INSERT INTO dev_bot_config (key, value) VALUES ('conversa_max_hora_oficial', '20')
 ON CONFLICT (key) DO NOTHING;
 
 -- 7) Seed do system prompt do personagem (key = 'system_prompt_ratazana')
