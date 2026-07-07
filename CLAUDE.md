@@ -1,12 +1,12 @@
 # CLAUDE.md
 
-> ## 🚨 LEIA PRIMEIRO — handoff de sessão (07/07/2026, contexto cheio)
-> **Conversa (Fase 3) está AO VIVO no grupo OFICIAL da família AGORA, com bugs reais confirmados em uso real.** Resumo de 30 segundos:
-> - **No ar:** Edge Function v1.20 (commit `ecd996f`), deployada. `bot_config.captura_ativa_oficial='1'` + `conversa_ativa_oficial='1'` — Ouvidos e Conversa rodando no grupo oficial de verdade, não só teste. Comunicado Oficial nº 002 (anúncio da conversa) já foi enviado e a família já está interagindo (múltiplas trocas reais confirmadas em `bot_log`, tipo `conversa`, destino `oficial`).
-> - **🐛 3 bugs confirmados em uso real, AINDA NÃO CORRIGIDOS** (achados pelo Vini ao vivo, não por teste): (a) bot não reconhece a própria menção em certas mensagens — trata @Ratazana00 como "contato desconhecido"; (b) suspeita de que a busca na web às vezes não roda de verdade (errou artilheiro da Copa com confiança total, sem ressalva); (c) **mais grave: silêncio total** quando alguém rebateu pedindo "pesquisa aí" — nenhuma resposta saiu no grupo oficial. Ver detalhe + pistas já levantadas no item -14 de §15 (achei evidência real em `bot_log` pra (c): filtro de sanidade bloqueou um envio por caractere CJK — pode ser a mesma cadeia de eventos, ver §15).
-> - **🔍 Item já DESVENDADO nesta sessão (não é mais mistério):** agenda das 9h e cobrança das 9h01 não saíram hoje (07/07) no grupo oficial — **causa raiz confirmada em bot_log**: o teto diário de mensagens (`TETO_MSGS_DIA_COM_JOGO=4`) é compartilhado entre TODOS os tipos de envio, incluindo `conversa` — 4 respostas de conversa bem-sucedidas antes das 9h já esgotaram o teto do dia, então agenda e cobrança do dia foram puladas com `pulado_teto`/`"teto diário atingido (4)"` (bot_log ids 175/176). NÃO é bug de pg_cron nem da transição de fase (que nem completou — oitavas ainda tem r16_7/r16_8 abertos hoje). É um gap de design: o teto foi pensado pra um mundo sem conversa ao vivo. Ver item -14 de §15 pra decisão de como corrigir (excluir `conversa` do teto, ou subir o teto, ou separar contadores).
-> - **🔐 Segurança pendente:** `BOT_TRIGGER_TOKEN` e o token do GitHub embutido no remote local ficaram expostos em texto puro em saídas de comando de sessões anteriores — **nenhum dos dois foi rotacionado ainda**. Ação do Vini.
-> - Detalhes completos, valores conferidos e histórico: §13 (robô), §14 (admin), §15 item -14.
+> ## 🚨 LEIA PRIMEIRO — handoff de sessão (07/07/2026 à tarde)
+> **Os 4 problemas do 1º dia de conversa no oficial foram CORRIGIDOS e DEPLOYADOS nesta sessão — Robô v1.21 (commit `c5f754c`, versão 28 no Supabase, ACTIVE, verify_jwt off).** Resumo de 30 segundos:
+> - **No ar:** Edge Function v1.21. Fixes: **(A)** menção ao próprio bot não vira mais "contato desconhecido" (alias de LID por grupo tratado no loop de citados + cache de identidades só aceita conjunto completo de `bot_config` + auto-aprendizado do LID próprio em eventos `fromMe`); **(B)** busca na web agora é auditável — bot_log de conversa ganha `[busca:N]` no destino (N = buscas que a API rodou DE VERDADE), `chamaIA` continua o turno em `pause_turn`, e a TAREFA proíbe cravar fato externo sem busca ("pesquisa aí" explícito = busca obrigatória); **(C)** filtro de sanidade em modo conversa REMOVE glitch pontual (≤5 ocorrências) e envia; corrupção maior regenera 1x — nunca mais silêncio mudo; **(D)** teto diário (`contaEnviadasHoje`) não conta mais `conversa` — agenda 9h/cobrança 9h01 não são mais puladas por papo de manhã. Detalhes: §15 item -15.
+> - **Causas raiz confirmadas com bot_log real:** id 166 = "não conheço esse contato" com `gatilho:mencao` (menção do bot duplicada no payload, forma conhecida + alias desconhecido); id 164 = artilheiro errado cravado com confiança ("Messi 19 gols") — era impossível saber se buscou, agora o log diz; o "pesquisa aí" mudo teve DUAS causas em sequência: id 165 (teto de 6/h do oficial, 32s após a resposta errada) e ids 168/169 (filtro de sanidade, glitch `覆`); ids 175/176 = `pulado_teto` às 9h00/9h01 com 4 conversas ok antes (170-173) — os crons RODARAM na hora certa, quem pulou foi a própria função. **Teto do oficial subiu de 6/h → 20/h** (key `conversa_max_hora_oficial='20'` criada em `bot_config` prod+dev via REST + seed no `supabase_bot.sql`; cooldown segue 10s).
+> - **RETESTE AO VIVO PENDENTE (Vini, grupo oficial):** marcar @Ratazana00 (não pode mais dizer que não conhece); perguntar fato externo ("quem é o artilheiro dessa Copa?") e conferir `[busca:N]` com N≥1 no bot_log; contestar com "pesquisa aí" (tem que responder); amanhã de manhã, conferir agenda 9h + cobrança 9h01 saindo mesmo com conversa rolando antes.
+> - **🔐 Segurança pendente (inalterado):** `BOT_TRIGGER_TOKEN` e o token do GitHub embutido no remote local ficaram expostos em texto puro em sessões anteriores — **nenhum dos dois foi rotacionado ainda**. Ação do Vini.
+> - Detalhes completos, valores conferidos e histórico: §13 (robô), §14 (admin), §15 itens -15 e -14.
 
 > ## ✅ EM PRODUÇÃO — "Bolão Ratazana00 / Copa 2026" no ar (jul/2026)
 > **AO VIVO:** `bolao-ratazana00.pages.dev` (publica `main`).
@@ -16,7 +16,8 @@
 > - **Sempre crie safepoint (tag) antes de merge pra `main`**.
 > - Não toque na `congelado-fase-grupos` (museu) nem na `dev` (backup antigo congelado).
 > - **Robô Ratazana (bot WhatsApp) EM PRODUÇÃO**, ainda só no grupo de TESTE — ver §13. Admin de placares no ar — ver §14. **Persona v2.1.2 + função v1.11 DEPLOYADA (versão 14, jul/2026, autorização explícita) + `bot_telefones` PREENCHIDA (9 participantes, prod e dev). Menção real, fix do truncamento e filtro de sanidade por script TESTADOS ao vivo no grupo de teste.** A URL de disparo da cobrança exige `&destino=teste`.
-- **Robô v1.20 DEPLOYADA (jul/2026, commit `ecd996f`) — Ouvidos + Conversa NO GRUPO OFICIAL, AO VIVO.** Modo webhook reconhece os DOIS grupos (antes só teste); captura (Ouvidos) e conversa (Fase 3) viraram controles independentes por grupo via `bot_config`: `captura_ativa_oficial='1'` e `conversa_ativa_oficial='1'` — **ambos LIGADOS agora**, confirmados por teste real (captura sem resposta, depois menção real respondida certo, destino gravado como "oficial" e não mais confundido com "teste" — bug real da leva anterior, corrigido). Limites do oficial nos DEFAULTS conservadores do código (6 respostas/hora, cooldown 10s — confirmado: não existe `conversa_max_hora_oficial`/`conversa_cooldown_seg_oficial` em `bot_config`, só os overrides de teste `30`/`5s`). **Comunicado Oficial nº 002 (estreia da conversa) já foi enviado pro grupo oficial** (bot_log `envio_manual` id 159, `status_envio:ok`) — botão dedicado criado no admin (`admin-860c200f.html`, commit `4e2ee47` na `ratazana`) e **já MESCLADO pra `main`** (commit `615db5f`, confirmado ao vivo na URL de produção). **🚨 3 bugs reais + 1 causa raiz encontrada nesta sessão — ver item -14 em §15 (resumo no topo do arquivo).**
+- **Robô v1.21 DEPLOYADA (07/07/2026, commit `c5f754c`, versão 28, ACTIVE) — os 4 fixes do 1º dia de conversa no oficial.** (A) menção ao próprio bot ≠ contato desconhecido: entrada de `mentions` sem token `@<digitos>` visível no texto é alias da mesma marcação (nunca terceiro); cache de `botIdentidades` só guarda conjunto completo vindo de `bot_config` (fallback telefone-só da API não é mais cacheado); o bot APRENDE o próprio LID por grupo nos eventos `fromMe` (`aprendeIdentidadeBotDeFromMe`, guarda anti-poisoning: `sender_pn` tem que bater com telefone já cadastrado). O caso Jeca (pessoa real com LID não aprendido) continua protegido — testado em script isolado. (B) `chamaIA` devolve `buscas` (soma de `usage.server_tool_use.web_search_requests`) e continua o turno em `stop_reason:pause_turn`; conversa loga `[busca:N]` no destino do bot_log; TAREFA item 6 endurecida (fato externo sem busca = proibido cravar; pedido explícito de pesquisa = busca obrigatória). (C) `enviaEmPartes` ganhou modo `sanitiza` (só conversa): glitch pontual ≤5 ocorrências é removido e o envio segue; corrupção maior regenera 1x via `chamaIA` com aviso do glitch; programadas seguem estritas. (D) `contaEnviadasHoje` exclui tipo `conversa` (teto diário volta a ser só das programadas) + key `conversa_max_hora_oficial='20'` criada em prod+dev e no seed. Deploy via API do dashboard (fetch de dentro da página logada do Chrome — a UI do editor não renderizou, mas o endpoint `POST /v1/projects/<ref>/functions/deploy` funcionou; fonte = GitHub raw do commit). Ver §15 item -15.
+- **Robô v1.20 DEPLOYADA (jul/2026, commit `ecd996f`) — Ouvidos + Conversa NO GRUPO OFICIAL, AO VIVO.** Modo webhook reconhece os DOIS grupos (antes só teste); captura (Ouvidos) e conversa (Fase 3) viraram controles independentes por grupo via `bot_config`: `captura_ativa_oficial='1'` e `conversa_ativa_oficial='1'` — **ambos LIGADOS agora**, confirmados por teste real (captura sem resposta, depois menção real respondida certo, destino gravado como "oficial" e não mais confundido com "teste" — bug real da leva anterior, corrigido). Limites do oficial nos DEFAULTS conservadores do código (6 respostas/hora, cooldown 10s — confirmado: não existe `conversa_max_hora_oficial`/`conversa_cooldown_seg_oficial` em `bot_config`, só os overrides de teste `30`/`5s`). **Comunicado Oficial nº 002 (estreia da conversa) já foi enviado pro grupo oficial** (bot_log `envio_manual` id 159, `status_envio:ok`) — botão dedicado criado no admin (`admin-860c200f.html`, commit `4e2ee47` na `ratazana`) e **já MESCLADO pra `main`** (commit `615db5f`, confirmado ao vivo na URL de produção). **Os 3 bugs reais + o gap do teto achados nessa leva foram CORRIGIDOS na v1.21 — ver item -15 em §15.**
 - **Robô v1.19 DEPLOYADA (jul/2026, commit `e350abb`) — avanço automático de fase** — a cada jogo de PRODUÇÃO fechado no admin, `verificaEAvancaFaseAtiva` confere se isso completou `bot_config.fase_ativa`; se sim e a próxima fase já tem todos os confrontos cadastrados, avança sozinha (um passo por vez); se não conseguir decidir com segurança, não troca — só avisa. Aviso fica visível como banner no admin (`admin-860c200f.html`), não só em log. Ver item -13 em §15.
 - **Fase 3 (Conversa) — v1.18.2 DEPLOYADA (jul/2026, commit `5a54465`) + persona v2.6** — fix do bug real de menção não resolvida (marcar contato sem LID mapeado fazia o bot reaproveitar por engano a identidade da mensagem citada) + BUSCA NA WEB ligada só no modo conversa (`web_search_20250305`, pra fato de futebol/Copa fora dos dados do bolão). Ver item -12 em §15. **v1.18.1 DEPLOYADA (jul/2026, commit `754e89b`) + persona v2.5** — ranking da conversa deixou de ter buracos (14 posições reais sempre) e a regra das IAs concorrentes virou comportamento (só fala de IA fora do top 3 se perguntado direto), não mais filtro de dado. Ver item -11 em §15. **v1.18 DEPLOYADA (versão 23, jul/2026) + persona v2.4** — o webhook responde quando o bot é mencionado (@) ou quando alguém responde/cita mensagem dele; SÓ grupo de TESTE; anti-cascata com **limites POR GRUPO** (keys `conversa_max_hora_*`/`conversa_cooldown_seg_*` em `bot_config`; TESTE = 30/hora + cooldown 5s, OFICIAL herda os defaults 6/hora + 10s; skip com gatilho é LOGADO). **v1.18 (calibragem):** coluna `lid` em `bot_telefones` (LID→participante; auto-aprendizado via `sender_pn` do payload; LID do Vini preenchido), remetente resolvido por telefone OU lid (fallback `senderName`), contexto com RANKING COMPLETO dos citáveis + dados das PESSOAS CITADAS na mensagem (menção real ou nome escrito). **Persona v2.4:** dosagem do viés Brasil×Argentina (luto máx. 1 a cada 3-4 respostas, decrescente), "você é a fonte" (nunca mandar consultar o app), humildade factual fora do bolão (fato externo nunca é cravado; contestado, admite — caso real: Klose artilheiro). Tabela `bot_mensagens_enviadas` criada em produção (registra o message_id de todo envio do bot; ⚠️ gatilho de citação só enxerga envios PÓS-v1.16). **v1.17 pós 2º teste real:** o "reply mudo" era o cooldown de 30s (mais longo que o ritmo de papo; match de citação estava certo); conversa ganhou CONTEXTO FACTUAL (data/hora, resultados dos últimos 3 dias, situação Brasil/Argentina pela chave, regra "nunca negar fato listado" — o bot tinha negado o jogo do Brasil) e MODO PAPO (responde primeiro o que a pessoa disse; dados do bolão só se relevantes; 1-3 linhas). **Persona v2.3**: bordões com parcimônia (máx. 1/mensagem; "caderninho" raro), aplicada em prod+dev. Reteste pendente. Sem busca na web/ficha relacional ainda. Ver §13/§15 item -7. **Compatibilidade `enviar_texto` × `net.http_post` do pg_net CONFERIDA — nenhum ajuste necessário.**
 - **Função v1.15.1 DEPLOYADA (versão 18, jul/2026)** — fix do registro do webhook: o 1º `configurar_webhook` real falhou com "URL do webhook é obrigatória" (o backend da ZapZap valida `webhook_url`, não o `url` documentado no POST da instância) → body agora leva os DOIS nomes; resposta ganhou `configured` (sucesso conferido RELENDO a config, não só o 2xx), `dica` honesta por resultado e redação do token (`[token]`) em tudo que ecoa. Engloba v1.14+v1.15 (Ouvidos + claim-then-act, autorização explícita). Tabela `mensagens_grupo` criada em produção (RLS sem policy pública — privacidade). **Pra ligar a captura falta: Vini chamar `?tipo=configurar_webhook` de novo (agora deve vir `ok:true, configured:true`) + mensagens reais no grupo de teste. Nenhuma resposta a menção/citação ainda — Fase 3.** Ver §13.
@@ -455,7 +456,7 @@ como dois liga/desliga separados em `bot_config` (antes viviam atrás do mesmo f
 | Grupo | Captura (Ouvidos) | Conversa (resposta) | Limites (`conversa_max_hora_*`/`conversa_cooldown_seg_*`) |
 |---|---|---|---|
 | **Teste** | sempre ligada (incondicional, como sempre foi) | sempre ligada (incondicional) | override gravado: **30/hora, cooldown 5s** |
-| **Oficial** | `bot_config.captura_ativa_oficial='1'` — **LIGADA** | `bot_config.conversa_ativa_oficial='1'` — **LIGADA** | sem override → cai nos **defaults do código: 6/hora, cooldown 10s** |
+| **Oficial** | `bot_config.captura_ativa_oficial='1'` — **LIGADA** | `bot_config.conversa_ativa_oficial='1'` — **LIGADA** | override gravado (v1.21): **20/hora** (`conversa_max_hora_oficial`); cooldown sem key → default 10s. Antes eram os defaults 6/h+10s — o 6/h engoliu em silêncio uma resposta real no 1º dia (bot_log 165) |
 
 Ambas as flags do oficial foram ligadas e confirmadas nesta sessão (jul/2026): primeiro só
 a captura (testada com mensagem comum real no oficial → capturou sem responder), depois a
@@ -470,15 +471,13 @@ existente) — a estreia da conversa no oficial foi um texto fixo manual, o **Co
 Oficial nº 002**, enviado via `enviar_texto` (bot_log `envio_manual` id 159, `ok`) —
 ver botão dedicado no admin, §14.
 
-⚠️ **Achado desta sessão sobre o teto diário de mensagens (`TETO_MSGS_DIA_COM_JOGO=4`,
-seção "Governança de volume" abaixo):** ele conta QUALQUER envio com sucesso no dia+destino
-— isso SEMPRE incluiu `conversa` (não é bug novo, é o comportamento já documentado), mas
-só virou um problema PRÁTICO agora que a conversa está ao vivo e gerando várias respostas
-por dia sozinha. No dia 07/07, 4 respostas de conversa bem-sucedidas antes das 9h já
-esgotaram o teto do oficial, fazendo agenda (9h) e cobrança do dia (9h01) serem puladas
-com `pulado_teto` — ver item -14 em §15 pra decisão de como ajustar (provável: excluir
-`conversa` da contagem do teto, já que é resposta a quem chamou o bot, não transmissão
-não solicitada).
+✅ **Teto diário × conversa — RESOLVIDO na v1.21:** `contaEnviadasHoje` deixou de contar
+o tipo `conversa` (resposta a quem chamou o bot tem governança própria — teto/hora +
+cooldown por grupo); o teto diário (`TETO_MSGS_DIA_COM_JOGO=4`) voltou a valer só pras
+mensagens programadas, que é do que ele protege. Incidente que motivou: 07/07, 4
+respostas de conversa antes das 9h esgotaram o teto do oficial e agenda (9h) + cobrança
+(9h01) foram puladas com `pulado_teto` (bot_log 175/176) — os crons rodaram na hora
+certa. Ver item -15 em §15.
 
 **Personagem = participante Ratazana00.** O perfil antes chamado "Claude Vini" (pid
 `claude`, time Vini) É o próprio Ratazana competindo — só nome e foto mudaram, id intacto.
@@ -630,9 +629,12 @@ Fala em primeira pessoa dos próprios palpites, pontos e posição.
   diário de mensagens automáticas — **4 mensagens em dia com jogo, 2 em dia sem
   jogo** (`TETO_MSGS_DIA_COM_JOGO`/`TETO_MSGS_DIA_SEM_JOGO` no código) — conta
   QUALQUER mensagem enviada com sucesso naquele dia+destino (`bot_log`), não só as
-  desses três modos. **NÃO se aplica** a cobrança manual/fim_de_jogo/enviar_texto
-  (gatilho manual do admin — já naturalmente espaçado). Helpers: `botLogHoje`,
-  `contaEnviadasHoje`, `jaRodouHoje`, `limitesBrasiliaHojeISO`.
+  desses três modos, **EXCETO (v1.21) o tipo `conversa`** — resposta a quem chamou
+  o bot tem governança própria (teto/hora + cooldown por grupo) e não compete mais
+  com o orçamento das programadas (incidente real: bot_log 175/176). **NÃO se
+  aplica** a cobrança manual/fim_de_jogo/enviar_texto (gatilho manual do admin —
+  já naturalmente espaçado). Helpers: `botLogHoje`, `contaEnviadasHoje`,
+  `jaRodouHoje`, `limitesBrasiliaHojeISO`.
 - **Avanço automático de fase (v1.19, `verificaEAvancaFaseAtiva`):** chamado só ao
   FECHAR jogo de PRODUÇÃO (nunca reabrir, nunca `&env=dev`). Confere se isso completou
   TODOS os confrontos da fase hoje em `bot_config.fase_ativa` (ids de `MM_COLS`,
@@ -768,7 +770,66 @@ o banco.
 
 ## 15. Pendências abertas (jul/2026)
 
--14. **🚨 v1.20 DEPLOYADA E AO VIVO NO OFICIAL (jul/2026, commit `ecd996f`) — MAS
+-15. **✅ v1.21 DEPLOYADA (07/07/2026 à tarde, commit `c5f754c`, versão 28 ACTIVE) —
+   os 4 problemas do item -14 CORRIGIDOS, com causa raiz confirmada em bot_log:**
+   - **(A) Menção ao próprio bot ≠ "contato desconhecido".** Incidente = bot_log
+     166 (`gatilho:mencao` + resposta "esse contato eu não conheço"): a marcação
+     do bot veio DUPLICADA no payload — forma conhecida (disparou o gatilho) +
+     um alias de LID que não está em `bot_config.bot_numero_whatsapp` (LID varia
+     por grupo/contexto, mesma classe já vista em `bot_telefones.lid`). Fix em 3
+     camadas em `conversaTalvezResponder`/`botIdentidades`: (1) entrada de
+     `mentions` cujos dígitos NÃO aparecem como token `@<digitos>` no texto é
+     alias/fantasma da mesma marcação — nunca "pessoa citada"; o único token
+     visível vira alias do bot quando ele foi marcado por forma invisível no
+     texto; (2) o cache de identidades só aceita o conjunto COMPLETO vindo de
+     bot_config — o fallback telefone-só da API da ZapZap não é mais cacheado
+     (uma falha transitória do REST deixava o isolate cego pra LID por horas);
+     (3) `aprendeIdentidadeBotDeFromMe`: eventos `fromMe` do webhook ensinam o
+     LID do próprio bot por grupo (append em `bot_numero_whatsapp`; guarda
+     anti-poisoning: só aprende se o `sender_pn` do evento bater com telefone já
+     cadastrado; teto de 8 ids; invalida o cache). Caso Jeca (v1.18.2) continua
+     protegido — validado em script isolado com os 4 cenários.
+   - **(B) Busca na web auditável e obrigatória pra fato externo.** Incidente =
+     bot_log 164 ("Messi 19 gols, ultrapassou Klose", cravado com confiança) —
+     era IMPOSSÍVEL saber se a tool rodou (log não guardava usage). Agora:
+     `chamaIA` devolve `buscas` (soma de `usage.server_tool_use.
+     web_search_requests`) e o bot_log de conversa ganha `[busca:N]` no destino;
+     `chamaIA` também continua o turno quando a API devolve `stop_reason:
+     pause_turn` (loop de tool de servidor — antes viraria "não retornou texto");
+     TAREFA item 6: fato externo sem busca = PROIBIDO cravar, pedido explícito de
+     "pesquisa aí" = busca obrigatória. Diagnóstico à posteriori do 164 fica em
+     aberto (sem usage logado na época); daqui pra frente o log responde.
+   - **(C) Silêncio total — DUAS causas confirmadas, duas correções.** O
+     "pesquisa aí" mudo foi o bot_log 165 (23:59, 32s após a resposta errada do
+     artilheiro, mesma pessoa): bloqueado pelo **teto de 6/h do oficial** →
+     key `conversa_max_hora_oficial='20'` criada (prod+dev via REST + seed;
+     conversa é demand-driven, 20/h segue conservador). O segundo silêncio
+     (bot_log 168/169, 01:40) foi o **filtro de sanidade**: glitch `覆` (U+8986)
+     no meio de frase coerente bloqueou o envio inteiro → `enviaEmPartes` ganhou
+     modo `sanitiza` (só conversa): ≤5 ocorrências de caractere bloqueado são
+     REMOVIDAS e o envio segue; corrupção maior regenera 1x via `chamaIA` com
+     aviso do glitch no prompt; mensagens programadas seguem no modo estrito
+     (admin tem retry manual). Skip de rate-limit segue silencioso pro grupo por
+     design (mas logado como `nao_enviado`).
+   - **(D) Teto diário não conta mais `conversa`.** Incidente = bot_log 175/176
+     (`pulado_teto` às 9h00/9h01 BRT) com 4 conversas ok antes (170-173, 07:21–
+     07:58 BRT): os crons RODARAM na hora certa; a própria função pulou por teto.
+     `contaEnviadasHoje` exclui o tipo `conversa` — o teto diário volta a
+     proteger só do que ele foi feito (transmissões programadas não solicitadas);
+     conversa já tem teto/hora + cooldown próprios. (Não foi possível ler
+     `cron.job_run_details` sem acesso SQL, mas os registros `pulado_teto` da
+     própria função às 12:00:00/12:01:00 UTC provam que os jobs dispararam no
+     horário e o pulo foi decisão interna — evidência mais direta que a do cron.)
+   - **Deploy:** via API do dashboard (`POST /v1/projects/<ref>/functions/deploy`)
+     com fetch de DENTRO da página logada do Supabase no Chrome do Vini (a UI do
+     editor não renderizou — página em branco — mas a API funcionou; token lido
+     do localStorage da própria página, nunca ecoado pra fora). Confirmado:
+     versão 27 → 28, ACTIVE, `verify_jwt:false`, e o 401 próprio da função
+     respondendo na URL. Fonte do deploy = GitHub raw do commit `c5f754c`
+     (conferido conter os marcadores da v1.21 antes de subir).
+   - **RETESTE AO VIVO PENDENTE (Vini):** ver banner no topo do arquivo.
+-14. **✅ RESOLVIDO NA v1.21 — ver item -15. (histórico) v1.20 DEPLOYADA E AO VIVO
+   NO OFICIAL (jul/2026, commit `ecd996f`) — MAS
    com 3 bugs reais confirmados em uso pela família + 1 causa raiz já achada.**
    Resumo do que aconteceu nesta leva: separei captura/conversa em dois controles
    por grupo (`captura_ativa_oficial`/`conversa_ativa_oficial`), liguei os dois
