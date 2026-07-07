@@ -1,5 +1,21 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // ROBÔ RATAZANA — Edge Function "ratazana-cobranca"
+// (v1.21.1 — MENÇÃO AO BOT: O TOKEN CRU CONFUNDIA O MODELO (caso real "Vsf
+//  @61032206725341", bot_log 183, payload conferido em mensagens_grupo): a
+//  menção veio ÚNICA e com o LID JÁ CADASTRADO — o resolvedor da v1.21
+//  funcionou (nenhum aviso de contato desconhecido entrou no prompt) — mas o
+//  texto mostrado ao modelo mantinha o token cru "@61032206725341" e o modelo
+//  não tem como saber que esse número é ele mesmo (a persona não conhece o
+//  próprio LID, de propósito). Sem contexto na frase, tratou o token como
+//  terceiro e respondeu "esse contato eu não tenho no cadastro" por conta
+//  própria (o irmão id 182, mesmo token com frase contextual, saiu certo).
+//  Fix: os tokens de menção são REESCRITOS antes de entrar no prompt — bot →
+//  "@Ratazana", pessoa conhecida (tel/lid em bot_telefones) → "@<nome>",
+//  desconhecido de verdade fica cru (casa com o aviso já existente) — e a
+//  linha "Você foi marcado" agora diz explicitamente que a marcação
+//  "@Ratazana" é o próprio bot. Diagnóstico permanente: gatilho de menção
+//  loga [men:<dígitos recebidos>] [idbot:<identidades conhecidas>] no
+//  destino do bot_log — a próxima falha de resolução se lê direto do log.)
 // (v1.21 — 4 FIXES DOS BUGS REAIS DO 1º DIA DE CONVERSA NO OFICIAL:
 //  A) MENÇÃO AO PRÓPRIO BOT ≠ CONTATO DESCONHECIDO (bot_log 166): a marcação
 //     do bot pode vir duplicada no payload (forma conhecida + alias de LID por
@@ -1369,6 +1385,15 @@ async function conversaTalvezResponder(m: Conf, grupoJid: string, telefoneRemete
   }
 
   const logBase = { tipo: "conversa", destino: `${destinoLabel} (${grupoJid}) [para:${telefoneRemetente || "?"}] [gatilho:${gatilho}]` };
+  // v1.21.1 — diagnóstico imediato de menção (pedido após o caso "Vsf @...",
+  // bot_log 183, que exigiu investigação manual): quando o gatilho de menção
+  // dispara, o log guarda TODOS os identificadores recebidos em mentions
+  // (dígitos) e o conjunto de identidades conhecidas do bot na hora — se a
+  // resolução errar de novo, a comparação já está no próprio bot_log.
+  if (gatilho === "mencao") {
+    const men = (m.mentions || []).map((j: string) => digitos(j)).filter(Boolean).join(",");
+    logBase.destino += ` [men:${men}] [idbot:${[...idsBot].join(",")}]`;
+  }
   let userPrompt: string | null = null;
   let respostaIA: string | null = null;
   try {
@@ -1532,6 +1557,30 @@ async function conversaTalvezResponder(m: Conf, grupoJid: string, telefoneRemete
       if (tokensVisiveis.size === 1 && botMarcadoForaDoTexto) continue; // alias visível do bot
       mencaoNaoResolvida = true;
     }
+    // v1.21.1 (caso real "Vsf @61032206725341", bot_log 183): o resolvedor já
+    // tratava a menção ao bot certo, mas o TOKEN CRU continuava no texto que o
+    // prompt mostra — e o MODELO não tem como saber que aquele número é ele
+    // mesmo (a persona não conhece o próprio LID; nem deve — kayfabe). Sem
+    // contexto na frase, ele tratava o token como um terceiro e respondia
+    // "esse contato eu não conheço" por conta própria, mesmo SEM o aviso de
+    // contato desconhecido no prompt. Fix: reescrever os tokens ANTES de
+    // mostrar — menção ao bot vira "@Ratazana" (nome que a persona usa pra
+    // si), menção a pessoa conhecida vira "@<nome>"; token realmente
+    // desconhecido fica cru (casa com o aviso de contato desconhecido).
+    let textoExibido = String(m.texto).slice(0, 600);
+    let botMarcadoNoTexto = false;
+    for (const j of (m.mentions || [])) {
+      const d = digitos(j);
+      if (!d || !tokensVisiveis.has(d)) continue;
+      const t = achaTel(d);
+      const ehAliasDoBot = !t && !idsBot.has(d) && tokensVisiveis.size === 1 && botMarcadoForaDoTexto;
+      if (idsBot.has(d) || ehAliasDoBot) {
+        textoExibido = textoExibido.split("@" + d).join("@Ratazana");
+        botMarcadoNoTexto = true;
+      } else if (t?.nome_exibicao) {
+        textoExibido = textoExibido.split("@" + d).join("@" + t.nome_exibicao);
+      }
+    }
     const txtNorm = norm(String(m.texto));
     for (const p of MATA_PARTS_BOT) {
       if (part && p.id === part.id) continue;   // quem fala não é "pessoa citada"
@@ -1582,8 +1631,12 @@ async function conversaTalvezResponder(m: Conf, grupoJid: string, telefoneRemete
       `DADOS VERIFICADOS DO BOLÃO (conversa no grupo de WhatsApp). Hoje é ${dataHoje}, ${horaAgora} em Brasília. Use somente estes dados. Não calcule nem invente nada.\n\n` +
       `MENSAGEM RECEBIDA AGORA:\n` +
       `- De: ${nome}${genero ? ` (${genero})` : ""}${posPessoa ? ` — ${posPessoa}º lugar no Ranking do Bolão com ${fmtPts(rank[posPessoa - 1].total)} pts` : ""}\n` +
-      `- Texto: "${String(m.texto).slice(0, 600)}"\n` +
-      (gatilho === "mencao" ? `- Você foi marcado nessa mensagem.\n` : "") +
+      `- Texto: "${textoExibido}"\n` +
+      (gatilho === "mencao"
+        ? `- Você foi marcado nessa mensagem${botMarcadoNoTexto
+            ? ` — a marcação "@Ratazana" no texto acima é VOCÊ MESMO (é assim que te marcam no WhatsApp), NUNCA um contato de terceiro: jamais responda que "não conhece" essa marcação`
+            : ""}.\n`
+        : "") +
       (contatoDesconhecido ? `- ATENÇÃO: essa marcação (@) é de um contato que você AINDA NÃO CONHECE (o número dele não está no seu cadastro ainda). Não é ninguém que já apareceu nesta conversa, nem a pessoa da mensagem citada abaixo (se houver), nem qualquer outra pessoa do Bolão — não tem como saber quem é.\n` : "") +
       (msgOriginal ? `- Ela é RESPOSTA a esta mensagem que você mandou no grupo antes: "${String(msgOriginal.texto || "").slice(0, 400)}"\n` : "") +
       (pessoasCitadasBloco ? `\nPESSOAS CITADAS NA MENSAGEM (dados reais delas no Bolão):\n${pessoasCitadasBloco}\n` : "") +
