@@ -856,10 +856,6 @@ span.rr-finish{cursor:default;}   /* selo de estado (jogo fechado), não é mais
 .mm-litem .mm-foot-scores input::placeholder{color:var(--on-dark-muted);}
 .mm-litem .mm-hc-pred input:focus,.mm-litem .mm-foot-scores input:focus{border-color:var(--lime);background:var(--input-dark);box-shadow:0 0 0 3px rgba(194,236,0,.25);}
 .mm-litem .mm-iascore{background:var(--surface-3);border-color:transparent;color:var(--ink);}
-/* Modo admin: célula de IA sendo editada (mesmo layout do humano; só um marcador sutil) */
-.mm-cell.mm-ia-editing{outline:1.5px dashed var(--violet);outline-offset:-1px;border-radius:12px;}
-#ia-edit-pill{position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:9999;background:var(--violet,#6200EA);color:#fff;font-size:13px;font-weight:700;padding:8px 12px;border-radius:999px;box-shadow:0 6px 20px rgba(0,0,0,.35);display:flex;align-items:center;gap:8px;}
-#ia-edit-pill button{background:rgba(255,255,255,.22);color:#fff;border:0;border-radius:999px;padding:4px 10px;font-weight:700;cursor:pointer;font-size:12px;}
 .mm-litem .mm-preds-wrap{border-top-color:var(--line);}
 .mm-litem .real-row{background:var(--card-dark);}
 .mm-litem .real-row.pending{background:repeating-linear-gradient(135deg,var(--card-dark),var(--card-dark) 10px,#1d1d24 10px,#1d1d24 20px);}
@@ -2450,7 +2446,7 @@ function mmUpdHumFlags(grid,c,pid,editable){
 }
 function mmRenderQuemPassa(cid,pid){
   const c=MM_CONFRONTOS.find(x=>x.id===cid),p=MATA_PARTS.find(x=>x.id===pid); if(!c||!p)return;
-  const editable=p.type==='human'||mmIaEdit();   // IA editável no modo admin usa o mesmo caminho de bandeiras do humano
+  const editable=true;   // humanos e IAs editam igual; a trava de kickoff é aplicada em mmSetQuemPassa/mmHumPredHTML
   const grid=document.querySelector(`#tab-mata [data-cid="${cid}"] .mm-hc-pred[data-pid="${pid}"]`);
   if(grid){mmUpdHumFlags(grid,c,pid,editable);return;}   // humano: bandeiras na grade do placar
   const el=document.querySelector(`#tab-mata [data-cid="${cid}"] .mm-qp[data-pid="${pid}"]`);
@@ -2579,24 +2575,6 @@ const MM_COLS=[
 const mmOpen=new Set();   // confrontos expandidos na lista (preserva estado entre re-renders)
 let mmPhaseFilter='quartas';   // filtro de fase da lista (3.1) — padrão QUARTAS (oitavas encerradas 07/07)
 let mmBracketOpen=false;            // A1: seção do chaveamento — COLAPSADA por padrão (Tarefa 2)
-// ── Modo "editar palpite das IAs" (admin, per-device) ────────────────────────
-// Off por padrão: a família vê os palpites das IAs como LEITURA, igual sempre.
-// Quando LIGADO, as células das IAs viram editáveis pelo MESMO mecanismo dos
-// humanos (mmHumPredHTML → mmUpdPalpite → mata_palpites; mesma trava de kickoff).
-// A flag mora em localStorage (por NAVEGADOR/aparelho): só quem liga vê editável;
-// ninguém mais do grupo é afetado. Liga/desliga por: (a) botão no admin (mesma
-// origem → localStorage compartilhado) ou (b) URL do app ?editaias=1 / =0.
-function mmIaEdit(){return localStorage.getItem('ratz_edit_ia')==='1';}
-(function(){const p=new URLSearchParams(location.search);if(p.has('editaias')){if(p.get('editaias')==='0')localStorage.removeItem('ratz_edit_ia');else localStorage.setItem('ratz_edit_ia','1');}})();
-// Liga/desliga o modo e re-renderiza (usado pelo banner e pode ser chamado do console).
-function mmSetIaEdit(on){if(on)localStorage.setItem('ratz_edit_ia','1');else localStorage.removeItem('ratz_edit_ia');mmIaEditBanner();if(activeTab==='mata')renderMata();}
-// Pílula fixa avisando que o modo está LIGADO (só aparece pra quem ligou; some ao desligar).
-function mmIaEditBanner(){
-  let el=document.getElementById('ia-edit-pill');
-  if(!mmIaEdit()){if(el)el.remove();return;}
-  if(!el){el=document.createElement('div');el.id='ia-edit-pill';document.body.appendChild(el);}
-  el.innerHTML=`✏️ Edição de palpites das IAs LIGADA <button onclick="mmSetIaEdit(false)">desligar</button>`;
-}
 // AGENDA dos 16 avos (data/hora/local) por VAGA (slot). Fica no código (a anon key não cria coluna
 // nova no banco). O app lê isto OU os campos dt/tm/venue do confronto, se existirem no banco.
 const MM_AGENDA={
@@ -2704,29 +2682,21 @@ function mmMatchupHTML(c){
 function mmCardBody(c){
   c=mmEffConf(c);
   const hasScore=c.real_a!=null&&c.real_b!=null;
-  const iaEdit=mmIaEdit();
   const cell=p=>{
     const pid=p.id, isHuman=p.type==='human';
-    const editable=isHuman||iaEdit;   // IA vira editável (mesmo mecanismo do humano) quando o modo admin está ligado
     const pal=(MM_PALPITES[c.id]||{})[pid]||{};
     const hasPred=pal.gols_a!=null;
     const pts=hasScore&&hasPred?calcMataPts(pal,c):null;
     const badge=`<span class="pts-badge on-av mm-pts${pts!=null?' '+(c.finished?ptsClass(pts):'preview'):' empty'}${pts===0?' zero':''}" data-pid="${pid}" onmouseenter="mmShowPtsTip(event,'${c.id}','${pid}')" onmouseleave="hideTip()" onclick="mmShowPtsTip(event,'${c.id}','${pid}')">${pts!=null?fmtPts(pts):''}</span>`;
     const av=`<div class="hum-avwrap"><div class="hum-av" style="background:${p.color}">${avInner(p)}</div>${badge}</div>`;
-    const passa=`<div class="mm-qp mm-hc-passa" data-pid="${pid}">${mmQuemPassaHTML(c,pid,editable)}</div>`;
-    if(editable){
-      // Foto+nome em 1/3 (celular: lado a lado · desktop: empilhado); 2/3 = grade com a bandeira do
-      // "quem passa" JUNTO de cada campo de placar (desktop: em cima · celular: à direita).
-      // IA em modo edição usa EXATAMENTE este layout/mecanismo (mmHumPredHTML) — só a classe
-      // mm-ia-editing marca visualmente que é uma IA sendo editada pelo admin.
-      return `<div class="pred-cell ${isHuman?'human':'ia mm-ia-editing'} mm-cell mm-hcell${mmHasFullPred(pal)?'':' mm-miss-cell'}" data-pid="${pid}">
-        <div class="mm-hc-id">${av}<span class="hum-name">${p.name}</span></div>
-        <div class="mm-hc-pred mm-qp" data-pid="${pid}">${mmHumPredHTML(c,pid,pal)}</div>
-      </div>`;
-    }
-    return `<div class="pred-cell ia mm-cell mm-iacell" data-pid="${pid}">
-      <div class="mm-iacell-head">${av}<span class="hum-name">${p.name}</span></div>
-      <div class="mm-iacell-row"><div class="mm-iascore${hasPred?'':' empty'}">${hasPred?`${pal.gols_a}&nbsp;×&nbsp;${pal.gols_b}`:'–&nbsp;×&nbsp;–'}</div>${passa}</div>
+    // TODOS (humanos E IAs) editam pelo MESMO mecanismo: mmHumPredHTML → mmUpdPalpite →
+    // mmUpsertPalpite → mata_palpites, com a MESMA trava de kickoff (input só fica disabled
+    // quando o jogo já começou). A classe 'human'/'ia' controla apenas o fundo e a coluna —
+    // a IA continua na coluna das IAs (posição inalterada); o campo de placar é idêntico ao
+    // do humano (lime/editável). Não há mais campo de IA em "somente leitura".
+    return `<div class="pred-cell ${isHuman?'human':'ia'} mm-cell mm-hcell${mmHasFullPred(pal)?'':' mm-miss-cell'}" data-pid="${pid}">
+      <div class="mm-hc-id">${av}<span class="hum-name">${p.name}</span></div>
+      <div class="mm-hc-pred mm-qp" data-pid="${pid}">${mmHumPredHTML(c,pid,pal)}</div>
     </div>`;
   };
   const humans=MATA_PARTS.filter(p=>p.type==='human');
@@ -3204,7 +3174,6 @@ function renderMata(){
   if(_cdInterval){clearInterval(_cdInterval);_cdInterval=null;}
   if(document.querySelector('#tab-mata .dh-cd'))_cdInterval=setInterval(tickCountdown,1000);   // contagem regressiva
   if(!_mmResizeBound){_mmResizeBound=true;window.addEventListener('resize',()=>{if(activeTab==='mata')mmRerenderBracket();});}   // visor re-calcula colunas/largura no resize
-  mmIaEditBanner();   // pílula "edição de IA ligada" (só pra quem ligou o modo)
 }
 
 // ─── ESPELHO PROD→DEV (só no ambiente de dev) ─────────────────────────────────
