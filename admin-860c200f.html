@@ -153,13 +153,11 @@
   <button class="utilbtn" onclick="toggleUtil('grupos')">📡 Listar grupos</button>
   <button class="utilbtn" onclick="toggleUtil('inaugural')">📣 Mensagem inaugural</button>
   <button class="utilbtn" onclick="toggleUtil('comunicado002')">📢 Comunicado nº 002</button>
-  <button class="utilbtn" onclick="toggleUtil('editia')">✏️ Editar palpites das IAs</button>
   <button class="linklike" onclick="trocarToken()">trocar senha</button>
 </div>
 <div id="util-grupos" class="util-box" hidden></div>
 <div id="util-inaugural" class="util-box" hidden></div>
 <div id="util-comunicado002" class="util-box" hidden></div>
-<div id="util-editia" class="util-box" hidden></div>
 
 <div class="controls-row">
   <div class="status-toggle" id="status-wrap">
@@ -551,32 +549,18 @@ async function postEnviarTexto(dest,texto,st){
 
 // ─── Utilitários do topo: listar grupos + mensagem inaugural + comunicado 2 ──
 function toggleUtil(qual){
-  for(const k of ['grupos','inaugural','comunicado002','editia']){
+  for(const k of ['grupos','inaugural','comunicado002']){
     const el=document.getElementById('util-'+k);
     if(k===qual){
       el.hidden=!el.hidden;
       if(!el.hidden){
         if(k==='grupos')renderGrupos();
         else if(k==='inaugural')renderInaugural();
-        else if(k==='comunicado002')renderComunicado002();
-        else renderEditIa();
+        else renderComunicado002();
       }
     }
     else el.hidden=true;
   }
-}
-// ─── Editar palpites das IAs no app (flag per-device via localStorage) ────────
-// Admin e app são a MESMA origem (bolao-ratazana00.pages.dev), então este botão
-// liga/desliga a mesma flag que o app lê pra tornar as células das IAs editáveis
-// pelo MESMO mecanismo dos humanos. É por NAVEGADOR: só afeta este aparelho.
-function iaEditOn(){return localStorage.getItem('ratz_edit_ia')==='1';}
-function setIaEdit(on){if(on)localStorage.setItem('ratz_edit_ia','1');else localStorage.removeItem('ratz_edit_ia');renderEditIa();}
-function renderEditIa(){
-  const el=document.getElementById('util-editia'); const on=iaEditOn();
-  el.innerHTML=`<p class="util-tit">Deixa os palpites das IAs editáveis <b>no app</b>, pelo mesmo formulário/validação dos humanos (trava de jogo já começado continua valendo). Vale só <b>neste aparelho/navegador</b> — a família não é afetada.</p>
-    <p style="margin:6px 0;font-size:13px">Estado agora: <b style="color:${on?'#00C852':'#e05c8b'}">${on?'LIGADO':'desligado'}</b></p>
-    <button class="utilbtn" onclick="setIaEdit(${on?'false':'true'})">${on?'Desligar':'Ligar'} edição de palpites das IAs</button>
-    <a class="utilbtn" style="text-decoration:none;display:inline-block" href="/?editaias=1" target="_blank" rel="noopener">Abrir o app pra editar ↗</a>`;
 }
 async function renderGrupos(){
   const el=document.getElementById('util-grupos');
