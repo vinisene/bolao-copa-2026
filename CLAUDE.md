@@ -49,7 +49,7 @@ Os números aqui são referência aproximada (estado em ~3250 linhas).
 - `congelado-fase-grupos` → museu (fase de grupos, congelada). **Não recebe mudanças.**
 
 **Safepoints (tags):**
-`v4-pre-redesign` · `v5-prod-pre-redesign` · `v6-prod-pre-fix-palpite` · `v7-prod-pre-mano-gi` · `v8-prod-pre-melhorias` · `v9-prod-pre-fotos` · `v10-pre-visual-v2` · `v10-pre-identidade-copa` · `v11-pre-chaveamento-novo` · `v11-pre-robo-ratazana` · `v12-prod-pre-visual-redesign` · `v12-pre-admin-placar` · `v13-prod-pre-robo-admin` · `v14-prod-pre-identidade-institucional` · `v15-prod-pre-ratazana-lancamento` · `v16-prod-pre-admin-fase-banner` · `v17-prod-pre-comunicado002-btn` · `v18-prod-pre-quartas-zebras` · `v19-prod-pre-zebra-suica` · `v20-prod-pre-ia-editavel` · `v21-prod-pre-ia-editavel-v2` · `v22-prod-pre-ia-compacta` · `v23-prod-pre-admin-sem-senha`
+`v4-pre-redesign` · `v5-prod-pre-redesign` · `v6-prod-pre-fix-palpite` · `v7-prod-pre-mano-gi` · `v8-prod-pre-melhorias` · `v9-prod-pre-fotos` · `v10-pre-visual-v2` · `v10-pre-identidade-copa` · `v11-pre-chaveamento-novo` · `v11-pre-robo-ratazana` · `v12-prod-pre-visual-redesign` · `v12-pre-admin-placar` · `v13-prod-pre-robo-admin` · `v14-prod-pre-identidade-institucional` · `v15-prod-pre-ratazana-lancamento` · `v16-prod-pre-admin-fase-banner` · `v17-prod-pre-comunicado002-btn` · `v18-prod-pre-quartas-zebras` · `v19-prod-pre-zebra-suica` · `v20-prod-pre-ia-editavel` · `v21-prod-pre-ia-editavel-v2` · `v22-prod-pre-ia-compacta` · `v23-prod-pre-admin-sem-senha` · `v24-prod-pre-admin-msg-livre`
 Voltar: `git checkout <tag>`. Listar: `git tag -n1`.
 ⚠️ Há **pares de tags com o mesmo número** vindos de levas distintas (não confundir):
 `v10-pre-visual-v2` (navegação) ≠ `v10-pre-identidade-copa` (fontes/cantos/cores, §12);
@@ -768,17 +768,17 @@ já apagou a key ao gravar o banner).
   confirmados na resposta real da ZapZap (`JID`/`Name`, maiúsculos) e devolve
   `grupos` normalizado `[{nome,id}]`. Se a normalização falhar, o admin nunca mostra
   dump cru na tela — só loga no `console.error` (F12 pra ver o detalhe).
-- "📣 Mensagem inaugural" → texto FIXO na constante `MSG_INAUGURAL` do script (hoje é
-  PLACEHOLDER — trocar quando o Vini fornecer o definitivo), preview na tela, destino
-  explícito e confirmação. Não passa por IA. Usa o mesmo `postEnviarTexto`
-  (`tipo=enviar_texto`) que sobrou do fluxo antigo do Acordar.
-- **"📢 Comunicado nº 002"** (v1.20, commit `4e2ee47` na `ratazana`, **já MESCLADO pra
-  `main`** via merge parcial `615db5f` — confirmado ao vivo na URL de produção) → mesmo
-  mecanismo exato da Mensagem inaugural (constante própria `MSG_COMUNICADO_002`, preview,
-  radio teste/oficial, confirm(), `postEnviarTexto`), pro texto fixo que anuncia a estreia
-  da Conversa no grupo oficial. **Já foi enviado pro grupo oficial nesta sessão** (bot_log
-  `envio_manual`, `status_envio:ok`) — o botão continua no admin caso precise reenviar ou
-  sirva de modelo pro próximo comunicado fixo (nº 003 etc.).
+- **"✍️ Enviar mensagem como Ratazana"** (v24, 08/07 — SUBSTITUIU os dois botões de
+  texto fixo "📣 Mensagem inaugural" e "📢 Comunicado nº 002", que foram REMOVIDOS junto
+  com as constantes `MSG_INAUGURAL`/`MSG_COMUNICADO_002` e as funções
+  `renderInaugural`/`renderComunicado002`) → **campo de texto LIVRE** (`renderLivre`):
+  `textarea` (font 16px, sem zoom no iOS), radio destino TESTE/OFICIAL (TESTE default),
+  preview colapsável que renderiza `*negrito*`/quebras (`livrePreview`), botão Enviar e
+  retorno inline. O texto vai **LITERAL** como digitado (sem IA) pelo MESMO
+  `postEnviarTexto` (`tipo=enviar_texto`). Canal manual do Vini pra mandar qualquer
+  mensagem pelo celular. Se um dia precisar de um comunicado fixo de novo, é só digitar/
+  colar aqui. Histórico: a Mensagem inaugural e o Comunicado nº 002 já tinham sido
+  enviados (bot_log `envio_manual`, ok) — não se perde nada removendo os botões.
 
 **Travas de integridade do placar (3 camadas):**
 1. **Home (`index.html`):** placar final e "quem passou" são somente leitura pra QUALQUER
