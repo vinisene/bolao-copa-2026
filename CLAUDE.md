@@ -49,7 +49,7 @@ Os números aqui são referência aproximada (estado em ~3250 linhas).
 - `congelado-fase-grupos` → museu (fase de grupos, congelada). **Não recebe mudanças.**
 
 **Safepoints (tags):**
-`v4-pre-redesign` · `v5-prod-pre-redesign` · `v6-prod-pre-fix-palpite` · `v7-prod-pre-mano-gi` · `v8-prod-pre-melhorias` · `v9-prod-pre-fotos` · `v10-pre-visual-v2` · `v10-pre-identidade-copa` · `v11-pre-chaveamento-novo` · `v11-pre-robo-ratazana` · `v12-prod-pre-visual-redesign` · `v12-pre-admin-placar` · `v13-prod-pre-robo-admin` · `v14-prod-pre-identidade-institucional` · `v15-prod-pre-ratazana-lancamento` · `v16-prod-pre-admin-fase-banner` · `v17-prod-pre-comunicado002-btn` · `v18-prod-pre-quartas-zebras` · `v19-prod-pre-zebra-suica` · `v20-prod-pre-ia-editavel` · `v21-prod-pre-ia-editavel-v2` · `v22-prod-pre-ia-compacta`
+`v4-pre-redesign` · `v5-prod-pre-redesign` · `v6-prod-pre-fix-palpite` · `v7-prod-pre-mano-gi` · `v8-prod-pre-melhorias` · `v9-prod-pre-fotos` · `v10-pre-visual-v2` · `v10-pre-identidade-copa` · `v11-pre-chaveamento-novo` · `v11-pre-robo-ratazana` · `v12-prod-pre-visual-redesign` · `v12-pre-admin-placar` · `v13-prod-pre-robo-admin` · `v14-prod-pre-identidade-institucional` · `v15-prod-pre-ratazana-lancamento` · `v16-prod-pre-admin-fase-banner` · `v17-prod-pre-comunicado002-btn` · `v18-prod-pre-quartas-zebras` · `v19-prod-pre-zebra-suica` · `v20-prod-pre-ia-editavel` · `v21-prod-pre-ia-editavel-v2` · `v22-prod-pre-ia-compacta` · `v23-prod-pre-admin-sem-senha`
 Voltar: `git checkout <tag>`. Listar: `git tag -n1`.
 ⚠️ Há **pares de tags com o mesmo número** vindos de levas distintas (não confundir):
 `v10-pre-visual-v2` (navegação) ≠ `v10-pre-identidade-copa` (fontes/cantos/cores, §12);
@@ -716,10 +716,20 @@ Página **não linkada** no site (URL obscura; a proteção real da escrita é a
 É o único caminho de lançar placar final e fechar/reabrir jogo do mata.
 Cloudflare também serve na URL sem `.html`.
 
+**⚠️ SEM SENHA na tela (v23, 08/07):** a tela/caixa de senha do admin foi REMOVIDA — o
+admin abre DIRETO, sem prompt. O token de disparo (= `BOT_TRIGGER_TOKEN`) continua vindo
+SÓ do `localStorage['ratz_admin_code']` (NUNCA no código — repo público) e sendo enviado
+como `?token=` em toda chamada; no navegador de quem administra ele já está salvo, então
+tudo funciona sem digitar nada. **(Re)definir o token sem campo na tela:** abrir a URL do
+admin uma vez com `?token=SEU_TOKEN` — ele é salvo no localStorage e some da barra (⚠️ usar
+a URL **SEM `.html`** — a `.html` faz redirect 308 que derruba a query string). **401 não
+apaga mais o token** nem mostra caixa (um 401 transitório — ex.: `verify_jwt` religado,
+armadilha 6 — não tranca mais o admin fora): só mostra `avisaToken401` com o passo pra
+reatualizar. `salvarToken`/`trocarToken`/`temToken`/`#token-box` foram removidos.
+
 **Fluxo fechar/reabrir:**
-1. Admin cola a **senha** 1x → fica em `localStorage['ratz_admin_code']` (NUNCA embutida
-   no código). Senha = o secret `BOT_TRIGGER_TOKEN` (referência; valor só no Supabase e no
-   navegador de quem administra).
+1. O token já está no `localStorage['ratz_admin_code']` (= `BOT_TRIGGER_TOKEN`; valor só no
+   Supabase e no navegador de quem administra) — sem tela de senha (ver acima).
 2. Fechar jogo → chama a Edge Function `?tipo=fechar_placar` (service role, §13), que
    grava `real_a`/`real_b`/`classificado`/`finished`. **Fechar NUNCA envia mensagem**
    (o checkbox "Mandar comentário ao fechar" foi extinto na leva do lançamento).
