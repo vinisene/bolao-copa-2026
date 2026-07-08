@@ -748,7 +748,7 @@ function contaEnviadasHoje(logs: Conf[], destino: "teste" | "oficial"): number {
     r.status_envio === "ok" &&
     String(r.destino || "").startsWith(destino + " (") &&
     r.tipo !== "fechar_placar" && r.tipo !== "reabrir_placar" &&
-    r.tipo !== "conversa"
+    r.tipo !== "conversa" && r.tipo !== "provocacao"   // v1.23: provocação aleatória tem cadência própria (cron 2x/dia), não compete com o teto das programadas
   ).length;
 }
 // Idempotência: este "tipo" (com esta "chave" opcional, ex.: "[jogo:r16_3]")
@@ -2504,6 +2504,130 @@ Deno.serve(async (req: Request) => {
       const msg = String((e as Error)?.message || e);
       await botLog({ ...logBase, prompt_enviado: userPrompt, resposta_ia: respostaIA, status_envio: "erro", erro: `[etapa: ${etapa}] ${msg}` });
       return json({ ok: false, etapa, erro: msg }, 500);
+    }
+  }
+
+  // ─── Modo PROVOCAÇÃO ALEATÓRIA (v1.23 — engajamento, pensado pra cron 2x/dia) ─
+  // ?tipo=provocacao_aleatoria&destino=oficial[&preview=1]
+  // Sorteia UM humano (nunca IA nem o próprio Ratazana), gera uma provocação
+  // curta e direcionada com os DADOS REAIS dele no bolão (posição, cravadas,
+  // se está devendo palpite, desempenho no último jogo) e MARCA a pessoa de
+  // verdade (@<tel> + campo mentions) pra puxar resposta. NÃO consome o teto
+  // das programadas nem o da conversa (tipo próprio `provocacao`, excluído de
+  // contaEnviadasHoje). Anti-repetição: bot_config.ultima_provocacao_alvo
+  // guarda o último alvo e ele é excluído do sorteio seguinte. Soluço de
+  // conexão do WhatsApp não quebra: erro é logado e devolvido (200 ok:false),
+  // sem reenvio automático. `sanitiza` liga a limpeza de glitch pontual (igual
+  // à conversa) pra um caractere solto não bloquear o envio inteiro.
+  if (url.searchParams.get("tipo") === "provocacao_aleatoria") {
+    const preview = url.searchParams.get("preview") === "1";
+    const logBase = { tipo: "provocacao", destino: preview ? "(preview, sem envio)" : "" };
+    let etapa = "consulta_banco";
+    let userPrompt: string | null = null;
+    let respostaIA: string | null = null;
+    let modelo = MODELO_FALLBACK;
+    try {
+      const [confrontos, palpites, cfg, telefones] = await Promise.all([
+        sbGet("mata_confrontos?select=*"),
+        sbGet("mata_palpites?select=confronto_id,pid,gols_a,gols_b,quem_passa"),
+        sbGet("bot_config?key=in.(system_prompt_ratazana,modelo_ia,fase_ativa,ultima_provocacao_alvo)&select=key,value"),
+        sbGet("bot_telefones?select=participante_id,nome_exibicao,genero,telefone_whatsapp,is_humano").catch(() => []),
+      ]);
+      const cfgMap: Record<string, string> = {};
+      for (const row of cfg) cfgMap[row.key] = row.value;
+      const systemPrompt = cfgMap["system_prompt_ratazana"];
+      modelo = (cfgMap["modelo_ia"] || "").trim() || MODELO_FALLBACK;
+      if (!systemPrompt) throw new Error("bot_config sem 'system_prompt_ratazana'");
+
+      etapa = "sorteio";
+      // Pool = humanos de bot_telefones com telefone; nunca IA/Ratazana; exclui
+      // o último alvo (anti-repetição imediata). Se sobrar vazio (só tinha 1),
+      // libera o último de volta pra não travar.
+      const ultimo = (cfgMap["ultima_provocacao_alvo"] || "").trim();
+      let pool = (telefones as Conf[]).filter((t: Conf) =>
+        t.is_humano !== false && t.telefone_whatsapp && t.participante_id !== RATAZANA_ID && t.participante_id !== ultimo);
+      if (!pool.length) {
+        pool = (telefones as Conf[]).filter((t: Conf) => t.is_humano !== false && t.telefone_whatsapp && t.participante_id !== RATAZANA_ID);
+      }
+      if (!pool.length) throw new Error("nenhum humano com telefone em bot_telefones pra provocar");
+      const alvo = pool[Math.floor(Math.random() * pool.length)];
+      const tel = String(alvo.telefone_whatsapp).replace(/\D/g, "");
+      if (!tel) throw new Error(`alvo ${alvo.participante_id} sem telefone numérico`);
+      const alvoPid = alvo.participante_id;
+      const alvoNome = alvo.nome_exibicao || MATA_PARTS_BOT.find((p) => p.id === alvoPid)?.nome || alvoPid;
+      const genero = (alvo.genero || "").toUpperCase();
+
+      etapa = "apuracao";
+      const PAL: Record<string, Record<string, Conf>> = {};
+      for (const p of palpites) (PAL[p.confronto_id] ??= {})[p.pid] = p;
+      const teamsOf = makeResolver(confrontos);
+      const rankDepois = MATA_PARTS_BOT.map((p) => ({ p, ...mataStats(p.id, confrontos, PAL) }))
+        .sort((a: Conf, b: Conf) => b.total - a.total || b.eHits - a.eHits || b.rHits - a.rHits);
+      const ixAlvo = rankDepois.findIndex((r: Conf) => r.p.id === alvoPid);
+      const stA = rankDepois[ixAlvo];
+      const posAlvo = ixAlvo + 1, totalParts = rankDepois.length;
+      const posRat = rankDepois.findIndex((r: Conf) => r.p.id === RATAZANA_ID) + 1;
+
+      // Está devendo palpite? (jogos abertos da fase ativa sem palpite completo dele)
+      const faseKey = faseCanonica(cfgMap["fase_ativa"] || "");
+      const colFase = faseKey ? MM_COLS.find((c) => c.key === faseKey) : null;
+      const devendo = (colFase ? colFase.ids.map((id) => confrontos.find((x: Conf) => x.id === id)) : [])
+        .filter((c: Conf) => c && !c.finished && !mmHasFullPred(PAL[c.id]?.[alvoPid]))
+        .map((c: Conf) => { const t = teamsOf(c); return `${t.a?.name || "?"}×${t.b?.name || "?"}`; });
+
+      // Desempenho no último jogo fechado
+      const ultimoJogo = confrontos.filter((c: Conf) => !mmIsTest(c) && c.finished && c.real_a != null)
+        .map((c: Conf) => ({ c, d: mmGameDate(c) })).filter((x: Conf) => x.d)
+        .sort((a: Conf, b: Conf) => b.d.getTime() - a.d.getTime())[0];
+      let ultimoTxt = "sem jogo fechado recente";
+      if (ultimoJogo) {
+        const c = ultimoJogo.c, t = teamsOf(c), pal = PAL[c.id]?.[alvoPid], s = mmScore(pal, c);
+        const nomeJogo = `${t.a?.name || c.team_a || "A"} ${c.real_a}×${c.real_b} ${t.b?.name || c.team_b || "B"}`;
+        if (!pal || pal.gols_a == null) ultimoTxt = `${nomeJogo}: NÃO palpitou (deixou passar)`;
+        else if (s?.exato) ultimoTxt = `${nomeJogo}: CRAVOU o placar (${fmtPts(s.total)} pts)`;
+        else if (s && s.total > 0) ultimoTxt = `${nomeJogo}: palpitou ${pal.gols_a}×${pal.gols_b}, acertou o resultado (${fmtPts(s.total)} pts)`;
+        else ultimoTxt = `${nomeJogo}: palpitou ${pal.gols_a}×${pal.gols_b} e ERROU feio (0 ponto)`;
+      }
+
+      etapa = "monta_prompt";
+      userPrompt =
+        `DADOS VERIFICADOS DO BOLÃO (provocação individual, gerada em ${agoraBrasilia()}, horário de Brasília). Use somente estes dados. Não invente nada.\n\n` +
+        `ALVO DA PROVOCAÇÃO: ${alvoNome}${genero ? ` (${genero})` : ""}\n` +
+        `- Posição no Ranking do Bolão: ${posAlvo}º de ${totalParts}, com ${fmtPts(stA.total)} pontos\n` +
+        `- Placares cravados até agora: ${stA.eHits} (em ${stA.played} jogos pontuados)\n` +
+        `- ${devendo.length ? `ESTÁ DEVENDO PALPITE em: ${listaNomes(devendo)}` : "está EM DIA com os palpites"}\n` +
+        `- Desempenho no último jogo fechado: ${ultimoTxt}\n` +
+        `- Você (o Ratazana) está em ${posRat}º\n\n` +
+        `TAREFA: escreva uma PROVOCAÇÃO CURTA (2 a 4 linhas) mirando essa pessoa, no seu tom ácido de personagem, usando os dados acima como munição (a posição fraca, a falta de cravada, o palpite que ela deixou passar, o vacilo no último jogo — o que der mais gancho). Fale DIRETO com ela em 2ª pessoa ("você"/"tu"), mas NÃO escreva o nome dela no começo e NUNCA use "@" — o sistema coloca a marcação clicável ANTES do seu texto. O objetivo é CUTUCAR pra ela responder/revidar: termine com uma alfinetada ou pergunta que puxe resposta. Calibre a intensidade pelo gênero (${genero === "F" ? "mulher: zoeira mais leve, provocação com bom humor" : "homem: alfinetada mais forte"}), respeitando os limites da persona (sem palavrão, sem baixaria, ataque só ao desempenho/escolhas no Bolão). Sem link, sem assinar. Uma mensagem só.`;
+
+      etapa = "anthropic";
+      const ia = await chamaIA(modelo, systemPrompt, userPrompt, 1500);
+      respostaIA = ia.texto;
+      // marca a pessoa de verdade: token @<tel> no começo + campo mentions
+      const textoFinal = `@${tel} ${respostaIA}`;
+      const mentions = [tel];
+
+      if (preview) {
+        await botLog({ ...logBase, prompt_enviado: userPrompt, resposta_ia: respostaIA, status_envio: "nao_enviado" });
+        return json({ ok: true, preview: true, enviado: false, alvo: alvoPid, alvo_nome: alvoNome, modelo, uso_tokens: ia.usage, texto: textoFinal, mencao: tel });
+      }
+
+      etapa = "zapzap";
+      const { grupo: GRUPO, destino } = grupoDestino(url);
+      logBase.destino = `${destino} (${GRUPO}) [alvo:${alvoPid}]`;
+      // sanitiza=true: glitch pontual não bloqueia a provocação inteira (igual conversa)
+      const envio = await enviaEmPartes(GRUPO, textoFinal, mentions, true);
+
+      // anti-repetição: guarda quem foi provocado agora (best-effort, nunca derruba)
+      upsertBotConfig("ultima_provocacao_alvo", alvoPid).catch(() => {});
+
+      await botLog({ ...logBase, prompt_enviado: userPrompt, resposta_ia: respostaIA, mensagem_enviada: envio.partes.join("\n\n"), status_envio: envio.ok ? "ok" : "erro", erro: envio.ok ? null : envio.detalhe });
+      return json({ ok: envio.ok, enviado: envio.ok, alvo: alvoPid, alvo_nome: alvoNome, destino, modelo, uso_tokens: ia.usage, n_mensagens: envio.partes.length, mensagens: envio.partes, zapzap: envio.detalhe }, envio.ok ? 200 : 502);
+    } catch (e) {
+      // soluço de conexão / qualquer erro: loga e devolve sem quebrar (sem reenvio)
+      const msg = String((e as Error)?.message || e);
+      await botLog({ ...logBase, prompt_enviado: userPrompt, resposta_ia: respostaIA, status_envio: "erro", erro: `[etapa: ${etapa}] ${msg}` });
+      return json({ ok: false, etapa, erro: msg }, 200);
     }
   }
 
