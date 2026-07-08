@@ -35,10 +35,6 @@
   #fase-aviso.warn{background:#3a2e00;color:var(--gold);border:1px solid var(--gold);}
   #fase-aviso .fa-close{position:absolute;top:8px;right:10px;background:none;border:none;color:inherit;font-size:18px;line-height:1;cursor:pointer;opacity:.75;padding:2px 4px;}
 
-  #token-box{background:var(--card);border:1px solid var(--gold);border-radius:4px 16px 4px 4px;padding:14px;margin:12px 0;}
-  #token-box p{font-size:13px;color:var(--mu);margin-bottom:8px;}
-  #token-box input{width:100%;padding:10px;background:#0c100c;color:var(--ink);border:1.5px solid var(--brd);border-radius:8px;font-size:14px;margin-bottom:8px;}
-  #token-box button{background:var(--gold);color:#3a2e00;border:none;border-radius:8px;padding:10px 14px;font-weight:800;cursor:pointer;}
 
   /* filtro de status + busca */
   .controls-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:14px 0 6px;}
@@ -138,22 +134,15 @@
 </head>
 <body>
 <h1>🐀 Lançar placares <span id="env-badge" class="badge"></span></h1>
-<div class="sub">Fechar jogo grava o placar final pela função (a senha protege a escrita) e <b>não envia mensagem nenhuma</b>: o Ratazana só fala quando você acordar ele no card do jogo fechado. Jogo fechado pode ser reaberto pra corrigir.</div>
+<div class="sub">Fechar jogo grava o placar final pela função (o token protege a escrita no backend) e <b>não envia mensagem nenhuma</b>: o Ratazana só fala quando você acordar ele no card do jogo fechado. Jogo fechado pode ser reaberto pra corrigir.</div>
 
 <div id="fase-aviso" hidden></div>
-
-<div id="token-box" style="display:none">
-  <p><b>Senha do admin</b> — guardada só neste navegador.</p>
-  <input id="token-input" type="password" placeholder="Senha do admin" autocomplete="off">
-  <button onclick="salvarToken()">Salvar</button>
-</div>
 
 <div class="toprow">
   <button id="recarregar" onclick="carregar()">↻ Recarregar</button>
   <button class="utilbtn" onclick="toggleUtil('grupos')">📡 Listar grupos</button>
   <button class="utilbtn" onclick="toggleUtil('inaugural')">📣 Mensagem inaugural</button>
   <button class="utilbtn" onclick="toggleUtil('comunicado002')">📢 Comunicado nº 002</button>
-  <button class="linklike" onclick="trocarToken()">trocar senha</button>
 </div>
 <div id="util-grupos" class="util-box" hidden></div>
 <div id="util-inaugural" class="util-box" hidden></div>
@@ -295,18 +284,30 @@ function teams(c){return {a:resolveSide(c.id,'A'),b:resolveSide(c.id,'B')};}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
 function normaliza(s){return (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');}
 
-// ─── Senha de admin (localStorage; NUNCA embutida no código) ─────────────────
-function temToken(){return !!localStorage.getItem(TOKEN_KEY);}
-function salvarToken(){
-  const v=document.getElementById('token-input').value.trim();
-  if(!v){alert('Cole a senha do admin.');return;}
-  localStorage.setItem(TOKEN_KEY,v);
-  document.getElementById('token-box').style.display='none';
-}
-function trocarToken(){
-  localStorage.removeItem(TOKEN_KEY);
-  document.getElementById('token-box').style.display='block';
-  document.getElementById('token-input').value='';
+// ─── Token de disparo (= BOT_TRIGGER_TOKEN) ──────────────────────────────────
+// SEM TELA DE SENHA: o admin abre direto. O token é o mesmo BOT_TRIGGER_TOKEN
+// que a Edge Function valida em toda chamada (?token=); ele mora SÓ no
+// localStorage deste navegador — NUNCA no código (o repo é público). No celular
+// do Vini ele já está salvo, então tudo funciona sem digitar nada.
+// Pra (re)definir o token sem nenhum campo na tela — ex.: num aparelho novo ou
+// se o localStorage se perder — abra a URL do admin UMA vez com ?token=SEU_TOKEN:
+// ele é salvo no localStorage e removido da barra de endereço na mesma hora.
+(function(){
+  try{
+    const u=new URL(location.href);
+    const t=u.searchParams.get('token');
+    if(t&&t.trim()){
+      localStorage.setItem(TOKEN_KEY,t.trim());
+      u.searchParams.delete('token');
+      history.replaceState(null,'',u.pathname+u.search+u.hash);
+    }
+  }catch(e){/* URL exótica: ignora, segue com o token do localStorage */}
+})();
+// 401 = a função recusou o token. NÃO apaga o token salvo (um 401 transitório —
+// ex.: verify_jwt religado após redeploy, armadilha 6 — não deve te trancar
+// fora); só mostra como recuperar. O token continua no localStorage.
+function avisaToken401(st){
+  if(st){st.className='status err';st.textContent='A função recusou o token (401). Confira o BOT_TRIGGER_TOKEN (e se o "Verify JWT" da função não religou). Pra atualizar o token, reabra a URL do admin uma vez com ?token=SEU_TOKEN no fim.';}
 }
 
 // ─── Estado dos filtros/busca ────────────────────────────────────────────────
@@ -470,7 +471,7 @@ async function fecharJogo(cid){
   let r,d;
   try{ r=await fetch(`${FN_URL}?${qs.toString()}`); d=await r.json().catch(()=>({})); }
   catch(e){ st.className='status err';st.textContent='ERRO de rede ao fechar: '+e.message; return; }
-  if(r.status===401){ trocarToken(); st.className='status err'; st.textContent='Senha do admin inválida. Cole a senha certa (apareceu de novo acima) e tente fechar de novo.'; return; }
+  if(r.status===401){ avisaToken401(st); return; }
   if(!r.ok||!d.ok){ st.className='status err'; st.textContent='ERRO ao fechar: '+(d.erro||('HTTP '+r.status)); return; }
   // Fechar NUNCA envia mensagem: o comentário do Ratazana é ação separada,
   // pelo botão "🐀 Acordar o Ratazana" do card fechado (com preview antes).
@@ -517,7 +518,7 @@ async function acordarRatazana(cid){
     btn.disabled=false; btn.textContent=textoOriginal; return;
   }
   if(r.status===401){
-    trocarToken(); st.className='status err'; st.textContent='Senha do admin inválida.';
+    avisaToken401(st);
     btn.disabled=false; btn.textContent=textoOriginal; return;
   }
   if(!r.ok||!d.ok){
@@ -541,7 +542,7 @@ async function postEnviarTexto(dest,texto,st){
       method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({texto})});
     res=await r.json().catch(()=>({}));
   }catch(e){ st.className='status err'; st.textContent='Erro de rede ao enviar: '+e.message; return false; }
-  if(r.status===401){ trocarToken(); st.className='status err'; st.textContent='Senha do admin inválida.'; return false; }
+  if(r.status===401){ avisaToken401(st); return false; }
   if(!r.ok||!res.ok){ st.className='status err'; st.textContent='Erro ao enviar: '+(res.erro||('HTTP '+r.status)); return false; }
   st.className='status ok'; st.textContent=`✅ Enviado ao grupo ${dest==='oficial'?'OFICIAL':'de teste'} (${res.n_mensagens||1} mensagem${(res.n_mensagens||1)>1?'s':''}).`;
   return true;
@@ -569,7 +570,7 @@ async function renderGrupos(){
   let r,d;
   try{ r=await fetch(`${FN_URL}?token=${encodeURIComponent(token)}&listar_grupos=1`); d=await r.json().catch(()=>({})); }
   catch(e){ el.innerHTML='<div class="status err">Erro de rede: '+esc(e.message)+'</div>'; return; }
-  if(r.status===401){ trocarToken(); el.innerHTML='<div class="status err">Senha do admin inválida.</div>'; return; }
+  if(r.status===401){ el.innerHTML='<div class="status err">A função recusou o token (401). Reabra a URL do admin uma vez com ?token=SEU_TOKEN no fim pra atualizar.</div>'; return; }
   if(!r.ok){ el.innerHTML='<div class="status err">Erro: '+esc(d.erro||('HTTP '+r.status))+'</div>'; return; }
   if(Array.isArray(d.grupos)&&d.grupos.length){
     el.innerHTML='<p class="util-tit">Grupos em que o número do robô está. Copie o ID do grupo da família pro secret <b>GRUPO_OFICIAL_ID</b> no Supabase (e confira o <b>GRUPO_TESTE_ID</b>):</p>'+
@@ -641,7 +642,7 @@ async function reabrirJogo(cid){
   let r,d;
   try{ r=await fetch(`${FN_URL}?${qs.toString()}`); d=await r.json().catch(()=>({})); }
   catch(e){ alert('Erro de rede ao reabrir: '+e.message); return; }
-  if(r.status===401){ trocarToken(); alert('Senha do admin inválida. Cole a senha certa e tente de novo.'); return; }
+  if(r.status===401){ alert('A função recusou o token (401). Reabra a URL do admin uma vez com ?token=SEU_TOKEN no fim pra atualizar.'); return; }
   if(!r.ok||!d.ok){ alert('Erro ao reabrir: '+(d.erro||('HTTP '+r.status))); return; }
   carregar();
 }
@@ -681,7 +682,6 @@ async function checkFaseAviso(){
 document.getElementById('env-badge').textContent=IS_DEV?'DEV (tabelas dev_)':'PRODUÇÃO';
 document.getElementById('env-badge').className='badge'+(IS_DEV?' dev':'');
 if(IS_DEV)document.title='TESTES - '+document.title;
-if(!temToken())document.getElementById('token-box').style.display='block';
 checkFaseAviso();
 carregarTelefones().finally(carregar);
 </script>
