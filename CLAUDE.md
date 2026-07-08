@@ -5,7 +5,7 @@
 > - **No ar:** Edge Function v1.21. Fixes: **(A)** menção ao próprio bot não vira mais "contato desconhecido" (alias de LID por grupo tratado no loop de citados + cache de identidades só aceita conjunto completo de `bot_config` + auto-aprendizado do LID próprio em eventos `fromMe`); **(B)** busca na web agora é auditável — bot_log de conversa ganha `[busca:N]` no destino (N = buscas que a API rodou DE VERDADE), `chamaIA` continua o turno em `pause_turn`, e a TAREFA proíbe cravar fato externo sem busca ("pesquisa aí" explícito = busca obrigatória); **(C)** filtro de sanidade em modo conversa REMOVE glitch pontual (≤5 ocorrências) e envia; corrupção maior regenera 1x — nunca mais silêncio mudo; **(D)** teto diário (`contaEnviadasHoje`) não conta mais `conversa` — agenda 9h/cobrança 9h01 não são mais puladas por papo de manhã. Detalhes: §15 item -15.
 > - **Causas raiz confirmadas com bot_log real:** id 166 = "não conheço esse contato" com `gatilho:mencao` (menção do bot duplicada no payload, forma conhecida + alias desconhecido); id 164 = artilheiro errado cravado com confiança ("Messi 19 gols") — era impossível saber se buscou, agora o log diz; o "pesquisa aí" mudo teve DUAS causas em sequência: id 165 (teto de 6/h do oficial, 32s após a resposta errada) e ids 168/169 (filtro de sanidade, glitch `覆`); ids 175/176 = `pulado_teto` às 9h00/9h01 com 4 conversas ok antes (170-173) — os crons RODARAM na hora certa, quem pulou foi a própria função. **Teto do oficial subiu de 6/h → 20/h** (key `conversa_max_hora_oficial='20'` criada em `bot_config` prod+dev via REST + seed no `supabase_bot.sql`; cooldown segue 10s).
 > - **RETESTE AO VIVO PENDENTE (Vini, grupo oficial):** marcar @Ratazana00 (não pode mais dizer que não conhece); perguntar fato externo ("quem é o artilheiro dessa Copa?") e conferir `[busca:N]` com N≥1 no bot_log; contestar com "pesquisa aí" (tem que responder); amanhã de manhã, conferir agenda 9h + cobrança 9h01 saindo mesmo com conversa rolando antes.
-> - **Persona v2.7 APLICADA (07/07/2026, prod+dev via REST, conferida byte a byte + seed no `supabase_bot.sql`):** parágrafo novo "PROVOCAÇÃO DIRETA" — provocado/zoado diretamente ("vsf", "cala a boca", "só sabe cobrar"), o Ratazana pode revidar indo ao ataque NA PESSOA que provocou (exceção controlada do "zoa o palpite, nunca a pessoa"); seguem intactos: proibição de palavrão/baixaria e intensidade menor com mulheres (regra de gênero vale inclusive no revide); fora do gatilho de provocação, tom igual ao de sempre. **Sem redeploy da função** — a persona é lida de `bot_config` a cada chamada, efeito imediato.
+> - **Persona v2.8 APLICADA (07/07/2026, prod+dev via REST, conferida byte a byte + seed no `supabase_bot.sql`):** "PROVOCAÇÃO DIRETA" elevada ao **TETO MÁXIMO de acidez** — provocado/zoado diretamente ("vsf", "cala a boca", "só sabe cobrar"), é o momento de MAIOR intensidade do personagem: ataque direto e cortante na pessoa (histórico no Bolão, palpites vergonhosos, moral que não tem pra falar), ironia pesada, deboche de superioridade, sem desviar o assunto. **Três limites fixos mesmo no pico:** (1) palavrão/baixaria = linha vermelha absoluta; (2) intensidade menor com mulheres vale inclusive no revide mais forte; (3) ataque só a escolhas/desempenho/atitude DENTRO do Bolão — nunca aparência, caráter, vida pessoal ou tema fora do jogo. Fora do gatilho, tom exatamente como hoje (espontâneas/programadas inalteradas). **Sem redeploy da função** — a persona é lida de `bot_config` a cada chamada, efeito imediato.
 > - **🔐 Segurança pendente (inalterado):** `BOT_TRIGGER_TOKEN` e o token do GitHub embutido no remote local ficaram expostos em texto puro em sessões anteriores — **nenhum dos dois foi rotacionado ainda**. Ação do Vini.
 > - Detalhes completos, valores conferidos e histórico: §13 (robô), §14 (admin), §15 itens -15 e -14.
 
@@ -529,14 +529,19 @@ Fala em primeira pessoa dos próprios palpites, pontos e posição.
   perde/é eliminada). É só tempero de tom: não muda a hierarquia de assunto nem o
   tamanho padrão de 4–7 linhas. Aplicada em `bot_config`/`dev_bot_config` via REST
   (seed também atualizado em `supabase_bot.sql`).
-  **Persona v2.7 (07/07/2026): PROVOCAÇÃO DIRETA** — quando a mensagem recebida
-  é provocação/zoeira/implicância dirigida ao próprio Ratazana ("vsf", "cala a
-  boca", "só sabe cobrar"), ele pode REVIDAR indo ao ataque NA PESSOA que
-  provocou (histórico dela no Bolão, escolhas, moral pra falar) — exceção
-  controlada da regra "zoa o palpite, nunca a pessoa". Intactos: sem palavrão/
-  baixaria nunca, e a intensidade menor com mulheres vale inclusive no revide.
-  Fora do gatilho de provocação, tom inalterado. Aplicada em prod+dev via REST
-  (conferida byte a byte) + seed em `supabase_bot.sql`.
+  **Persona v2.8 (07/07/2026): PROVOCAÇÃO DIRETA NO TETO MÁXIMO** — provocado/
+  zoado/debochado diretamente ("vsf", "cala a boca", "só sabe cobrar"), é o
+  momento de MAIOR intensidade do personagem, mais afiado que em qualquer outra
+  situação: ataque direto e cortante NA PESSOA que provocou (histórico dela no
+  Bolão, palpites vergonhosos, escolhas ruins, moral que não tem pra falar),
+  ironia pesada e deboche de superioridade, sem desviar o assunto. TRÊS limites
+  fixos mesmo no pico: (1) palavrão/baixaria = linha vermelha absoluta; (2)
+  intensidade menor com mulheres vale inclusive no revide mais forte; (3)
+  ataque só a escolhas/desempenho/atitude DENTRO do Bolão — nunca aparência,
+  caráter, vida pessoal ou tema fora do jogo. Fora do gatilho de provocação,
+  tom exatamente como antes (v2.7 introduziu o revide; v2.8 só elevou o teto).
+  Aplicada em prod+dev via REST (conferida byte a byte) + seed em
+  `supabase_bot.sql`.
 - Split de mensagem longa continua no código: blocos "---" → até 3 mensagens
   sequenciais (rede de segurança ~900 chars/parte). Cobrança limitada à FASE ATIVA.
 - **Filtro de sanidade (v1.9):** antes de qualquer envio, `sanidadeTexto` varre o
