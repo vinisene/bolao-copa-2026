@@ -49,7 +49,7 @@ Os números aqui são referência aproximada (estado em ~3250 linhas).
 - `congelado-fase-grupos` → museu (fase de grupos, congelada). **Não recebe mudanças.**
 
 **Safepoints (tags):**
-`v4-pre-redesign` · `v5-prod-pre-redesign` · `v6-prod-pre-fix-palpite` · `v7-prod-pre-mano-gi` · `v8-prod-pre-melhorias` · `v9-prod-pre-fotos` · `v10-pre-visual-v2` · `v10-pre-identidade-copa` · `v11-pre-chaveamento-novo` · `v11-pre-robo-ratazana` · `v12-prod-pre-visual-redesign` · `v12-pre-admin-placar` · `v13-prod-pre-robo-admin` · `v14-prod-pre-identidade-institucional` · `v15-prod-pre-ratazana-lancamento` · `v16-prod-pre-admin-fase-banner` · `v17-prod-pre-comunicado002-btn` · `v18-prod-pre-quartas-zebras` · `v19-prod-pre-zebra-suica`
+`v4-pre-redesign` · `v5-prod-pre-redesign` · `v6-prod-pre-fix-palpite` · `v7-prod-pre-mano-gi` · `v8-prod-pre-melhorias` · `v9-prod-pre-fotos` · `v10-pre-visual-v2` · `v10-pre-identidade-copa` · `v11-pre-chaveamento-novo` · `v11-pre-robo-ratazana` · `v12-prod-pre-visual-redesign` · `v12-pre-admin-placar` · `v13-prod-pre-robo-admin` · `v14-prod-pre-identidade-institucional` · `v15-prod-pre-ratazana-lancamento` · `v16-prod-pre-admin-fase-banner` · `v17-prod-pre-comunicado002-btn` · `v18-prod-pre-quartas-zebras` · `v19-prod-pre-zebra-suica` · `v20-prod-pre-ia-editavel`
 Voltar: `git checkout <tag>`. Listar: `git tag -n1`.
 ⚠️ Há **pares de tags com o mesmo número** vindos de levas distintas (não confundir):
 `v10-pre-visual-v2` (navegação) ≠ `v10-pre-identidade-copa` (fontes/cantos/cores, §12);
@@ -328,7 +328,7 @@ Para mata-mata apenas (`mataOnly:true`):
 - Adicionar em `MATA_EXTRA` (com `mataOnly:true`); `MATA_PARTS` é gerado automaticamente.
 - Não é preciso `PARTICIPANTS` nem colunas no `bolao_games`.
 
-Palpite de IA (grupos): campo `g/c/d/e` no GT. Palpite de IA (mata): inserir via admin/REST no banco.
+Palpite de IA (grupos): campo `g/c/d/e` no GT. Palpite de IA (mata): via REST no banco **OU pelo próprio app com o MODO EDIÇÃO DE IA ligado** (`localStorage['ratz_edit_ia']='1'`, v20). Ligado, as células das IAs no mata viram editáveis pelo MESMO mecanismo dos humanos (`mmHumPredHTML`→`mmUpdPalpite`→`mmUpsertPalpite`, mesma trava de kickoff). É **por navegador/aparelho** (só quem liga vê editável; família e humanos inalterados). Liga por: botão **"✏️ Editar palpites das IAs"** no admin (`admin-860c200f.html`, mesma origem → localStorage compartilhado) OU URL do app `?editaias=1` (e `=0` desliga). Pílula fixa avisa quando ligado. `mmIaEdit()` é o leitor; `mmSetIaEdit()`/`mmIaEditBanner()` gerenciam. Só front-end (nada de Edge Function — o bot já lê `mata_palpites`).
 
 ---
 
