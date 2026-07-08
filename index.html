@@ -748,6 +748,16 @@ span.rr-finish{cursor:default;}   /* selo de estado (jogo fechado), não é mais
 .mm-iacell-row{display:flex;align-items:center;gap:8px;}
 .mm-iacell-row .mm-iascore{flex:0 0 auto;white-space:nowrap;padding:5px 12px;font-size:18px;min-width:68px;}
 .mm-iacell-row .mm-qp{flex:1;display:flex;justify-content:center;}
+/* Campo de palpite COMPACTO da IA (mm-iacell): dois inputs pequenos, editáveis, no lugar do
+   antigo box mm-iascore — mesmas cores/estados do input do humano (lime→preto ao preencher,
+   cinza quando o jogo travou), só que menor pra manter o card compacto de sempre. */
+.mm-iacell-row .mm-iapred{flex:0 0 auto;display:flex;align-items:center;gap:3px;}
+.mm-iapred input{width:29px;height:31px;text-align:center;border:1.5px solid var(--brd);border-radius:8px;font-size:15px;font-weight:700;background:var(--lime);color:var(--txt);-moz-appearance:textfield;padding:0;}
+.mm-iapred input::-webkit-outer-spin-button,.mm-iapred input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+.mm-iapred input.filled{background:var(--input-dark);color:#fff;border-color:transparent;}
+.mm-iapred input:focus{outline:none;border-color:var(--gl);background:var(--input-dark);color:#fff;box-shadow:0 0 0 2px rgba(45,150,83,.15);}
+.mm-iapred input:disabled{background:var(--brd);color:var(--mu);cursor:default;border-color:transparent;}
+.mm-iapred .mm-x{font-weight:700;opacity:.6;font-size:12px;}
 /* Seletor "Quem passa" — distância frase↔bandeiras uniforme (8px) nos três contextos */
 .mm-passa{display:flex;flex-direction:column;align-items:center;gap:4px;}
 .mm-passa-lbl{font-size:8px;font-weight:800;font-family:var(--font-body);color:var(--mu);text-transform:uppercase;letter-spacing:.2px;white-space:nowrap;}
@@ -856,6 +866,11 @@ span.rr-finish{cursor:default;}   /* selo de estado (jogo fechado), não é mais
 .mm-litem .mm-foot-scores input::placeholder{color:var(--on-dark-muted);}
 .mm-litem .mm-hc-pred input:focus,.mm-litem .mm-foot-scores input:focus{border-color:var(--lime);background:var(--input-dark);box-shadow:0 0 0 3px rgba(194,236,0,.25);}
 .mm-litem .mm-iascore{background:var(--surface-3);border-color:transparent;color:var(--ink);}
+/* input compacto da IA no tema escuro da lista — espelha as regras do input humano */
+.mm-litem .mm-iapred input{color:var(--on-dark);border-color:transparent;}
+.mm-litem .mm-iapred input:disabled{background:var(--brd);color:var(--mu);}
+.mm-litem .mm-iapred input::placeholder{color:rgba(0,0,0,.4);}
+.mm-litem .mm-iapred input:focus{border-color:var(--lime);background:var(--input-dark);color:#fff;box-shadow:0 0 0 2px rgba(194,236,0,.25);}
 .mm-litem .mm-preds-wrap{border-top-color:var(--line);}
 .mm-litem .real-row{background:var(--card-dark);}
 .mm-litem .real-row.pending{background:repeating-linear-gradient(135deg,var(--card-dark),var(--card-dark) 10px,#1d1d24 10px,#1d1d24 20px);}
@@ -2307,7 +2322,9 @@ function mmUpdPalpite(cid,pid,field,val){
   p[field]=num;
   if(p.gols_a==null||p.gols_b==null||p.gols_a!==p.gols_b)p.quem_passa=null;   // deixou de ser empate → zera "quem passa"
   const sideC=field.replace('gols_','');
-  const ip=document.querySelector(`#tab-mata [data-cid="${cid}"] .mm-hc-pred[data-pid="${pid}"] .mm-n${sideC}`);
+  // acha o input pela célula do participante (data-pid) — vale pro humano (.mm-hc-pred) E pra IA
+  // compacta (.mm-iapred), ambos dentro de [data-pid]; só pro toggle do 'filled' (fundo lime→preto)
+  const ip=document.querySelector(`#tab-mata [data-cid="${cid}"] [data-pid="${pid}"] .mm-n${sideC}`);
   if(ip)ip.classList.toggle('filled',val!=='');
   mmRefreshPts(cid); mmRenderQuemPassa(cid,pid);
   clearTimeout(mmDeb[cid+pid+field]);
@@ -2438,6 +2455,14 @@ function mmHumPredHTML(c,pid,pal){
   const locked=mmIsKickoff(c);
   const inp=side=>{const v=pal['gols_'+side]!=null?pal['gols_'+side]:'';const fc=v!==''?' filled':'';return locked?`<input class="mm-n${side}${fc}" type="number" min="0" max="99" inputmode="numeric" value="${v}" placeholder="–" disabled>`:`<input class="mm-n${side}${fc}" type="number" min="0" max="99" inputmode="numeric" value="${v}" placeholder="–" oninput="mmUpdPalpite('${c.id}','${pid}','gols_${side}',this.value)">`;};
   return `${mmHumQpFlag(c,pid,'A',!locked)}${inp('a')}<span class="mm-x">×</span>${inp('b')}${mmHumQpFlag(c,pid,'B',!locked)}${mmHumQpLabel(c,pid)}`;
+}
+// Campo de palpite COMPACTO das IAs: só os dois inputs pequenos + × (sem as bandeiras inline
+// da grade do humano — o "quem passa" fica ao lado, no mm-qp). MESMA gravação e MESMA trava de
+// kickoff dos humanos (mmUpdPalpite → mmUpsertPalpite → mata_palpites; disabled quando começou).
+function mmIaPredHTML(c,pid,pal){
+  const locked=mmIsKickoff(c);
+  const inp=side=>{const v=pal['gols_'+side]!=null?pal['gols_'+side]:'';const fc=v!==''?' filled':'';return locked?`<input class="mm-n${side}${fc}" type="number" min="0" max="99" inputmode="numeric" value="${v}" placeholder="–" disabled>`:`<input class="mm-n${side}${fc}" type="number" min="0" max="99" inputmode="numeric" value="${v}" placeholder="–" oninput="mmUpdPalpite('${c.id}','${pid}','gols_${side}',this.value)">`;};
+  return `${inp('a')}<span class="mm-x">×</span>${inp('b')}`;
 }
 // Atualiza só as bandeiras e o rótulo (sem mexer nos inputs → não perde o foco ao digitar).
 function mmUpdHumFlags(grid,c,pid,editable){
@@ -2689,14 +2714,19 @@ function mmCardBody(c){
     const pts=hasScore&&hasPred?calcMataPts(pal,c):null;
     const badge=`<span class="pts-badge on-av mm-pts${pts!=null?' '+(c.finished?ptsClass(pts):'preview'):' empty'}${pts===0?' zero':''}" data-pid="${pid}" onmouseenter="mmShowPtsTip(event,'${c.id}','${pid}')" onmouseleave="hideTip()" onclick="mmShowPtsTip(event,'${c.id}','${pid}')">${pts!=null?fmtPts(pts):''}</span>`;
     const av=`<div class="hum-avwrap"><div class="hum-av" style="background:${p.color}">${avInner(p)}</div>${badge}</div>`;
-    // TODOS (humanos E IAs) editam pelo MESMO mecanismo: mmHumPredHTML → mmUpdPalpite →
-    // mmUpsertPalpite → mata_palpites, com a MESMA trava de kickoff (input só fica disabled
-    // quando o jogo já começou). A classe 'human'/'ia' controla apenas o fundo e a coluna —
-    // a IA continua na coluna das IAs (posição inalterada); o campo de placar é idêntico ao
-    // do humano (lime/editável). Não há mais campo de IA em "somente leitura".
-    return `<div class="pred-cell ${isHuman?'human':'ia'} mm-cell mm-hcell${mmHasFullPred(pal)?'':' mm-miss-cell'}" data-pid="${pid}">
-      <div class="mm-hc-id">${av}<span class="hum-name">${p.name}</span></div>
-      <div class="mm-hc-pred mm-qp" data-pid="${pid}">${mmHumPredHTML(c,pid,pal)}</div>
+    if(isHuman){
+      // HUMANO: layout grande de sempre (foto grande, grade de placar com bandeiras inline).
+      return `<div class="pred-cell human mm-cell mm-hcell${mmHasFullPred(pal)?'':' mm-miss-cell'}" data-pid="${pid}">
+        <div class="mm-hc-id">${av}<span class="hum-name">${p.name}</span></div>
+        <div class="mm-hc-pred mm-qp" data-pid="${pid}">${mmHumPredHTML(c,pid,pal)}</div>
+      </div>`;
+    }
+    // IA: layout COMPACTO original (mm-iacell — foto pequena ao lado do nome, campo pequeno),
+    // idêntico ao de antes; só o box cinza de leitura virou os dois inputs EDITÁVEIS (mmIaPredHTML,
+    // mesma gravação/trava dos humanos) e o "quem passa" ficou clicável (mmQuemPassaHTML editável).
+    return `<div class="pred-cell ia mm-cell mm-iacell" data-pid="${pid}">
+      <div class="mm-iacell-head">${av}<span class="hum-name">${p.name}</span></div>
+      <div class="mm-iacell-row"><div class="mm-iapred">${mmIaPredHTML(c,pid,pal)}</div><div class="mm-qp mm-hc-passa" data-pid="${pid}">${mmQuemPassaHTML(c,pid,true)}</div></div>
     </div>`;
   };
   const humans=MATA_PARTS.filter(p=>p.type==='human');
