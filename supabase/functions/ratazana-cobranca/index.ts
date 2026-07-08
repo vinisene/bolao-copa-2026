@@ -376,6 +376,11 @@ const MM_ZEBRA: Record<string, { tipo: "zebra" | "zebrao"; azarao: "A" | "B" }> 
   // OITAVAS
   r16_2: { tipo: "zebrao", azarao: "A" },  // Paraguai × França        → azarão: Paraguai (lado A)
   r16_7: { tipo: "zebra", azarao: "B" },   // Argentina × Egito        → azarão: Egito (lado B)
+  // QUARTAS (odds Estrelabet 07/07/2026; todas ZEBRA, nenhum zebrão)
+  qf_1: { tipo: "zebra", azarao: "A" },    // Marrocos × França        → azarão: Marrocos (odd 6.70, ~14,7%)
+  qf_2: { tipo: "zebra", azarao: "B" },    // Espanha × Bélgica        → azarão: Bélgica (odd 5.98, ~16,5%)
+  qf_3: { tipo: "zebra", azarao: "A" },    // Noruega × Inglaterra     → azarão: Noruega (odd 4.28, ~23,0%)
+  qf_4: { tipo: "zebra", azarao: "B" },    // Argentina × Suíça        → azarão: Suíça (odd 5.46, ~18,1%)
 };
 // deno-lint-ignore no-explicit-any
 type Conf = any;
