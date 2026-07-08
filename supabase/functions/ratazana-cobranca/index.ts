@@ -2356,6 +2356,157 @@ Deno.serve(async (req: Request) => {
     }
   }
 
+  // ─── Modo FECHAMENTO DE FASE (v1.22 — pensado pro fim de uma rodada inteira) ─
+  // ?tipo=fechamento_fase&fase=<quartas|oitavas|...>&destino=oficial[&proxima_abre=<texto>][&preview=1]
+  // Mensagem única gerada por IA com os DADOS REAIS do banco no momento do
+  // disparo, em 3 partes: (1) CURTA — quem se classificou pra próxima fase;
+  // (2) PRINCIPAL — a movimentação do Bolão na rodada (troca de líder, quem
+  // subiu/despencou, quem cravou os jogos TURBO, saldo geral); (3) CURTA —
+  // aviso de que a próxima fase abre pra palpite (`proxima_abre` = texto livre
+  // tipo "segunda-feira, 13/07"). Reaproveita todo o pipeline do fim_de_jogo
+  // (apuração idêntica à do app, regra das IAs via participantesCitaveis,
+  // menção final, preview). `fase` é explícito (não usa fase_ativa, que já pode
+  // ter avançado sozinha quando o último jogo da rodada fechou).
+  if (url.searchParams.get("tipo") === "fechamento_fase") {
+    const preview = url.searchParams.get("preview") === "1";
+    const faseRaw = url.searchParams.get("fase") || "";
+    const proximaAbre = (url.searchParams.get("proxima_abre") || "em breve").trim().slice(0, 80);
+    const logBase = { tipo: "fechamento_fase" + (preview ? "_preview" : ""), destino: preview ? "(preview, sem envio)" : "" };
+    let etapa = "consulta_banco";
+    let userPrompt: string | null = null;
+    let respostaIA: string | null = null;
+    let modelo = MODELO_FALLBACK;
+    try {
+      const faseKey = faseCanonica(faseRaw);
+      if (!faseKey) throw new Error(`?fase= inválido ("${faseRaw}") — use 32avos|oitavas|quartas|semis|3lugar|final`);
+      const col = MM_COLS.find((c) => c.key === faseKey);
+      if (!col) throw new Error(`fase "${faseKey}" não existe em MM_COLS`);
+
+      const [confrontos, palpites, cfg, telefones] = await Promise.all([
+        sbGet("mata_confrontos?select=*"),
+        sbGet("mata_palpites?select=confronto_id,pid,gols_a,gols_b,quem_passa"),
+        sbGet("bot_config?key=in.(system_prompt_ratazana,modelo_ia)&select=key,value"),
+        sbGet("bot_telefones?select=participante_id,nome_exibicao,genero,telefone_whatsapp,is_humano").catch(() => []),
+      ]);
+      const cfgMap: Record<string, string> = {};
+      for (const row of cfg) cfgMap[row.key] = row.value;
+      const systemPrompt = cfgMap["system_prompt_ratazana"];
+      modelo = (cfgMap["modelo_ia"] || "").trim() || MODELO_FALLBACK;
+      if (!systemPrompt) throw new Error("bot_config sem 'system_prompt_ratazana'");
+
+      etapa = "apuracao";
+      const PAL: Record<string, Record<string, Conf>> = {};
+      for (const p of palpites) (PAL[p.confronto_id] ??= {})[p.pid] = p;
+      const teamsOf = makeResolver(confrontos);
+      const faseNome = PH_LABEL[faseKey] || faseKey;
+      const idsFase = new Set(col.ids);
+      const jogosFase = col.ids.map((id) => confrontos.find((x: Conf) => x.id === id)).filter(Boolean);
+      const fechados = jogosFase.filter((c: Conf) => c.finished && c.real_a != null && c.real_b != null);
+      if (!fechados.length) throw new Error(`nenhum jogo de ${faseNome} está fechado ainda — nada pra resumir`);
+
+      // Parte 1: classificados (vencedores reais dos jogos da fase)
+      const classificados = fechados.map((c: Conf) => {
+        const t = teamsOf(c), rw = mmRealWinner(c);
+        return rw === "A" ? (t.a?.name || c.team_a) : (t.b?.name || c.team_b);
+      }).filter(Boolean);
+
+      // Ranking ANTES (sem os jogos da fase) x DEPOIS (com tudo) → movimentação
+      const semFase = confrontos.filter((x: Conf) => !idsFase.has(x.id));
+      const rk = (conf: Conf[]) => MATA_PARTS_BOT.map((p) => ({ p, ...mataStats(p.id, conf, PAL) }))
+        .sort((a: Conf, b: Conf) => b.total - a.total || b.eHits - a.eHits || b.rHits - a.rHits);
+      const rankAntes = rk(semFase), rankDepois = rk(confrontos);
+      const posAntes: Record<string, number> = {}, totAntes: Record<string, number> = {};
+      rankAntes.forEach((r: Conf, i: number) => { posAntes[r.p.id] = i + 1; totAntes[r.p.id] = r.total; });
+      const citaveis = participantesCitaveis(rankDepois);
+      const citIds = new Set(citaveis.map((p) => p.id));
+      const mov = rankDepois.map((r: Conf, i: number) => ({
+        nome: r.p.nome, id: r.p.id, posD: i + 1, posA: posAntes[r.p.id],
+        delta: posAntes[r.p.id] - (i + 1),
+        ganhou: Math.round((r.total - (totAntes[r.p.id] || 0)) * 100) / 100, total: r.total,
+      })).filter((m: Conf) => citIds.has(m.id));
+      const liderA = rankAntes[0], liderD = rankDepois[0];
+      const liderTxt = liderA.p.id !== liderD.p.id
+        ? `TROCOU: ${liderD.p.nome} assumiu a ponta com ${fmtPts(liderD.total)} pts (antes era ${liderA.p.nome} com ${fmtPts(liderA.total)})`
+        : `sem troca: ${liderD.p.nome} segue líder com ${fmtPts(liderD.total)} pts`;
+      const subiu = [...mov].filter((m: Conf) => m.delta > 0).sort((a: Conf, b: Conf) => b.delta - a.delta);
+      const caiu = [...mov].filter((m: Conf) => m.delta < 0).sort((a: Conf, b: Conf) => a.delta - b.delta);
+      const maisPts = [...mov].sort((a: Conf, b: Conf) => b.ganhou - a.ganhou)[0];
+      const movTxt = mov.slice().sort((a: Conf, b: Conf) => a.posD - b.posD)
+        .map((m: Conf) => `${m.posD}º ${m.nome}: ${fmtPts(m.total)} pts (${m.ganhou >= 0 ? "+" : ""}${fmtPts(m.ganhou)} na rodada; ${m.delta > 0 ? `subiu ${m.delta}` : m.delta < 0 ? `caiu ${-m.delta}` : "manteve"})`).join("\n");
+
+      // Jogos TURBO da fase: quem cravou / pontuou
+      const turboTxt = fechados.filter((c: Conf) => MM_TURBO.has(c.id)).map((c: Conf) => {
+        const t = teamsOf(c), nomeA = t.a?.name || c.team_a || "A", nomeB = t.b?.name || c.team_b || "B";
+        const cravou = citaveis.filter((p) => { const s = mmScore(PAL[c.id]?.[p.id], c); return s && s.exato; }).map((p) => p.nome);
+        const pontuou = citaveis.filter((p) => { const s = mmScore(PAL[c.id]?.[p.id], c); return s && s.total > 0; }).map((p) => p.nome);
+        return `${nomeA} ${c.real_a}×${c.real_b} ${nomeB} (TURBO ×${fmtPts((MM_PHASE_MULT[mmPhaseKeyOf(c.id)] || 1) * 2)}): cravaram o placar = ${cravou.length ? listaNomes(cravou) : "ninguém"}; pontuaram = ${pontuou.length ? listaNomes(pontuou) : "ninguém"}`;
+      }).join("\n") || "não houve jogo turbo nesta fase";
+
+      // Zebras da fase
+      const zebraTxt = fechados.filter((c: Conf) => mmZebra(c)).map((c: Conf) => {
+        const z = mmZebra(c), t = teamsOf(c), rw = mmRealWinner(c);
+        const nmAz = z.azarao === "A" ? (t.a?.name || c.team_a) : (t.b?.name || c.team_b);
+        if (rw === z.azarao) {
+          const prem = citaveis.filter((p) => { const s = mmScore(PAL[c.id]?.[p.id], c); return s && s.zebra > 0; }).map((p) => p.nome);
+          return `${z.tipo === "zebrao" ? "ZEBRÃO PAGOU" : "ZEBRA PAGOU"}: ${nmAz} passou (+${z.tipo === "zebrao" ? 5 : 3} pra ${prem.length ? listaNomes(prem) : "ninguém"})`;
+        }
+        return `zebra do azarão ${nmAz} NÃO pagou (não passou)`;
+      }).join("\n") || "nenhuma zebra nesta fase";
+
+      const posRat = rankDepois.findIndex((r: Conf) => r.p.id === RATAZANA_ID) + 1;
+      const generos = (telefones as Conf[]).filter((x: Conf) => x.genero)
+        .map((x: Conf) => `${x.nome_exibicao || MATA_PARTS_BOT.find((p) => p.id === x.participante_id)?.nome || x.participante_id} (${x.genero})`);
+      const PROX: Record<string, string> = { "32avos": "oitavas de final", oitavas: "quartas de final", quartas: "semifinais", semis: "final e disputa de 3º lugar", "3lugar": "final", final: "—" };
+      const proximaFase = PROX[faseKey] || "próxima fase";
+
+      etapa = "monta_prompt";
+      userPrompt =
+        `DADOS VERIFICADOS DO BOLÃO (fechamento da rodada de ${faseNome}, gerados em ${agoraBrasilia()}, horário de Brasília). Use somente estes dados. Não calcule nem invente nada.\n\n` +
+        `CLASSIFICADOS PARA A PRÓXIMA FASE (${proximaFase}): ${classificados.length ? listaNomes(classificados) : "a definir"}\n\n` +
+        `MOVIMENTAÇÃO DO BOLÃO NESTA RODADA (posição atual, pontos ganhos SÓ nesta rodada, e subida/queda na tabela):\n${movTxt}\n\n` +
+        `LIDERANÇA: ${liderTxt}\n` +
+        `MAIOR PONTUAÇÃO NA RODADA: ${maisPts ? `${maisPts.nome} (+${fmtPts(maisPts.ganhou)})` : "—"}\n` +
+        `QUEM SUBIU: ${subiu.length ? subiu.map((m: Conf) => `${m.nome} (+${m.delta})`).join(", ") : "ninguém mudou de posição pra cima"}\n` +
+        `QUEM CAIU: ${caiu.length ? caiu.map((m: Conf) => `${m.nome} (${m.delta})`).join(", ") : "ninguém despencou"}\n` +
+        `JOGOS TURBO (onde o Bolão se decide):\n${turboTxt}\n` +
+        `ZEBRA: ${zebraTxt}\n` +
+        `Você (o Ratazana) está em ${posRat}º com ${fmtPts(rankDepois[posRat - 1].total)} pontos\n` +
+        (generos.length ? `Gênero dos participantes (pra calibrar a intensidade): ${generos.join("; ")}\n` : "") +
+        `\nTAREFA: escreva a mensagem de FECHAMENTO DA RODADA de ${faseNome} pro grupo de WhatsApp, em TRÊS partes, nesta ordem:\n` +
+        `1) CURTA (1-2 linhas): quem se classificou pra ${proximaFase} — só cite os classificados acima, sem narrar jogo por jogo.\n` +
+        `2) PRINCIPAL e DETALHADA (o corpo da mensagem): a movimentação do Bolão nesta rodada — quem disparou/assumiu a liderança, quem despencou, quem cravou os jogos TURBO, as viradas na tabela e o saldo geral da rodada. Use os dados de movimentação/turbo/zebra acima, com o seu tom ácido de sempre.\n` +
+        `3) CURTA (1 linha): avise que os palpites das ${proximaFase} abrem ${proximaAbre} no app.\n` +
+        `Respeite TODA a sua persona (ileísmo, hierarquia de assunto, regra das IAs concorrentes — só as que aparecem nos dados acima existem, gramática de rua com parcimônia, viés Brasil×Argentina só se houver gancho). Sem link do bolão, sem cobrar palpite, sem usar "@". Pode passar de 4-7 linhas por ser um resumo de rodada, mas sem encher linguiça.`;
+
+      etapa = "anthropic";
+      const ia = await chamaIA(modelo, systemPrompt, userPrompt);
+      respostaIA = ia.texto;
+
+      etapa = "mencao";
+      const prov = linhaProvocacao(telefones as Conf[], new Set<string>());
+      let textoFinal = respostaIA;
+      const mentions: string[] = [];
+      if (prov) { textoFinal += "\n\n" + prov.linha; mentions.push(prov.mention); }
+
+      if (preview) {
+        const partes = divideEmPartes(textoFinal);
+        await botLog({ ...logBase, prompt_enviado: userPrompt, resposta_ia: respostaIA, status_envio: "nao_enviado" });
+        return json({ ok: true, preview: true, enviado: false, fase: faseKey, modelo, uso_tokens: ia.usage, n_mensagens: partes.length, mensagens: partes, texto: textoFinal, classificados });
+      }
+
+      etapa = "zapzap";
+      const { grupo: GRUPO, destino } = grupoDestino(url);
+      logBase.destino = `${destino} (${GRUPO}) [fase:${faseKey}]`;
+      const envio = await enviaEmPartes(GRUPO, textoFinal, mentions);
+      await botLog({ ...logBase, prompt_enviado: userPrompt, resposta_ia: respostaIA, mensagem_enviada: envio.partes.join("\n\n"), status_envio: envio.ok ? "ok" : "erro", erro: envio.ok ? null : envio.detalhe });
+      return json({ ok: envio.ok, enviado: envio.ok, fase: faseKey, destino, modelo, uso_tokens: ia.usage, n_mensagens: envio.partes.length, mensagens: envio.partes, zapzap: envio.detalhe }, envio.ok ? 200 : 502);
+    } catch (e) {
+      const msg = String((e as Error)?.message || e);
+      await botLog({ ...logBase, prompt_enviado: userPrompt, resposta_ia: respostaIA, status_envio: "erro", erro: `[etapa: ${etapa}] ${msg}` });
+      return json({ ok: false, etapa, erro: msg }, 500);
+    }
+  }
+
   // ─── Modo AGENDA DO DIA (Fase 4 — pensado pra pg_cron às 9h) ────────────────
   // ?tipo=agenda&destino=teste|oficial[&env=dev][&force=1]
   // Painorama dos jogos de hoje (turbo/zebra) + o ÚNICO alerta de liderança
