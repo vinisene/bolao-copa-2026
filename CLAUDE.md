@@ -1,7 +1,9 @@
 # CLAUDE.md
 
-> ## 🚨 LEIA PRIMEIRO — handoff de sessão (07/07/2026, fim de tarde)
-> **No ar: Robô v1.21.1 (commit `8ee9a49`, versão 29 no Supabase, ACTIVE, verify_jwt off).** O reteste real da auto-menção FALHOU de novo ("Vsf @Ratazana00" → "não tenho no cadastro", bot_log 183) por uma causa NOVA, na camada do MODELO — corrigida na v1.21.1: o payload provou que a menção veio única e com o LID já cadastrado (o resolvedor da v1.21 funcionou; nenhum aviso de desconhecido entrou no prompt), mas o texto mostrado ao modelo mantinha o token cru `@61032206725341` e o modelo — que não conhece o próprio LID, por kayfabe — tratou como terceiro. Agora os tokens são REESCRITOS antes do prompt (bot → `@Ratazana`, pessoa conhecida → `@<nome>`, desconhecido real fica cru), a linha "Você foi marcado" diz que a marcação É o próprio bot, e todo gatilho de menção loga `[men:...]` `[idbot:...]` no destino do bot_log (diagnóstico imediato, sem investigação manual). Ver §15 item -16. Abaixo, o resumo da v1.21 (mesma tarde):
+> ## 🚨 LEIA PRIMEIRO — handoff de sessão (08/07/2026, madrugada)
+> **No ar: Robô v1.21.2 (commit `3bdb442`, versão 31 no Supabase, ACTIVE, verify_jwt off).** Fix da RODADA ATIVA no contexto da conversa (bug real, bot_log 200): perguntado "qual rodada está ativa agora?" às 00:34 de 08/07, o bot respondeu "vácuo entre oitavas e quartas" — ERRADO, `fase_ativa` já era `quartas`. Causa raiz confirmada no `prompt_enviado` do 200: o contexto da conversa NUNCA recebia `fase_ativa` — só os resultados fechados (todos oitavas) + "jogos de hoje: nenhum", e o modelo INFERIA a rodada (e num dia sem jogo inferiu "entre fases"). Fix: a conversa passa a carregar `bot_config.fase_ativa` e o prompt ganha a linha explícita `RODADA ATIVA AGORA: <fase por extenso>` (separada dos jogos do dia) + TAREFA item 10 proibindo "entre fases"/"no vácuo"/"sem rodada" ("sem jogo hoje" é agenda, não muda a rodada). Verificado com dado real: a linha renderiza `RODADA ATIVA AGORA ... Quartas de final`. **Reteste ao vivo (Vini):** perguntar de novo "qual rodada está ativa?" e conferir que afirma "quartas" sem "vácuo". Ver §15 item -17.
+> **✅ QUARTAS PUBLICADAS (leva anterior, já em `main`):** zebras das 4 quartas (todas +3, nenhum zebrão) e filtro de fase abrindo em QUARTAS estão AO VIVO em produção (merge `cf8c285`, safepoint `v18-prod-pre-quartas-zebras`, função redeployada). `fase_ativa='quartas'` (avanço automático da v1.19 funcionou no fechamento do r16_8, bot_log 193). Ver §0 e §15.
+> **v1.21.1 (07/07, versão 29) — auto-menção pelo token cru, já no ar antes desta leva:** O reteste real da auto-menção FALHOU ("Vsf @Ratazana00" → "não tenho no cadastro", bot_log 183) por causa na camada do MODELO: o payload provou que a menção veio única e com o LID já cadastrado (o resolvedor da v1.21 funcionou; nenhum aviso de desconhecido entrou no prompt), mas o texto mostrado ao modelo mantinha o token cru `@61032206725341` e o modelo — que não conhece o próprio LID, por kayfabe — tratou como terceiro. Agora os tokens são REESCRITOS antes do prompt (bot → `@Ratazana`, pessoa conhecida → `@<nome>`, desconhecido real fica cru), a linha "Você foi marcado" diz que a marcação É o próprio bot, e todo gatilho de menção loga `[men:...]` `[idbot:...]` no destino do bot_log. Ver §15 item -16. Abaixo, o resumo da v1.21 (mesma tarde):
 > - **No ar:** Edge Function v1.21. Fixes: **(A)** menção ao próprio bot não vira mais "contato desconhecido" (alias de LID por grupo tratado no loop de citados + cache de identidades só aceita conjunto completo de `bot_config` + auto-aprendizado do LID próprio em eventos `fromMe`); **(B)** busca na web agora é auditável — bot_log de conversa ganha `[busca:N]` no destino (N = buscas que a API rodou DE VERDADE), `chamaIA` continua o turno em `pause_turn`, e a TAREFA proíbe cravar fato externo sem busca ("pesquisa aí" explícito = busca obrigatória); **(C)** filtro de sanidade em modo conversa REMOVE glitch pontual (≤5 ocorrências) e envia; corrupção maior regenera 1x — nunca mais silêncio mudo; **(D)** teto diário (`contaEnviadasHoje`) não conta mais `conversa` — agenda 9h/cobrança 9h01 não são mais puladas por papo de manhã. Detalhes: §15 item -15.
 > - **Causas raiz confirmadas com bot_log real:** id 166 = "não conheço esse contato" com `gatilho:mencao` (menção do bot duplicada no payload, forma conhecida + alias desconhecido); id 164 = artilheiro errado cravado com confiança ("Messi 19 gols") — era impossível saber se buscou, agora o log diz; o "pesquisa aí" mudo teve DUAS causas em sequência: id 165 (teto de 6/h do oficial, 32s após a resposta errada) e ids 168/169 (filtro de sanidade, glitch `覆`); ids 175/176 = `pulado_teto` às 9h00/9h01 com 4 conversas ok antes (170-173) — os crons RODARAM na hora certa, quem pulou foi a própria função. **Teto do oficial subiu de 6/h → 20/h** (key `conversa_max_hora_oficial='20'` criada em `bot_config` prod+dev via REST + seed no `supabase_bot.sql`; cooldown segue 10s).
 > - **RETESTE AO VIVO PENDENTE (Vini, grupo oficial):** marcar @Ratazana00 (não pode mais dizer que não conhece); perguntar fato externo ("quem é o artilheiro dessa Copa?") e conferir `[busca:N]` com N≥1 no bot_log; contestar com "pesquisa aí" (tem que responder); amanhã de manhã, conferir agenda 9h + cobrança 9h01 saindo mesmo com conversa rolando antes.
@@ -788,6 +790,41 @@ o banco.
 
 ## 15. Pendências abertas (jul/2026)
 
+-17. **✅ v1.21.2 DEPLOYADA (08/07/2026 madrugada, commit `3bdb442`, versão 31
+   ACTIVE) — a conversa não recebia a rodada ativa e o modelo inferia errado:**
+   - **Incidente:** 00:34 de 08/07, no grupo de TESTE, Vini marcou "@Ratazana
+     qual rodada está ativa agora?" → o bot respondeu "tecnicamente estamos no
+     vácuo entre oitavas e quartas" (bot_log 200, `gatilho:mencao`). `fase_ativa`
+     já era `quartas` desde o fechamento do r16_8 (bot_log 193).
+   - **Causa raiz confirmada no `prompt_enviado` do 200 (não suposição):** o
+     contexto da conversa (`conversaTalvezResponder`) montava RESULTADOS
+     RECENTES (todos rotulados "Oitavas"), SITUAÇÃO DAS SELEÇÕES, `JOGOS DE HOJE
+     (ainda abertos): nenhum` e o RANKING — mas **em nenhum lugar entregava
+     `fase_ativa`**. O `bot_config` fetch da conversa só pegava
+     `system_prompt_ratazana,modelo_ia`. Sem a fase explícita, o modelo INFERIU
+     a rodada pelos últimos resultados (oitavas) + ausência de jogo hoje, e
+     concluiu "entre fases". Não havia fonte de dado DESATUALIZADA — havia uma
+     fonte AUSENTE (agenda/cobrança sempre leram `fase_ativa` direto; só a
+     conversa nunca lia). Contraste: o caso de 07/07 22:36 (id ~198) estava
+     certo porque a pergunta era sobre "hoje tem jogo?", que o "nenhum" responde
+     bem — a diferença é a pergunta ser sobre a RODADA em si.
+   - **Fix (v1.21.2):** (1) o fetch da conversa passou a
+     `key=in.(system_prompt_ratazana,modelo_ia,fase_ativa)`; (2)
+     `faseCanonica(fase_ativa)` + mapa `FASE_EXTENSO` produzem o rótulo por
+     extenso; (3) o prompt ganhou a linha `RODADA ATIVA AGORA (fase em
+     andamento do mata-mata): <fase> — é ESTA a rodada corrente, mesmo que não
+     haja nenhum jogo marcado pra hoje...`, colocada ANTES de `JOGOS DE HOJE`;
+     (4) TAREFA item 10 novo proíbe responder "entre fases"/"no vácuo"/"sem
+     rodada" (o antigo item 10 virou 11). Verificado com dado real do banco:
+     `fase_ativa="quartas"` → linha renderiza `RODADA ATIVA AGORA ... Quartas
+     de final`. Deploy via API do dashboard (Chrome logado; token do
+     localStorage recarregado após expirar): v30 → v31, ACTIVE, verify_jwt off,
+     401 próprio conferido na URL.
+   - **RETESTE AO VIVO PENDENTE (Vini):** o teste de modelo end-to-end exige o
+     `BOT_TRIGGER_TOKEN`/mensagem real no WhatsApp (não dá pra disparar daqui).
+     Perguntar de novo "qual rodada está ativa agora?" e conferir no bot_log
+     que a resposta afirma "quartas" (sem "vácuo"/"entre fases"), podendo dizer
+     junto que hoje não tem jogo.
 -16. **✅ v1.21.1 DEPLOYADA (07/07/2026 fim de tarde, commit `8ee9a49`, versão 29
    ACTIVE) — a auto-menção falhou DE NOVO no reteste real, por causa NOVA (camada
    do modelo), agora corrigida:**
