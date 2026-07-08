@@ -1,5 +1,15 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // ROBÔ RATAZANA — Edge Function "ratazana-cobranca"
+// (v1.21.2 — RODADA ATIVA NO CONTEXTO DA CONVERSA (bug real, bot_log 200):
+//  perguntado "qual rodada está ativa agora?", o bot respondeu "vácuo entre
+//  oitavas e quartas" — ERRADO, fase_ativa já era 'quartas'. Causa raiz: o
+//  prompt da conversa NUNCA recebia fase_ativa; só os resultados fechados +
+//  "jogos de hoje: nenhum", e o modelo INFERIA a rodada (e inferiu errado num
+//  dia sem jogo). Fix: a chamada carrega bot_config.fase_ativa junto, e o
+//  contexto ganha a linha explícita "RODADA ATIVA AGORA: <fase por extenso>"
+//  (separada dos jogos do dia), + item 10 da TAREFA proibindo responder "entre
+//  fases"/"no vácuo"/"sem rodada" — "sem jogo hoje" é agenda, não muda a
+//  rodada. Só a conversa muda (agenda/cobrança já liam fase_ativa direto).
 // (v1.21.1 — MENÇÃO AO BOT: O TOKEN CRU CONFUNDIA O MODELO (caso real "Vsf
 //  @61032206725341", bot_log 183, payload conferido em mensagens_grupo): a
 //  menção veio ÚNICA e com o LID JÁ CADASTRADO — o resolvedor da v1.21
@@ -1407,7 +1417,7 @@ async function conversaTalvezResponder(m: Conf, grupoJid: string, telefoneRemete
     const [confrontos, palpites, cfg, telefones] = await Promise.all([
       sbGet("mata_confrontos?select=*"),
       sbGet("mata_palpites?select=confronto_id,pid,gols_a,gols_b,quem_passa"),
-      sbGet("bot_config?key=in.(system_prompt_ratazana,modelo_ia)&select=key,value"),
+      sbGet("bot_config?key=in.(system_prompt_ratazana,modelo_ia,fase_ativa)&select=key,value"),
       sbGet("bot_telefones?select=participante_id,nome_exibicao,genero,telefone_whatsapp,lid").catch(() => []),
     ]);
     const cfgMap: Record<string, string> = {};
@@ -1415,6 +1425,17 @@ async function conversaTalvezResponder(m: Conf, grupoJid: string, telefoneRemete
     const systemPrompt = cfgMap["system_prompt_ratazana"];
     const modelo = (cfgMap["modelo_ia"] || "").trim() || MODELO_FALLBACK;
     if (!systemPrompt) throw new Error("bot_config sem 'system_prompt_ratazana'");
+    // v1.21.2 — RODADA ATIVA no contexto (bug real: perguntado "qual rodada
+    // está ativa?", o bot disse "vácuo entre oitavas e quartas" — bot_log 200 —
+    // porque o prompt NUNCA recebia fase_ativa; só resultados fechados + "jogos
+    // de hoje: nenhum", e o modelo INFERIA errado). Agora a fase entra explícita
+    // e por extenso, separada dos jogos do dia. "Sem jogo hoje" ≠ "sem rodada".
+    const faseAtivaKey = faseCanonica(cfgMap["fase_ativa"] || "");
+    const FASE_EXTENSO: Record<string, string> = {
+      "32avos": "16 avos de final", oitavas: "Oitavas de final", quartas: "Quartas de final",
+      semis: "Semifinais", "3lugar": "Disputa de 3º lugar", final: "Final",
+    };
+    const faseAtivaLabel = faseAtivaKey ? (FASE_EXTENSO[faseAtivaKey] || PH_LABEL[faseAtivaKey] || null) : null;
 
     // Quem fala: match por telefone OU lid (v1.18); sem match na tabela, o
     // nome de exibição do WhatsApp (senderName) ainda dá um nome ao papo.
@@ -1648,6 +1669,7 @@ async function conversaTalvezResponder(m: Conf, grupoJid: string, telefoneRemete
       `\nRESULTADOS RECENTES (últimos 3 dias, placares FINAIS — são fatos):\n` +
       `${resultadosRecentes.length ? resultadosRecentes.join("\n") : "- nenhum jogo fechado nos últimos 3 dias"}\n` +
       `SITUAÇÃO DAS SELEÇÕES DO SEU CORAÇÃO:\n- ${situacaoTime("Brasil")}\n- ${situacaoTime("Argentina")}\n` +
+      (faseAtivaLabel ? `RODADA ATIVA AGORA (fase em andamento do mata-mata): ${faseAtivaLabel} — é ESTA a rodada corrente, mesmo que não haja nenhum jogo marcado pra hoje. "Sem jogo hoje" NÃO é "sem rodada": a rodada ativa continua sendo ${faseAtivaLabel} até ela terminar.\n` : "") +
       `JOGOS DE HOJE (ainda abertos): ${jogosHoje.length ? jogosHoje.join("; ") : "nenhum"}\n` +
       `RANKING DO BOLÃO COMPLETO (posições e pontos reais; você está em ${posRat}º):\n${rankingCompleto}\n` +
       `\nTAREFA — MODO CONVERSA (isto NÃO é mensagem programada; o formato de 4 a 7 linhas NÃO vale aqui):\n` +
@@ -1660,7 +1682,8 @@ async function conversaTalvezResponder(m: Conf, grupoJid: string, telefoneRemete
       `7. Curto: 1 a 3 linhas na maioria das vezes. Tom de conversa, ácido, em personagem.\n` +
       `8. COERÊNCIA FACTUAL OBRIGATÓRIA: os resultados e situações acima são FATOS que você conhece e comenta com naturalidade. NUNCA negue algo que está listado — se está nos resultados, aconteceu. Se perguntarem de algo que NÃO está nos dados nem foi pesquisado agora, NÃO crave: responda no tom "de cabeça eu diria X, mas não ponho a mão no fogo" e, se contestado, admita que pode estar desatualizado. Se você pesquisou (item 6) e achou resposta atual e clara, pode afirmar com confiança — não precisa da ressalva de "de cabeça".\n` +
       `9. Seu humor de fundo decorre da SITUAÇÃO DAS SELEÇÕES DO SEU CORAÇÃO acima — mas é humor de FUNDO: não verbalize o luto nem a implicância em toda resposta (dosagem está na sua persona).\n` +
-      `10. Calibre a intensidade pelo gênero. Não use @. Sem link do bolão. Não cobre palpite a menos que perguntem sobre isso.`;
+      `10. RODADA/FASE ATIVA: se perguntarem qual rodada ou fase está ativa/rolando agora, a resposta é SEMPRE a "RODADA ATIVA AGORA" listada acima${faseAtivaLabel ? ` (${faseAtivaLabel})` : ""} — afirme com todas as letras que estamos NELA. NUNCA responda que estamos "entre fases", "no vácuo", "sem rodada" ou "esperando a próxima": a rodada corrente é essa até o último jogo dela ser fechado. Você pode e deve dizer, junto, que hoje não tem jogo marcado — mas isso é um detalhe da agenda do dia, não muda a rodada ativa.\n` +
+      `11. Calibre a intensidade pelo gênero. Não use @. Sem link do bolão. Não cobre palpite a menos que perguntem sobre isso.`;
 
     let ia = await chamaIA(modelo, systemPrompt, userPrompt, 2500, WEB_SEARCH_TOOLS);
     respostaIA = ia.texto;
