@@ -121,9 +121,16 @@
   .pv-dest .of{color:var(--gold);font-weight:700;}
   .pv-actions{display:flex;gap:8px;flex-wrap:wrap;}
   .pv-send{flex:1;background:var(--lime);color:#12250f;border:none;border-radius:4px 12px 4px 4px;padding:9px;font-weight:900;font-size:13.5px;cursor:pointer;}
+  /* campo de mensagem livre (envio manual) — font 16px evita o zoom automático do iOS */
+  .livre-txt{width:100%;box-sizing:border-box;min-height:130px;resize:vertical;background:#0c100c;color:var(--ink);border:1.5px solid var(--brd);border-radius:8px;padding:10px;font-family:inherit;font-size:16px;line-height:1.45;}
+  .livre-txt:focus{outline:none;border-color:var(--lime);}
+  .livre-prev{font-size:12px;color:var(--mu);}
+  .livre-prev summary{cursor:pointer;user-select:none;}
+  .livre-prev-box{white-space:pre-wrap;word-break:break-word;font-size:14px;line-height:1.5;color:var(--ink);background:#0c100c;border:1px solid var(--brd);border-radius:8px;padding:9px;margin-top:6px;}
+  .livre-prev-empty{color:var(--mu);}
   .acordar:disabled{opacity:.5;cursor:default;}
 
-  /* utilitários do topo: listar grupos + mensagem inaugural */
+  /* utilitários do topo: listar grupos + enviar mensagem livre */
   .utilbtn{background:var(--card);border:1px solid var(--brd);color:var(--mu);border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer;}
   .util-box{background:var(--card);border:1px solid var(--brd);border-radius:4px 16px 4px 4px;padding:12px;margin:10px 0;}
   .util-tit{font-size:12.5px;color:var(--mu);margin-bottom:8px;}
@@ -141,12 +148,10 @@
 <div class="toprow">
   <button id="recarregar" onclick="carregar()">↻ Recarregar</button>
   <button class="utilbtn" onclick="toggleUtil('grupos')">📡 Listar grupos</button>
-  <button class="utilbtn" onclick="toggleUtil('inaugural')">📣 Mensagem inaugural</button>
-  <button class="utilbtn" onclick="toggleUtil('comunicado002')">📢 Comunicado nº 002</button>
+  <button class="utilbtn" onclick="toggleUtil('livre')">✍️ Enviar mensagem como Ratazana</button>
 </div>
 <div id="util-grupos" class="util-box" hidden></div>
-<div id="util-inaugural" class="util-box" hidden></div>
-<div id="util-comunicado002" class="util-box" hidden></div>
+<div id="util-livre" class="util-box" hidden></div>
 
 <div class="controls-row">
   <div class="status-toggle" id="status-wrap">
@@ -170,30 +175,6 @@ function isDevEnv(h){h=h||location.hostname;return h.startsWith('dev.')||h.start
 const IS_DEV=isDevEnv();
 const MM_TCONF=IS_DEV?'dev_mata_confrontos':'mata_confrontos';
 const TOKEN_KEY='ratz_admin_code';
-
-// ─── MENSAGEM INAUGURAL (texto FIXO, definitivo — fornecido pelo Vini;
-//     não passa por IA, é enviada exatamente como está) ─────────────────────
-const MSG_INAUGURAL=`🐀 *COMUNICADO OFICIAL Nº 001*
-
-Boa noite, cambada. Meu nome é Ratazana e a partir de hoje esse bolão tem lei.
-
-Fica instituída a fiscalização permanente: cobrar palpite atrasado, anunciar resultado, expor vergonha alheia. Recursos e reclamações: indeferidos.
-
-Eu vejo os palpites, eu vejo os pontos, eu vejo quem some na hora de palpitar e aparece na hora de zoar. Tá tudo no caderninho.
-
-Boa sorte. Vocês vão precisar. 🐀`;
-
-// ─── COMUNICADO Nº 002 (texto FIXO — estreia da Conversa no grupo oficial;
-//     não passa por IA, é enviada exatamente como está) ────────────────────
-const MSG_COMUNICADO_002=`🐀 *COMUNICADO OFICIAL Nº 002*
-
-A fiscalização deste bolão acaba de ganhar novos poderes: a partir de agora, o Ratazana ouve tudo e responde.
-
-Quer saber tua posição, zoar um placar, tirar satisfação? Me marca (@) ou responde uma mensagem minha que eu apareço.
-
-Aviso desde já: elogio entra no registro, reclamação também. Usem com sabedoria.
-
-Ninguém escapa do Ratazana. 🐀`;
 
 // ─── Bandeiras (cópia fiel de flagImg/TAGFLAGS do index.html) ────────────────
 const TAGFLAGS={'🏴󠁧󠁢󠁳󠁣󠁴󠁿':'gb-sct','🏴󠁧󠁢󠁥󠁮󠁧󠁿':'gb-eng'};
@@ -550,14 +531,13 @@ async function postEnviarTexto(dest,texto,st){
 
 // ─── Utilitários do topo: listar grupos + mensagem inaugural + comunicado 2 ──
 function toggleUtil(qual){
-  for(const k of ['grupos','inaugural','comunicado002']){
+  for(const k of ['grupos','livre']){
     const el=document.getElementById('util-'+k);
     if(k===qual){
       el.hidden=!el.hidden;
       if(!el.hidden){
         if(k==='grupos')renderGrupos();
-        else if(k==='inaugural')renderInaugural();
-        else renderComunicado002();
+        else renderLivre();
       }
     }
     else el.hidden=true;
@@ -581,57 +561,48 @@ async function renderGrupos(){
     el.innerHTML='<p class="status err">Não consegui montar a lista de grupos com nome + ID. Abra o console do navegador (F12) para ver o detalhe técnico da resposta da API.</p>';
   }
 }
-function renderInaugural(){
-  const el=document.getElementById('util-inaugural');
+// ─── Enviar mensagem LIVRE como Ratazana (texto puro, sem IA) ────────────────
+// Campo coringa: o que eu digitar/colar vai EXATAMENTE como está pro grupo, pelo
+// mesmo tipo=enviar_texto (postEnviarTexto). Preview simples renderiza o *negrito*
+// e as quebras de linha só pra conferência; o que é enviado é o texto cru.
+function renderLivre(){
+  const el=document.getElementById('util-livre');
   el.innerHTML=`<div class="preview-box">
-    <div class="pv-label">MENSAGEM INAUGURAL — TEXTO FIXO (pra trocar, edite a constante MSG_INAUGURAL no script desta página)</div>
-    <pre class="pv-text">${esc(MSG_INAUGURAL)}</pre>
+    <div class="pv-label">✍️ ENVIAR MENSAGEM COMO RATAZANA — texto livre, vai EXATAMENTE como digitado (sem IA). Use *asteriscos* pro negrito do WhatsApp, quebras de linha e emojis normalmente.</div>
+    <textarea id="livre-txt" class="livre-txt" placeholder="Digite ou cole a mensagem aqui…" oninput="livrePreview()"></textarea>
     <div class="pv-dest">
-      <label><input type="radio" name="dest-inaugural" value="teste" checked> Grupo de TESTE</label>
-      <label><input type="radio" name="dest-inaugural" value="oficial"> <span class="of">Grupo OFICIAL</span></label>
+      <label><input type="radio" name="dest-livre" value="teste" checked> Grupo de TESTE</label>
+      <label><input type="radio" name="dest-livre" value="oficial"> <span class="of">Grupo OFICIAL</span></label>
     </div>
+    <details class="livre-prev"><summary>👁️ Preview (como vai ficar)</summary>
+      <div class="livre-prev-box" id="livre-prev-box"><span class="livre-prev-empty">(vazio)</span></div>
+    </details>
     <div class="pv-actions">
-      <button class="pv-send" onclick="enviarInaugural()">📤 Enviar mensagem inaugural</button>
+      <button class="pv-send" onclick="enviarLivre()">📤 Enviar</button>
     </div>
-    <div class="status" id="pvst-inaugural"></div>
+    <div class="status" id="pvst-livre"></div>
   </div>`;
+  livrePreview();
 }
-async function enviarInaugural(){
-  const st=document.getElementById('pvst-inaugural');
-  const sel=document.querySelector('input[name="dest-inaugural"]:checked');
+function livrePreview(){
+  const box=document.getElementById('livre-prev-box'); if(!box)return;
+  const raw=(document.getElementById('livre-txt')||{}).value||'';
+  if(!raw.trim()){ box.innerHTML='<span class="livre-prev-empty">(vazio)</span>'; return; }
+  // escapa HTML primeiro (anti-injeção), depois *negrito* → <b> e quebras → <br>
+  box.innerHTML=esc(raw).replace(/\*([^*\n]+)\*/g,'<b>$1</b>').replace(/\n/g,'<br>');
+}
+async function enviarLivre(){
+  const st=document.getElementById('pvst-livre');
+  const txt=((document.getElementById('livre-txt')||{}).value||'');
+  if(!txt.trim()){ st.className='status err'; st.textContent='Escreva a mensagem primeiro.'; return; }
+  const sel=document.querySelector('input[name="dest-livre"]:checked');
   const dest=sel?sel.value:'';
   if(!dest){ st.className='status err'; st.textContent='Escolha o destino.'; return; }
   const aviso=dest==='oficial'
-    ? '⚠️ Enviar a MENSAGEM INAUGURAL pro grupo OFICIAL? É a estreia do Ratazana pra família toda.'
-    : 'Enviar a mensagem inaugural pro grupo de TESTE?';
+    ? '⚠️ Enviar esta mensagem pro grupo OFICIAL (a família toda)?'
+    : 'Enviar esta mensagem pro grupo de TESTE?';
   if(!confirm(aviso))return;
-  await postEnviarTexto(dest,MSG_INAUGURAL,st);
-}
-function renderComunicado002(){
-  const el=document.getElementById('util-comunicado002');
-  el.innerHTML=`<div class="preview-box">
-    <div class="pv-label">COMUNICADO Nº 002 — TEXTO FIXO (pra trocar, edite a constante MSG_COMUNICADO_002 no script desta página)</div>
-    <pre class="pv-text">${esc(MSG_COMUNICADO_002)}</pre>
-    <div class="pv-dest">
-      <label><input type="radio" name="dest-comunicado002" value="teste" checked> Grupo de TESTE</label>
-      <label><input type="radio" name="dest-comunicado002" value="oficial"> <span class="of">Grupo OFICIAL</span></label>
-    </div>
-    <div class="pv-actions">
-      <button class="pv-send" onclick="enviarComunicado002()">📤 Enviar Comunicado nº 002</button>
-    </div>
-    <div class="status" id="pvst-comunicado002"></div>
-  </div>`;
-}
-async function enviarComunicado002(){
-  const st=document.getElementById('pvst-comunicado002');
-  const sel=document.querySelector('input[name="dest-comunicado002"]:checked');
-  const dest=sel?sel.value:'';
-  if(!dest){ st.className='status err'; st.textContent='Escolha o destino.'; return; }
-  const aviso=dest==='oficial'
-    ? '⚠️ Enviar o COMUNICADO Nº 002 pro grupo OFICIAL? É a estreia da Conversa pra família toda.'
-    : 'Enviar o Comunicado nº 002 pro grupo de TESTE?';
-  if(!confirm(aviso))return;
-  await postEnviarTexto(dest,MSG_COMUNICADO_002,st);
+  await postEnviarTexto(dest,txt,st);   // envia LITERAL, sem IA
 }
 async function reabrirJogo(cid){
   const t=teams(byId(cid)||{id:cid});
