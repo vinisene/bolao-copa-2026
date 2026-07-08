@@ -2573,7 +2573,7 @@ const MM_COLS=[
   {key:'final',  label:'Final',   short:'Final 🏆',        ids:['fin_1']},
 ];
 const mmOpen=new Set();   // confrontos expandidos na lista (preserva estado entre re-renders)
-let mmPhaseFilter='oitavas';   // filtro de fase da lista (3.1) — padrão OITAVAS (16avos encerrado)
+let mmPhaseFilter='quartas';   // filtro de fase da lista (3.1) — padrão QUARTAS (oitavas encerradas 07/07)
 let mmBracketOpen=false;            // A1: seção do chaveamento — COLAPSADA por padrão (Tarefa 2)
 // AGENDA dos 16 avos (data/hora/local) por VAGA (slot). Fica no código (a anon key não cria coluna
 // nova no banco). O app lê isto OU os campos dt/tm/venue do confronto, se existirem no banco.
@@ -2623,6 +2623,11 @@ const MM_ZEBRA={
   // OITAVAS (vagas r16_*, azarao pelo LADO da vaga — ver MM_BRACKET pra saber quem cai em cada lado)
   r16_2: {tipo:'zebrao', azarao:'A'},   // Paraguai × França        → azarão: Paraguai (lado A da vaga)
   r16_7: {tipo:'zebra',  azarao:'B'},   // Argentina × Egito        → azarão: Egito (lado B da vaga)
+  // QUARTAS (odds Estrelabet 07/07/2026, fonte única; todas ZEBRA, nenhum zebrão)
+  qf_1:  {tipo:'zebra',  azarao:'A'},   // Marrocos × França        → azarão: Marrocos (odd 6.70, ~14,7%)
+  qf_2:  {tipo:'zebra',  azarao:'B'},   // Espanha × Bélgica        → azarão: Bélgica (odd 5.98, ~16,5%)
+  qf_3:  {tipo:'zebra',  azarao:'A'},   // Noruega × Inglaterra     → azarão: Noruega (odd 4.28, ~23,0%)
+  qf_4:  {tipo:'zebra',  azarao:'B'},   // Argentina × Suíça        → azarão: Suíça (odd 5.46, ~18,1%)
 };
 function mmZebra(c){return MM_ZEBRA[c&&c.id]||null;}   // leitor (pra próxima etapa); por enquanto não é chamado
 // data/hora/local de um confronto: prioriza o banco (dt/tm/venue) e cai pra agenda em código.
