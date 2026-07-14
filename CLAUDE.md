@@ -1,6 +1,15 @@
 # CLAUDE.md
 
-> ## 🚨 LEIA PRIMEIRO — handoff de sessão (08/07/2026, madrugada)
+> ## 🚨 LEIA PRIMEIRO — handoff SEMIS (14/07/2026, madrugada)
+> **No ar: Robô v1.24 (commit `6740458`, versão 35 no Supabase, ACTIVE, verify_jwt off).** Leva das SEMIFINAIS:
+> - **Fase ativa = `semis`** (confirmado via REST; a transição automática da v1.19 já tinha avançado quartas→semis). Confrontos: `sf_1` França × Espanha (14/07 16h Dallas, ×1,75) · `sf_2` Inglaterra × Argentina (15/07 16h Atlanta, **TURBO ×3,5**). Sem zebra em nenhuma das duas.
+> - **Filtro do app abre em SEMIS** — merge cirúrgico SÓ do `index.html` (1 linha, `mmPhaseFilter='semis'`) pra `main` (commit `6960462`, safepoint `v25-prod-pre-semis-filtro` criado antes). O resto do trabalho de bot (Edge Function, CLAUDE.md, SQL) **fica na `ratazana`** — não foi arrastado pra `main` num merge cego (deploy da função é à parte). Admin já abre em semis sozinho (`pickSmartDefaultPhase`).
+> - **NOVO modo `cobranca_pareada` (v1.24)** — cobra humano + IA parceira juntos (Jeca/ChatGPT Jeca, Leo/ChatGPT Leo, Tonius/Claude Tonius, Pepe/Pepe IA). Vini/Ratazana00 **não** pareia (kayfabe — o bot é o Ratazana00, Vini cobrado solo). ISOLADO da cobrança padrão. **Validado com PREVIEW REAL ao vivo** (token do Vini) contra os dados das semis. Ver §13 e §15 item -18.
+> - **SQL das semis PRONTO pro Vini colar** (`scratchpad/semis_cron.sql`, token já embutido): 2 mensagens fixas (ter+qua 13:00 UTC/10h BRT), 2 cobranças pareadas (13:01 UTC), reativa a última chamada, limpeza qua 23:00 UTC + SELECT final. **AÇÃO DO VINI:** colar no SQL Editor e rodar. Sem isso, nada das semis dispara sozinho.
+> - **Deploy feito nesta sessão** (autorização explícita do Vini): versão 34 → 35, ACTIVE, verify_jwt off, via API do dashboard (Chrome logado), fonte = GitHub raw do commit `6740458`.
+> - Handoff anterior (08/07, quartas/v1.21.2) preservado abaixo.
+>
+> ## 🚨 handoff de sessão (08/07/2026, madrugada)
 > **No ar: Robô v1.21.2 (commit `3bdb442`, versão 31 no Supabase, ACTIVE, verify_jwt off).** Fix da RODADA ATIVA no contexto da conversa (bug real, bot_log 200): perguntado "qual rodada está ativa agora?" às 00:34 de 08/07, o bot respondeu "vácuo entre oitavas e quartas" — ERRADO, `fase_ativa` já era `quartas`. Causa raiz confirmada no `prompt_enviado` do 200: o contexto da conversa NUNCA recebia `fase_ativa` — só os resultados fechados (todos oitavas) + "jogos de hoje: nenhum", e o modelo INFERIA a rodada (e num dia sem jogo inferiu "entre fases"). Fix: a conversa passa a carregar `bot_config.fase_ativa` e o prompt ganha a linha explícita `RODADA ATIVA AGORA: <fase por extenso>` (separada dos jogos do dia) + TAREFA item 10 proibindo "entre fases"/"no vácuo"/"sem rodada" ("sem jogo hoje" é agenda, não muda a rodada). Verificado com dado real: a linha renderiza `RODADA ATIVA AGORA ... Quartas de final`. **Reteste ao vivo (Vini):** perguntar de novo "qual rodada está ativa?" e conferir que afirma "quartas" sem "vácuo". Ver §15 item -17.
 > **✅ QUARTAS PUBLICADAS (leva anterior, já em `main`):** zebras das 4 quartas (todas +3, nenhum zebrão) e filtro de fase abrindo em QUARTAS estão AO VIVO em produção (merge `cf8c285`, safepoint `v18-prod-pre-quartas-zebras`, função redeployada). `fase_ativa='quartas'` (avanço automático da v1.19 funcionou no fechamento do r16_8, bot_log 193). Ver §0 e §15.
 > **v1.21.1 (07/07, versão 29) — auto-menção pelo token cru, já no ar antes desta leva:** O reteste real da auto-menção FALHOU ("Vsf @Ratazana00" → "não tenho no cadastro", bot_log 183) por causa na camada do MODELO: o payload provou que a menção veio única e com o LID já cadastrado (o resolvedor da v1.21 funcionou; nenhum aviso de desconhecido entrou no prompt), mas o texto mostrado ao modelo mantinha o token cru `@61032206725341` e o modelo — que não conhece o próprio LID, por kayfabe — tratou como terceiro. Agora os tokens são REESCRITOS antes do prompt (bot → `@Ratazana`, pessoa conhecida → `@<nome>`, desconhecido real fica cru), a linha "Você foi marcado" diz que a marcação É o próprio bot, e todo gatilho de menção loga `[men:...]` `[idbot:...]` no destino do bot_log. Ver §15 item -16. Abaixo, o resumo da v1.21 (mesma tarde):
@@ -49,7 +58,7 @@ Os números aqui são referência aproximada (estado em ~3250 linhas).
 - `congelado-fase-grupos` → museu (fase de grupos, congelada). **Não recebe mudanças.**
 
 **Safepoints (tags):**
-`v4-pre-redesign` · `v5-prod-pre-redesign` · `v6-prod-pre-fix-palpite` · `v7-prod-pre-mano-gi` · `v8-prod-pre-melhorias` · `v9-prod-pre-fotos` · `v10-pre-visual-v2` · `v10-pre-identidade-copa` · `v11-pre-chaveamento-novo` · `v11-pre-robo-ratazana` · `v12-prod-pre-visual-redesign` · `v12-pre-admin-placar` · `v13-prod-pre-robo-admin` · `v14-prod-pre-identidade-institucional` · `v15-prod-pre-ratazana-lancamento` · `v16-prod-pre-admin-fase-banner` · `v17-prod-pre-comunicado002-btn` · `v18-prod-pre-quartas-zebras` · `v19-prod-pre-zebra-suica` · `v20-prod-pre-ia-editavel` · `v21-prod-pre-ia-editavel-v2` · `v22-prod-pre-ia-compacta` · `v23-prod-pre-admin-sem-senha` · `v24-prod-pre-admin-msg-livre`
+`v4-pre-redesign` · `v5-prod-pre-redesign` · `v6-prod-pre-fix-palpite` · `v7-prod-pre-mano-gi` · `v8-prod-pre-melhorias` · `v9-prod-pre-fotos` · `v10-pre-visual-v2` · `v10-pre-identidade-copa` · `v11-pre-chaveamento-novo` · `v11-pre-robo-ratazana` · `v12-prod-pre-visual-redesign` · `v12-pre-admin-placar` · `v13-prod-pre-robo-admin` · `v14-prod-pre-identidade-institucional` · `v15-prod-pre-ratazana-lancamento` · `v16-prod-pre-admin-fase-banner` · `v17-prod-pre-comunicado002-btn` · `v18-prod-pre-quartas-zebras` · `v19-prod-pre-zebra-suica` · `v20-prod-pre-ia-editavel` · `v21-prod-pre-ia-editavel-v2` · `v22-prod-pre-ia-compacta` · `v23-prod-pre-admin-sem-senha` · `v24-prod-pre-admin-msg-livre` · `v25-prod-pre-semis-filtro`
 Voltar: `git checkout <tag>`. Listar: `git tag -n1`.
 ⚠️ Há **pares de tags com o mesmo número** vindos de levas distintas (não confundir):
 `v10-pre-visual-v2` (navegação) ≠ `v10-pre-identidade-copa` (fontes/cantos/cores, §12);
@@ -69,7 +78,7 @@ Multiplicadores: 16avos ×1 · oitavas ×1,25 · quartas ×1,5 · semis ×1,75 �
 **Zebra FIXO** (soma no fim, não multiplica): +3 zebra · +5 zebrão (azarão ≤25%/≤12% passa).
 Funções: `mmScore` / `calcMataPts` / `MM_PHASE_MULT` / `mmMult` / `MM_TURBO` / `MM_ZEBRA`.
 
-**Fase ativa: QUARTAS** (16avos e oitavas 100% encerrados, 24/24 jogos). `bot_config.fase_ativa = 'quartas'` — **o avanço automático da v1.19 FUNCIONOU de verdade** no fechamento do r16_8 (bot_log 193, 07/07 21:11 BRT, "oitavas -> quartas"; banner verde gravado em `admin_aviso_fase`, consumido na próxima abertura do admin). O Table Editor manual segue como via de emergência (ver §13/§15 item -13).
+**Fase ativa: SEMIS** (16avos, oitavas e quartas encerrados). `bot_config.fase_ativa = 'semis'` (confirmado via REST). Confrontos: `sf_1` França × Espanha (14/07 16h Dallas, ×1,75, sem turbo/zebra) · `sf_2` Inglaterra × Argentina (15/07 16h Atlanta, **TURBO ×3,5**, sem zebra). **Filtro do app abre em SEMIS** (`mmPhaseFilter='semis'` — merge cirúrgico só do index.html pra `main`, commit `6960462`, safepoint `v25-prod-pre-semis-filtro`); admin já abre sozinho via `pickSmartDefaultPhase`. Histórico quartas abaixo. `bot_config.fase_ativa = 'quartas'` — **o avanço automático da v1.19 FUNCIONOU de verdade** no fechamento do r16_8 (bot_log 193, 07/07 21:11 BRT, "oitavas -> quartas"; banner verde gravado em `admin_aviso_fase`, consumido na próxima abertura do admin). O Table Editor manual segue como via de emergência (ver §13/§15 item -13).
 **Confrontos das quartas** (validados contra a chave em 07/07): `qf_1` Marrocos × França (09/07 17h Boston) · `qf_2` Espanha × Bélgica (10/07 16h Los Angeles) · `qf_3` Noruega × Inglaterra (11/07 18h Miami) · `qf_4` Argentina × Suíça (11/07 22h Kansas City).
 **Turbos das quartas** (`MM_TURBO`, pré-definidos desde o início): `qf_1` · `qf_3` (semis: `sf_2`).
 **Zebras das quartas** (`MM_ZEBRA`): **só `qf_4` lado B (Suíça, +3)** — decisão do admin 08/07 de manter APENAS a Suíça; Marrocos (`qf_1`), Bélgica (`qf_2`) e Noruega (`qf_3`) foram REMOVIDAS (antes as 4 eram zebra, odds Estrelabet 07/07). **NO AR nos 3 lugares e em produção** (08/07): index.html + admin **mesclados pra `main`** (merge parcial `b3add3f`, safepoint `v19-prod-pre-zebra-suica` antes; a leva anterior das 4 zebras foi `cf8c285`/`v18`) e Edge Function **redeployada (versão 32, ACTIVE)**. Confirmado por curl: produção (app + admin) serve só `qf_4`.
@@ -576,6 +585,7 @@ Fala em primeira pessoa dos próprios palpites, pontos e posição.
   - **POST** `&tipo=enviar_texto&destino=...` com body JSON `{texto}` → envia texto PRONTO sem passar por IA (preview aprovado / mensagem inaugural). Loga `envio_manual`.
   - **`&tipo=fechamento_fase&fase=<quartas|...>&destino=...[&proxima_abre=<texto>][&preview=1]`** (v1.22) → **RESUMO DE RODADA INTEIRA gerado por IA** (uma mensagem, 3 partes: classificados pra próxima fase · movimentação do Bolão na rodada — troca de líder/subiu/caiu/cravadas dos TURBOS/zebra/saldo · aviso da próxima fase abrir). Reaproveita o pipeline do `fim_de_jogo` (mataStats/mmScore/resolver/participantesCitaveis/menção/preview). Ranking **ANTES** (sem os jogos da fase) × **DEPOIS** (com tudo) = a movimentação da rodada. `fase` é explícito (não usa `fase_ativa`, que já pode ter avançado sozinha). `proxima_abre` = texto livre do aviso final. Lógica validada com réplica local (fase=oitavas). **NO AR (versão 33).** Usado pelo cron temporário do fechamento das quartas (domingo 12/07).
   - **`&tipo=provocacao_aleatoria&destino=oficial[&preview=1]`** (v1.23) → **PROVOCAÇÃO INDIVIDUAL gerada por IA** (engajamento; cron 2x/dia nas quartas). Sorteia UM humano de `bot_telefones` (nunca IA nem `claude`/Ratazana), gera provocação curta (2-4 linhas) com dados reais dele (posição, cravadas, se está devendo palpite, desempenho no último jogo), MARCA a pessoa de verdade (`@<tel>` no começo do texto + campo `mentions`) e cutuca pra ela responder; intensidade por gênero. **Anti-repetição:** `bot_config.ultima_provocacao_alvo` guarda o último alvo, excluído do sorteio seguinte. **NÃO consome teto:** tipo próprio `provocacao`, excluído de `contaEnviadasHoje` (v1.23). `enviaEmPartes` com `sanitiza=true`; soluço de conexão loga e devolve 200 sem reenvio. **NO AR (versão 34).** Sorteio+munição validados com réplica local; teste ao vivo pendente (exige o token). Cron temporário `ratazana-q-prov-14h`/`-19h`.
+  - **`&tipo=cobranca_pareada&destino=oficial[&preview=1][&force=1]`** (v1.24, versão 35 ACTIVE) → **COBRANÇA PAREADA (humano + IA dele juntos)** — ISOLADA da cobrança padrão (`cobranca_dia`/manual segue intocada, caminho crítico não muda). Cobra quem falta palpite na FASE ATIVA parear cada humano com a IA parceira na mesma linha: `PARES={jessica:chatgpt, leo:chatgptleo, tonius:claudio, pepe:pepe_ia}`. ⚠️ **KAYFABE:** Vini/Ratazana00 **NÃO** pareia (o bot É o Ratazana00, `claude`, e nunca cobra o próprio palpite) → Vini é cobrado solo, como Du/Mano/Yuri/Gi (sem IA). Se faltam os dois, cobra juntos ("Jeca, falta o teu e o da tua IA"); só o humano → cobra ele; só a IA → avisa que ele precisa lançar o palpite dela. Só dispara se faltar alguém (humano OU IA dele) — senão `nao_enviado`, sem envio. Marca os humanos de verdade (`@<tel>` + `mentions`); a IA é citada só pelo nome. Linha final `📋 Intimação oficial do fiscal:` com as marcações. Governança = `cobranca_dia` (idempotente 1x/dia por destino via `jaRodouHoje` + respeita o teto via `contaEnviadasHoje`; pulada no `preview`). `enviaEmPartes` com `sanitiza=true`. `preview=1` devolve sem enviar (campo `devendo` lista quem/qual IA falta); `force=1` ignora só a idempotência. **Validada com réplica local + PREVIEW REAL ao vivo** (token do Vini) contra os dados das semis: pareou Jeca (+ChatGPT Jeca) e Pepe (+Pepe IA), solo Mano/Vini/Gi, Leo/Tonius em dia; Ratazana00 estava devendo mas NÃO apareceu (kayfabe ok). Cron temporário das semis: `ratazana-semis-cobr-ter`/`-qua` (13:01 UTC ter+qua).
   - `&tipo=fechar_placar&jogo=<id>&finished=1&real_a=N&real_b=N[&classificado=A|B][&env=dev]`
     → **ÚNICA via de escrita do placar final** (roda com service role). `finished=0` reabre
     (só destrava; mantém placar). Valida server-side: empate exige `classificado`; recusa
@@ -802,6 +812,49 @@ o banco.
 
 ## 15. Pendências abertas (jul/2026)
 
+-18. **✅ v1.24 DEPLOYADA (14/07/2026 madrugada, commit `6740458`, versão 35
+   ACTIVE) — leva das SEMIS: modo `cobranca_pareada` + app abre em semis +
+   SQL de cron pronto:**
+   - **Fase ativa `semis`** confirmada via REST (`[{"value":"semis"}]`) — a
+     transição automática da v1.19 já havia avançado quartas→semis. Confrontos
+     `sf_1` França × Espanha (14/07 16h Dallas, ×1,75, sem turbo/zebra) e `sf_2`
+     Inglaterra × Argentina (15/07 16h Atlanta, TURBO ×3,5, sem zebra).
+   - **Filtro do app abre em SEMIS** — merge CIRÚRGICO só do `index.html`
+     (`git checkout ratazana -- index.html` em cima da `main`, 1 linha:
+     `mmPhaseFilter 'quartas'→'semis'`), commit `6960462` na `main`, safepoint
+     `v25-prod-pre-semis-filtro` criado ANTES. Optei por NÃO fazer merge
+     wholesale `ratazana`→`main` (o diff era 2261 linhas de Edge Function +
+     CLAUDE.md + SQL, tudo trabalho de bot com "reteste pendente" e que deploya
+     à parte do Cloudflare) — só a linha do filtro precisava chegar em produção.
+     Admin já abria em semis sozinho (`pickSmartDefaultPhase`) — nada a mudar lá.
+   - **Modo `cobranca_pareada` (ver §13)** — construído ISOLADO da cobrança
+     padrão (não toquei em `cobranca_dia`/manual — caminho crítico, Vini em
+     viagem). Pares humano+IA na mesma linha; Vini/Ratazana00 fora dos pares
+     (kayfabe). **Validado em 2 camadas:** (1) réplica local da lógica de
+     pendência contra os palpites reais das semis; (2) **PREVIEW REAL ao vivo**
+     com o token do Vini (`&tipo=cobranca_pareada&destino=oficial&preview=1`,
+     não envia) — a IA gerou a cobrança pareando Jeca (+ChatGPT Jeca) e Pepe
+     (+Pepe IA), solo Mano/Vini/Gi, marcou os 5 humanos de verdade, e
+     Ratazana00 (que ESTÁ devendo palpite das semis) NÃO apareceu. Kayfabe ok.
+   - **SQL das semis (`scratchpad/semis_cron.sql`, token embutido) — AÇÃO DO
+     VINI: colar no SQL Editor e rodar.** 6 blocos: (1) msg fixa Fra×Esp ter
+     13:00 UTC via `enviar_texto` POST; (2) msg fixa Ing×Arg qua 13:00 UTC;
+     (3+4) `cobranca_pareada` ter+qua 13:01 UTC (só envia se faltar alguém);
+     (5) (re)cria e ATIVA `ratazana-ultima-chamada` (a cada 5min; a função só
+     dispara na janela T-1h antes do jogo, pega os dois às 16h = janela
+     ~18:00 UTC); (6) limpeza qua 23:00 UTC (remove os jobs temporários das
+     semis, RE-PAUSA a última chamada, remove a si mesma) + SELECT final dos
+     jobs `ratazana%`. Dollar-quoting: `$job$` no comando do cron, `$msg$` no
+     texto (asteriscos/emojis/quebras), `$clean$`+`$do$` no bloco de limpeza.
+   - ⚠️ **Conferir na listagem final** se os jobs permanentes `agenda`/
+     `cobranca-diaria` estão `active=false` (pausados). Se estiverem `true`,
+     ter/qua sairiam agenda 12:00 + cobrança padrão 12:01 ALÉM das msgs das
+     semis (13:00) + cobrança pareada (13:01) — dobraria cobrança e comeria o
+     teto diário (4). O SELECT do bloco 7 mostra o estado de todos.
+   - **Deploy:** versão 34 → 35, ACTIVE, `verify_jwt:false`, via API do
+     dashboard (fetch de dentro da página logada do Chrome; token OAuth do
+     localStorage), fonte = GitHub raw do commit `6740458` (conferido conter
+     `cobranca_pareada` antes de subir). 401 próprio confirmado.
 -17. **✅ v1.21.2 DEPLOYADA (08/07/2026 madrugada, commit `3bdb442`, versão 31
    ACTIVE) — a conversa não recebia a rodada ativa e o modelo inferia errado:**
    - **Incidente:** 00:34 de 08/07, no grupo de TESTE, Vini marcou "@Ratazana
