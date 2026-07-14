@@ -2631,6 +2631,134 @@ Deno.serve(async (req: Request) => {
     }
   }
 
+  // ─── Modo COBRANÇA PAREADA (v1.24 — humano + IA dele juntos) ─────────────────
+  // ?tipo=cobranca_pareada&destino=oficial[&preview=1][&force=1]
+  // ISOLADO da cobrança padrão (cobranca_dia/manual segue intocada): cobra quem
+  // falta palpite na FASE ATIVA, mas parear humano + IA correspondente na mesma
+  // linha. Pares: Jeca/ChatGPT Jeca, Leo/ChatGPT Leo, Tonius/Claude Tonius,
+  // Pepe/Pepe IA. ⚠️ KAYFABE: Vini/Ratazana00 NÃO pareia — o bot é o Ratazana00
+  // e NUNCA cobra o próprio palpite; Vini é cobrado solo. Humanos sem par (Du,
+  // Mano, Yuri, Gi) também são solo. Só dispara se faltar alguém (humano OU a
+  // IA dele). Marca os humanos de verdade (@); a IA é citada só pelo nome.
+  // Governança igual à cobranca_dia: idempotente 1x/dia + respeita o teto.
+  if (url.searchParams.get("tipo") === "cobranca_pareada") {
+    const preview = url.searchParams.get("preview") === "1";
+    const forceCP = url.searchParams.get("force") === "1";
+    const logBase = { tipo: "cobranca_pareada", destino: preview ? "(preview, sem envio)" : "" };
+    let etapa = "consulta"; let userPrompt: string | null = null; let respostaIA: string | null = null; let modelo = MODELO_FALLBACK;
+    try {
+      const dst = grupoDestino(url);
+      const [confrontos, palpites, cfg, telefones] = await Promise.all([
+        sbGet("mata_confrontos?select=*"),
+        sbGet("mata_palpites?select=confronto_id,pid,gols_a,gols_b,quem_passa"),
+        sbGet("bot_config?key=in.(system_prompt_ratazana,modelo_ia,fase_ativa)&select=key,value"),
+        sbGet("bot_telefones?select=participante_id,nome_exibicao,genero,telefone_whatsapp,is_humano").catch(() => []),
+      ]);
+      const cfgMap: Record<string, string> = {};
+      for (const row of cfg) cfgMap[row.key] = row.value;
+      const systemPrompt = cfgMap["system_prompt_ratazana"];
+      modelo = (cfgMap["modelo_ia"] || "").trim() || MODELO_FALLBACK;
+      if (!systemPrompt) throw new Error("bot_config sem 'system_prompt_ratazana'");
+      const faseAtiva = faseCanonica(cfgMap["fase_ativa"] || "");
+      if (!faseAtiva) throw new Error(`fase_ativa inválida ("${cfgMap["fase_ativa"]}")`);
+
+      etapa = "pendencias";
+      const PAL: Record<string, Record<string, Conf>> = {};
+      for (const p of palpites) (PAL[p.confronto_id] ??= {})[p.pid] = p;
+      const teamsOf = makeResolver(confrontos);
+      const now = Date.now();
+      // jogos ABERTOS da fase ativa com kickoff no futuro (os que dá pra cobrar)
+      const abertos = confrontos
+        .filter((c: Conf) => !mmIsTest(c) && !c.finished && mmPhaseKeyOf(c.id) === faseAtiva)
+        .map((c: Conf) => ({ c, d: mmGameDate(c) }))
+        .filter((x: Conf) => x.d && x.d.getTime() > now)
+        .sort((a: Conf, b: Conf) => a.d.getTime() - b.d.getTime())
+        .map((x: Conf) => x.c);
+      if (!abertos.length) {
+        await botLog({ ...logBase, status_envio: "nao_enviado", erro: `sem jogo aberto de ${PH_LABEL[faseAtiva]} pra cobrar` });
+        return json({ ok: true, enviado: false, motivo: `sem jogo aberto de ${PH_LABEL[faseAtiva]}` });
+      }
+      // falta = tem algum jogo aberto da fase sem palpite completo
+      const faltaAlgum = (pid: string) => abertos.some((c: Conf) => !mmHasFullPred(PAL[c.id]?.[pid]));
+      // pares humano→IA (Vini FORA de propósito: kayfabe, o bot é o Ratazana00)
+      const PARES: Record<string, string> = { jessica: "chatgpt", leo: "chatgptleo", tonius: "claudio", pepe: "pepe_ia" };
+      const nomeDe = (pid: string) => MATA_PARTS_BOT.find((p) => p.id === pid)?.nome || pid;
+      const telDe = (pid: string) => {
+        const t = (telefones as Conf[]).find((x: Conf) => x.participante_id === pid);
+        return t?.telefone_whatsapp ? String(t.telefone_whatsapp).replace(/\D/g, "") : "";
+      };
+      const pend = [];
+      for (const h of HUMANOS) {
+        const humanoFalta = faltaAlgum(h.id);
+        const iaPid = PARES[h.id] || null;   // vinicius não está em PARES → sem IA cobrável
+        const iaFalta = iaPid ? faltaAlgum(iaPid) : false;
+        if (!humanoFalta && !iaFalta) continue;
+        pend.push({ pid: h.id, nome: h.nome, tel: telDe(h.id), humanoFalta, iaFalta, iaNome: iaPid ? nomeDe(iaPid) : null });
+      }
+      if (!pend.length && !forceCP) {
+        await botLog({ ...logBase, status_envio: "nao_enviado", erro: "todos (humanos e IAs pareadas) em dia — nada a cobrar" });
+        return json({ ok: true, enviado: false, motivo: "ninguém devendo" });
+      }
+
+      // governança igual cobranca_dia: idempotente 1x/dia + teto (pula PREVIEW)
+      if (!preview) {
+        const logsHoje = await botLogHoje();
+        const { ddmm } = limitesBrasiliaHojeISO();
+        const temJogoHoje = Object.values(MM_AGENDA).some((a: Conf) => a.dt === ddmm);
+        const teto = temJogoHoje ? TETO_MSGS_DIA_COM_JOGO : TETO_MSGS_DIA_SEM_JOGO;
+        if (!forceCP && jaRodouHoje(logsHoje, "cobranca_pareada", dst.destino)) {
+          return json({ ok: true, enviado: false, motivo: "já cobrado hoje" });
+        }
+        if (contaEnviadasHoje(logsHoje, dst.destino) >= teto) {
+          await botLog({ ...logBase, destino: `${dst.destino} (${dst.grupo})`, status_envio: "pulado_teto", erro: `teto diário atingido (${teto})` });
+          return json({ ok: true, enviado: false, motivo: `teto diário (${teto})` });
+        }
+      }
+
+      etapa = "monta_prompt";
+      const jogosTxt = abertos.map((c: Conf) => {
+        const t = teamsOf(c), i = mmInfo(c);
+        return `${t.a?.name || "A"} × ${t.b?.name || "B"} (${diaSemana(mmGameDate(c))} ${i.dt} às *${i.tm}*${MM_TURBO.has(c.id) ? " ⚡TURBO" : ""})`;
+      }).join("; ");
+      const pendTxt = pend.map((p) => {
+        if (p.humanoFalta && p.iaFalta) return `- ${p.nome}: falta o palpite DELE e o da IA dele (${p.iaNome})`;
+        if (p.humanoFalta) return `- ${p.nome}: falta o palpite dele${p.iaNome ? ` (a IA ${p.iaNome} já palpitou)` : ""}`;
+        return `- ${p.nome}: o palpite dele já entrou, mas a IA dele (${p.iaNome}) ainda NÃO palpitou`;
+      }).join("\n");
+      userPrompt =
+        `DADOS VERIFICADOS DO BOLÃO (cobrança de palpites, gerada em ${agoraBrasilia()}, horário de Brasília). Use somente estes dados.\n\n` +
+        `JOGOS ABERTOS DA FASE (${PH_LABEL[faseAtiva]}): ${jogosTxt}\n\n` +
+        `QUEM ESTÁ DEVENDO (cada participante joga com uma IA parceira; cobre os dois JUNTOS quando os dois faltam):\n${pendTxt}\n\n` +
+        `TAREFA: escreva a COBRANÇA de palpites pro grupo de WhatsApp, cutucando pelo nome quem está devendo. REGRA DA DUPLA: cada pessoa tem uma IA parceira — quando faltam os dois, cobre na MESMA linha (ex.: "Jeca, falta o teu palpite e o da tua IA"); quando falta só o humano, cobra só ele; quando falta só a IA dele, avisa que ele precisa lançar o palpite da IA dele. Cite os jogos pendentes com horário. Tom ácido de sempre, sem palavrão, calibre pelo gênero. NÃO use "@" (o sistema marca as pessoas). Inclua o link do bolão só se fizer sentido. Pode passar de 4-7 linhas se houver muita gente devendo, mas sem encher linguiça.`;
+
+      etapa = "anthropic";
+      const ia = await chamaIA(modelo, systemPrompt, userPrompt);
+      respostaIA = ia.texto;
+
+      etapa = "mencao";
+      const tokens: string[] = []; const mentions: string[] = [];
+      for (const p of pend) { if (p.tel) { tokens.push("@" + p.tel); mentions.push(p.tel); } }
+      let textoFinal = respostaIA;
+      if (tokens.length) textoFinal += "\n\n📋 Intimação oficial do fiscal: " + tokens.join(" ") + " — palpite pendente, tá no caderninho.";
+
+      if (preview) {
+        const partes = divideEmPartes(textoFinal);
+        await botLog({ ...logBase, prompt_enviado: userPrompt, resposta_ia: respostaIA, status_envio: "nao_enviado" });
+        return json({ ok: true, preview: true, enviado: false, fase: faseAtiva, devendo: pend.map((p) => ({ nome: p.nome, humanoFalta: p.humanoFalta, iaFalta: p.iaFalta, iaNome: p.iaNome, temTel: !!p.tel })), n_mensagens: partes.length, mensagens: partes, texto: textoFinal });
+      }
+
+      etapa = "zapzap";
+      logBase.destino = `${dst.destino} (${dst.grupo})`;
+      const envio = await enviaEmPartes(dst.grupo, textoFinal, mentions, true);
+      await botLog({ ...logBase, prompt_enviado: userPrompt, resposta_ia: respostaIA, mensagem_enviada: envio.partes.join("\n\n"), status_envio: envio.ok ? "ok" : "erro", erro: envio.ok ? null : envio.detalhe });
+      return json({ ok: envio.ok, enviado: envio.ok, fase: faseAtiva, destino: dst.destino, modelo, uso_tokens: ia.usage, devendo: pend.map((p) => p.nome), n_mensagens: envio.partes.length, mensagens: envio.partes, zapzap: envio.detalhe }, envio.ok ? 200 : 502);
+    } catch (e) {
+      const msg = String((e as Error)?.message || e);
+      await botLog({ ...logBase, prompt_enviado: userPrompt, resposta_ia: respostaIA, status_envio: "erro", erro: `[etapa: ${etapa}] ${msg}` });
+      return json({ ok: false, etapa, erro: msg }, 500);
+    }
+  }
+
   // ─── Modo AGENDA DO DIA (Fase 4 — pensado pra pg_cron às 9h) ────────────────
   // ?tipo=agenda&destino=teste|oficial[&env=dev][&force=1]
   // Painorama dos jogos de hoje (turbo/zebra) + o ÚNICO alerta de liderança
