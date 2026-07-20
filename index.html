@@ -3190,8 +3190,32 @@ function mmHowItWorksHTML(){
     ⏰ Palpite até a hora de cada jogo começar.</p>
   </div></details>`;
 }
+// ─── CLASSIFICAÇÃO FINAL (encerramento) — ranking OFICIAL do Bolão no topo ────
+// Copa encerrada: a home abre mostrando quem ganhou. Pódio + lista completa,
+// reaproveitando podium()/rkRow() com os pontos do mata (mataStats), que é o
+// ranking oficial do grupo (o Bolão Geral segue na aba Ranking como recorte).
+// Só aparece com o mata 100% encerrado; scope null = sem popup de estatísticas.
+function mmFinalRankingHTML(){
+  const reais=MM_CONFRONTOS.filter(c=>!mmIsTest(c));
+  if(!reais.length||!reais.every(c=>c.finished))return '';
+  const ranked=MATA_PARTS.map(p=>{const m=mataStats(p.id);return {...p,...m,avg:m.played?m.total/m.played:0};})
+    .sort((a,b)=>b.total-a.total||b.eHits-a.eHits||b.rHits-a.rHits);
+  const mx=Math.max(1,...ranked.map(s=>s.total));
+  let html=`<div class="section-title">🏆 CLASSIFICAÇÃO FINAL DO BOLÃO</div>`;
+  html+=podium(ranked,null);
+  html+=`<div class="lead-board">
+    <div class="lead-head">
+      <div class="lh-title">🏆 RANKING OFICIAL — COPA 2026</div>
+      <div class="lh-sub">Copa encerrada: Espanha bicampeã 🇪🇸 · o título do Bolão vale pelo mata-mata completo (16 avos à final)</div>
+    </div>`;
+  ranked.forEach((p,i)=>{html+=rkRow(p,i,mx,false,null,null);});
+  html+=`</div>`;
+  return html;
+}
+
 function renderMata(){
-  let html=mmNextGamesHTML()+mmMataRankingHTML()+mmHowItWorksHTML();
+  const fimHtml=mmFinalRankingHTML();   // Copa encerrada → ranking oficial no topo (e marquee sai, é redundante)
+  let html=fimHtml+mmNextGamesHTML()+(fimHtml?'':mmMataRankingHTML())+mmHowItWorksHTML();
   html+=`<div id="mm-bracket-section">${mmBracketSectionHTML()}</div>`;   // chave (não afetada pelo filtro)
   // título da seção de palpites (3.8): marca onde termina o chaveamento e começam os palpites
   html+=`<div class="mm-sec-head mm-list-title"><span class="mm-sec-title">🎯 Palpites de placares</span></div>`;
