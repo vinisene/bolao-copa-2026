@@ -1,5 +1,34 @@
 # CLAUDE.md
 
+> ## 🏁 LEIA PRIMEIRO — COPA ENCERRADA (19/07/2026, noite)
+> **A Copa 2026 ACABOU: Espanha bicampeã (1x0 na Argentina, prorrogação, gol de
+> Ferran Torres, MetLife Stadium). CAMPEÃO DO BOLÃO: ChatGPT Leo, 520,25 pontos**
+> (2º Ratazana00 507,5 · 3º Claude Tonius 492 · 4º Tonius 480,25 · 5º Vini 474,25 ·
+> 6º Jeca 451,5 · 7º Leo 405,5 · 8º ChatGPT Jeca 385 · 9º Du 328,25 · 10º Yuri
+> 250,25 · 11º Mano 200,75 · 12º Pepe IA 198,5 · 13º Pepe 193,25 · 14º Gi 183,25 —
+> validado em 3 camadas: funções do app em produção + display do site + recálculo
+> independente do mata via REST; sem empates, critério 1224 não precisou agir).
+> O que foi feito na leva de encerramento (19/07, noite):
+> - **Mensagem de encerramento ENVIADA no grupo oficial** (enviar_texto, 3 partes
+>   via blocos `---`, bot_log 274 ok): resultado da final + ranking completo +
+>   frase do campeão + despedida do personagem.
+> - **Persona MODO PÓS-COPA aplicada** em `bot_config`+`dev_bot_config` (md5
+>   conferido; seed sincronizado em `supabase_bot.sql`; changelog em
+>   `bot/RATAZANA-ALMA.md` v1.7): Copa sempre no passado, NUNCA mais cobrar
+>   palpite, fatos canônicos da final (Argentina ZERO chutes no gol etc.),
+>   ranking final canônico (2º lugar grafado "VOCÊ, o Ratazana" — nunca
+>   "Ratazana00"), tom de veterano, futuro sem promessa (kayfabe intacta).
+>   **Conversa segue LIGADA no oficial** (`captura_ativa_oficial`/
+>   `conversa_ativa_oficial` = 1) — o Ratazana continua respondendo menção/reply.
+> - **Automações aposentadas:** jobs temporários `ratazana-final-*` removidos do
+>   pg_cron; `ratazana-agenda-diaria`/`ratazana-cobranca-diaria`/
+>   `ratazana-ultima-chamada` seguem existindo PAUSADOS (active=false).
+> - Sem merge pra `main` e sem deploy de função nesta leva (só dados/jobs +
+>   commits na `ratazana`). Filtro da home segue `mmPhaseFilter='semis'` no
+>   código (decisão pendente do Vini; irrelevante com a Copa encerrada).
+> - 🔐 Pendência de sempre: rotacionar `BOT_TRIGGER_TOKEN` e o token do GitHub.
+> Handoff anterior (semis) preservado abaixo.
+
 > ## 🚨 LEIA PRIMEIRO — handoff SEMIS (14/07/2026, madrugada)
 > **No ar: Robô v1.24 (commit `6740458`, versão 35 no Supabase, ACTIVE, verify_jwt off).** Leva das SEMIFINAIS:
 > - **Fase ativa = `semis`** (confirmado via REST; a transição automática da v1.19 já tinha avançado quartas→semis). Confrontos: `sf_1` França × Espanha (14/07 16h Dallas, ×1,75) · `sf_2` Inglaterra × Argentina (15/07 16h Atlanta, **TURBO ×3,5**). Sem zebra em nenhuma das duas.
