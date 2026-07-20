@@ -29,17 +29,19 @@
 > - **Automações aposentadas:** jobs temporários `ratazana-final-*` removidos do
 >   pg_cron; `ratazana-agenda-diaria`/`ratazana-cobranca-diaria`/
 >   `ratazana-ultima-chamada` seguem existindo PAUSADOS (active=false).
-> - **HOME = CLASSIFICAÇÃO FINAL (20/07):** a home abre com pódio + ranking
->   OFICIAL do mata completo (`mmFinalRankingHTML` no topo do `renderMata`,
->   reusando `podium`/`rkRow` com `mataStats`; marquee sai quando ela renderiza;
->   guarda: só aparece com o mata 100% fechado). Antes disso, filtro da home e
->   fallback do admin já tinham ido pra FINAL. Merges cirúrgicos pra `main` com
->   autorização do Vini: `46b72ff` (safepoint `v26-prod-pre-home-final`) e
->   `08908de` (safepoint `v27-prod-pre-home-ranking`) — confirmados ao vivo em
->   produção (pódio Du/ChatGPT Leo/Ratazana00, 14 linhas). ⚠️ O banco DEV
->   (`dev_mata_*`) está DESATUALIZADO (quartas+ abertas lá) — a seção nova não
->   aparece no preview DEV até alguém rodar o Espelhar prod→dev (o classificador
->   bloqueia a automação de rodar o espelho; testei com simulação em memória).
+> - **HOME = ABA RANKING (20/07, decisão final do Vini):** a home abre direto na
+>   aba **Ranking** (`activeTab='ranking'` + classes `.active` estáticas do nav
+>   e das divs de aba trocadas JUNTAS), que já abre no recorte "Mata-Mata" (o
+>   ranking oficial: pódio Du/ChatGPT Leo/Ratazana00). A 1ª tentativa (seção
+>   `mmFinalRankingHTML` DENTRO da aba Mata-mata, merge `08908de`/safepoint
+>   `v27-prod-pre-home-ranking`) foi REVERTIDA a pedido do Vini (revert
+>   `5fd3236`) — não recriar. Histórico dos merges cirúrgicos (só `index.html`,
+>   sempre com autorização): `46b72ff` filtro/admin na FINAL (`v26-prod-pre-
+>   home-final`) · `ae041ed` aba Ranking como home + revert (`v28-prod-pre-
+>   home-aba-ranking`) — confirmado ao vivo em produção. ⚠️ O banco DEV
+>   (`dev_mata_*`) segue DESATUALIZADO (quartas+ abertas lá) — números do
+>   preview DEV ficam tortos até alguém rodar o Espelhar prod→dev (o
+>   classificador bloqueia a automação de rodar o espelho).
 > - 🔐 Pendência de sempre: rotacionar `BOT_TRIGGER_TOKEN` e o token do GitHub.
 > Handoff anterior (semis) preservado abaixo.
 
