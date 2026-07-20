@@ -939,15 +939,15 @@ span.rr-finish{cursor:default;}   /* selo de estado (jogo fechado), não é mais
 <nav>
   <img class="nav-rat" src="Imagens/logo-bolao-transparene.png" alt="" onclick="location.href='/'" onerror="this.style.display='none'">
   <div class="seg">
-    <button class="active" onclick="showTab('mata')" data-tab="mata"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h4"/><path d="M3 9h4"/><path d="M7 4v5"/><path d="M7 6.5h4"/><path d="M3 15h4"/><path d="M3 20h4"/><path d="M7 15v5"/><path d="M7 17.5h4"/><path d="M11 6.5v11"/><path d="M11 12h5"/><circle cx="18.5" cy="12" r="2.5"/></svg></span><span class="nav-lbl">Mata-mata</span></button>
-    <button onclick="showTab('ranking')" data-tab="ranking"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v1a3 3 0 0 0 3 3"/><path d="M17 6h3v1a3 3 0 0 1-3 3"/><path d="M12 14v3"/><path d="M9.5 20.5h5l-.6-3h-3.8z"/></svg></span><span class="nav-lbl">Ranking</span></button>
+    <button onclick="showTab('mata')" data-tab="mata"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h4"/><path d="M3 9h4"/><path d="M7 4v5"/><path d="M7 6.5h4"/><path d="M3 15h4"/><path d="M3 20h4"/><path d="M7 15v5"/><path d="M7 17.5h4"/><path d="M11 6.5v11"/><path d="M11 12h5"/><circle cx="18.5" cy="12" r="2.5"/></svg></span><span class="nav-lbl">Mata-mata</span></button>
+    <button class="active" onclick="showTab('ranking')" data-tab="ranking"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v1a3 3 0 0 0 3 3"/><path d="M17 6h3v1a3 3 0 0 1-3 3"/><path d="M12 14v3"/><path d="M9.5 20.5h5l-.6-3h-3.8z"/></svg></span><span class="nav-lbl">Ranking</span></button>
   </div>
 </nav>
 <main>
   <div id="error-banner" class="error-banner" style="display:none"></div>
-  <div id="tab-mata" class="tab active"></div>
+  <div id="tab-mata" class="tab"></div>
   <div id="tab-palpites" class="tab"></div>
-  <div id="tab-ranking" class="tab"></div>
+  <div id="tab-ranking" class="tab active"></div>
 </main>
 
 <script>
@@ -1240,7 +1240,7 @@ let filterMode=localStorage.getItem('bf')||'all';   // padrão "Todos"
 // Pendentes/Finalizados foram tirados da UI (Etapa 3/4): se vier um desses valores (ou nomes antigos), cai pra 'all'.
 if(['pending','finished','missing'].includes(filterMode))filterMode='all';
 if(filterMode==='removed')filterMode='naocons';   // migração de nome antigo
-let activeTab='mata';   // home padrão = Mata-mata (em qualquer ambiente)
+let activeTab='ranking';   // home padrão = Ranking (encerramento: quem abre já vê quem ganhou)
 
 function setFilter(f){filterMode=f;localStorage.setItem('bf',f);renderPalpites();}
 
@@ -3190,32 +3190,8 @@ function mmHowItWorksHTML(){
     ⏰ Palpite até a hora de cada jogo começar.</p>
   </div></details>`;
 }
-// ─── CLASSIFICAÇÃO FINAL (encerramento) — ranking OFICIAL do Bolão no topo ────
-// Copa encerrada: a home abre mostrando quem ganhou. Pódio + lista completa,
-// reaproveitando podium()/rkRow() com os pontos do mata (mataStats), que é o
-// ranking oficial do grupo (o Bolão Geral segue na aba Ranking como recorte).
-// Só aparece com o mata 100% encerrado; scope null = sem popup de estatísticas.
-function mmFinalRankingHTML(){
-  const reais=MM_CONFRONTOS.filter(c=>!mmIsTest(c));
-  if(!reais.length||!reais.every(c=>c.finished))return '';
-  const ranked=MATA_PARTS.map(p=>{const m=mataStats(p.id);return {...p,...m,avg:m.played?m.total/m.played:0};})
-    .sort((a,b)=>b.total-a.total||b.eHits-a.eHits||b.rHits-a.rHits);
-  const mx=Math.max(1,...ranked.map(s=>s.total));
-  let html=`<div class="section-title">🏆 CLASSIFICAÇÃO FINAL DO BOLÃO</div>`;
-  html+=podium(ranked,null);
-  html+=`<div class="lead-board">
-    <div class="lead-head">
-      <div class="lh-title">🏆 RANKING OFICIAL — COPA 2026</div>
-      <div class="lh-sub">Copa encerrada: Espanha bicampeã 🇪🇸 · o título do Bolão vale pelo mata-mata completo (16 avos à final)</div>
-    </div>`;
-  ranked.forEach((p,i)=>{html+=rkRow(p,i,mx,false,null,null);});
-  html+=`</div>`;
-  return html;
-}
-
 function renderMata(){
-  const fimHtml=mmFinalRankingHTML();   // Copa encerrada → ranking oficial no topo (e marquee sai, é redundante)
-  let html=fimHtml+mmNextGamesHTML()+(fimHtml?'':mmMataRankingHTML())+mmHowItWorksHTML();
+  let html=mmNextGamesHTML()+mmMataRankingHTML()+mmHowItWorksHTML();
   html+=`<div id="mm-bracket-section">${mmBracketSectionHTML()}</div>`;   // chave (não afetada pelo filtro)
   // título da seção de palpites (3.8): marca onde termina o chaveamento e começam os palpites
   html+=`<div class="mm-sec-head mm-list-title"><span class="mm-sec-title">🎯 Palpites de placares</span></div>`;
@@ -3300,7 +3276,7 @@ document.body.setAttribute('data-tab',activeTab);   // estado inicial das abas d
   window.addEventListener('resize',updBars);
   updBars();
 })();
-loadData();   // home padrão = Mata-mata (definido em activeTab e nas classes .active estáticas)
+loadData();   // home padrão = Ranking (definido em activeTab e nas classes .active estáticas)
 </script>
 </body>
 </html>
