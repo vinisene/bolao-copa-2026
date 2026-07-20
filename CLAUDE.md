@@ -2,22 +2,28 @@
 
 > ## 🏁 LEIA PRIMEIRO — COPA ENCERRADA (19/07/2026, noite)
 > **A Copa 2026 ACABOU: Espanha bicampeã (1x0 na Argentina, prorrogação, gol de
-> Ferran Torres, MetLife Stadium). CAMPEÃO DO BOLÃO: ChatGPT Leo, 520,25 pontos**
-> (2º Ratazana00 507,5 · 3º Claude Tonius 492 · 4º Tonius 480,25 · 5º Vini 474,25 ·
-> 6º Jeca 451,5 · 7º Leo 405,5 · 8º ChatGPT Jeca 385 · 9º Du 328,25 · 10º Yuri
-> 250,25 · 11º Mano 200,75 · 12º Pepe IA 198,5 · 13º Pepe 193,25 · 14º Gi 183,25 —
-> validado em 3 camadas: funções do app em produção + display do site + recálculo
-> independente do mata via REST; sem empates, critério 1224 não precisou agir).
+> Ferran Torres, MetLife Stadium).**
+> **RANKING OFICIAL do Bolão = SÓ MATA-MATA. CAMPEÃO: Du, 328,25 pontos**
+> (2º ChatGPT Leo 289,25 · 3º Ratazana00 277,5 · 4º Vini 277,25 · 5º Tonius
+> 272,25 · 6º Jeca 261,5 · 7º Yuri 250,25 · 8º Claude Tonius 241 · 9º Leo 209,5 ·
+> 10º Mano 200,75 · 11º Pepe IA 198,5 · 12º Pepe 193,25 · 13º Gi 183,25 ·
+> 14º ChatGPT Jeca 173 — validado contra o display do site em produção + funções
+> do app + recálculo independente via REST; sem empates). O recorte "Bolão
+> Geral" (grupos+mata, 8 originais; ChatGPT Leo na frente com 520,25) é
+> estatística SECUNDÁRIA — não é o ranking oficial do grupo.
 > O que foi feito na leva de encerramento (19/07, noite):
-> - **Mensagem de encerramento ENVIADA no grupo oficial** (enviar_texto, 3 partes
->   via blocos `---`, bot_log 274 ok): resultado da final + ranking completo +
->   frase do campeão + despedida do personagem.
+> - **Mensagens de encerramento ENVIADAS no grupo oficial** (enviar_texto):
+>   ranking oficial do mata + frase do campeão (bot_log 275 ok) e despedida do
+>   personagem (bot_log 276 ok). ⚠️ Regra editorial: houve uma 1ª leva com o
+>   ranking do recorte Geral que o Vini APAGOU no WhatsApp — o personagem NUNCA
+>   menciona erro/correção/reenvio; pro Ratazana só existe o ranking oficial.
 > - **Persona MODO PÓS-COPA aplicada** em `bot_config`+`dev_bot_config` (md5
 >   conferido; seed sincronizado em `supabase_bot.sql`; changelog em
->   `bot/RATAZANA-ALMA.md` v1.7): Copa sempre no passado, NUNCA mais cobrar
->   palpite, fatos canônicos da final (Argentina ZERO chutes no gol etc.),
->   ranking final canônico (2º lugar grafado "VOCÊ, o Ratazana" — nunca
->   "Ratazana00"), tom de veterano, futuro sem promessa (kayfabe intacta).
+>   `bot/RATAZANA-ALMA.md` v1.7 e v1.7.1): Copa sempre no passado, NUNCA mais
+>   cobrar palpite, fatos canônicos da final (Argentina ZERO chutes no gol
+>   etc.), ranking canônico = OFICIAL do mata (Du campeão; 3º lugar grafado
+>   "VOCÊ, o Ratazana" — nunca "Ratazana00"; Geral só como estatística
+>   secundária), tom de veterano, futuro sem promessa (kayfabe intacta).
 >   **Conversa segue LIGADA no oficial** (`captura_ativa_oficial`/
 >   `conversa_ativa_oficial` = 1) — o Ratazana continua respondendo menção/reply.
 > - **Automações aposentadas:** jobs temporários `ratazana-final-*` removidos do

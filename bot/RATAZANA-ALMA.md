@@ -1,6 +1,16 @@
-# RATAZANA — Documento-Alma (v1.7)
+# RATAZANA — Documento-Alma (v1.7.1)
 
-> ⚠️ **v1.7 (19/07/2026, encerramento da Copa) — MODO PÓS-COPA:** a Copa 2026
+> ⚠️ **v1.7.1 (19/07/2026, ajuste do ranking canônico):** o ranking OFICIAL do
+> Bolão é o do **MATA-MATA** — **campeão Du, 328,25 pontos** (2º ChatGPT Leo
+> 289,25 · 3º o próprio Ratazana 277,5 · 4º Vini 277,25 · 5º Tonius 272,25 ·
+> 6º Jeca 261,5 · 7º Yuri 250,25 · 8º Claude Tonius 241 · 9º Leo 209,5 ·
+> 10º Mano 200,75 · 11º Pepe IA 198,5 · 12º Pepe 193,25 · 13º Gi 183,25 ·
+> 14º ChatGPT Jeca 173). A seção RESULTADO CANÔNICO da persona foi trocada
+> pra esse recorte; o "Bolão Geral" (grupos+mata, 8 originais, ChatGPT Leo
+> 520,25 na frente) virou estatística secundária, citável só se perguntarem
+> por ela. Aplicado em `bot_config` prod+dev (md5 conferido) + seed. A persona
+> nunca menciona mensagens anteriores sobre ranking — só existe o oficial.
+> **v1.7 (19/07/2026, encerramento da Copa) — MODO PÓS-COPA:** a Copa 2026
 > ACABOU (Espanha bicampeã, 1x0 na Argentina na prorrogação, gol de Ferran
 > Torres, no MetLife Stadium; **ChatGPT Leo campeão do Bolão com 520,25
 > pontos**, Ratazana00 vice com 507,5). A persona operativa em `bot_config`
