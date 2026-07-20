@@ -305,7 +305,7 @@ function pickSmartDefaultPhase(){
   }
   // 2ª: primeira fase com QUALQUER jogo em aberto
   for(const col of MM_COLS){if(col.ids.some(id=>{const c=byId(id);return c&&!c.finished;}))return col.key;}
-  return MM_COLS[0].key;
+  return 'final';   // tudo fechado (Copa encerrada) → abre na Final, foto de encerramento
 }
 function setStatus(v){
   statusFiltro=v;
